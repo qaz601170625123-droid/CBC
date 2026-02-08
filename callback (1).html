@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE 登入中...</title>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #0a0a0a;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 215, 0, 0.3);
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .error {
+            color: #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <div class="message" id="message">登入中，請稍候...</div>
+    </div>
+
+    <script>
+        const LINE_CHANNEL_ID = '2009077580';
+        const LINE_CHANNEL_SECRET = 'c1fd0ca81619aebd10f21e43f0a139fd';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
+
+        // 取得 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+
+        if (error) {
+            document.getElementById('message').textContent = '登入失敗：' + error;
+            document.getElementById('message').classList.add('error');
+            setTimeout(() => {
+                window.location.href = 'ecommerce-with-line-login.html';
+            }, 2000);
+        } else if (code) {
+            handleLineCallback(code);
+        } else {
+            document.getElementById('message').textContent = '登入參數錯誤';
+            document.getElementById('message').classList.add('error');
+        }
+
+        async function handleLineCallback(code) {
+            try {
+                // 步驟 1: 用 code 換取 access token
+                const tokenResponse = await fetch('https://api.line.me/oauth2/v2.1/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: 'http://127.0.0.1:5500/callback.html',
+                        client_id: LINE_CHANNEL_ID,
+                        client_secret: LINE_CHANNEL_SECRET
+                    })
+                });
+
+                if (!tokenResponse.ok) {
+                    throw new Error('取得 Token 失敗');
+                }
+
+                const tokenData = await tokenResponse.json();
+                const accessToken = tokenData.access_token;
+
+                // 步驟 2: 用 access token 取得使用者資料
+                const profileResponse = await fetch('https://api.line.me/v2/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!profileResponse.ok) {
+                    throw new Error('取得個人資料失敗');
+                }
+
+                const profile = await profileResponse.json();
+                
+                // 步驟 3: 儲存會員資料
+                const memberData = {
+                    lineId: profile.userId,
+                    displayName: profile.displayName,
+                    pictureUrl: profile.pictureUrl || '',
+                    statusMessage: profile.statusMessage || ''
+                };
+
+                // 儲存到 localStorage
+                localStorage.setItem('candyboss_member', JSON.stringify(memberData));
+
+                // 步驟 4: 儲存到 Google 試算表
+                document.getElementById('message').textContent = '儲存會員資料中...';
+                
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'saveMember',
+                        lineId: memberData.lineId,
+                        displayName: memberData.displayName,
+                        pictureUrl: memberData.pictureUrl
+                    })
+                });
+
+                // 步驟 5: 登入成功，跳回首頁
+                document.getElementById('message').textContent = '登入成功！';
+                setTimeout(() => {
+                    window.location.href = 'ecommerce-with-line-login.html';
+                }, 1000);
+
+            } catch (error) {
+                console.error('LINE 登入錯誤:', error);
+                document.getElementById('message').textContent = '登入失敗：' + error.message;
+                document.getElementById('message').classList.add('error');
+                setTimeout(() => {
+                    window.location.href = 'ecommerce-with-line-login.html';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
