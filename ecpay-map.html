@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>處理中...</title>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #0a0a0a;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 215, 0, 0.3);
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <div>門市資料處理中...</div>
+    </div>
+
+    <script>
+        // 取得 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 綠界回傳的門市資訊
+        const storeData = {
+            CVSStoreID: urlParams.get('CVSStoreID') || '',      // 門市代碼
+            CVSStoreName: urlParams.get('CVSStoreName') || '',  // 門市名稱
+            CVSAddress: urlParams.get('CVSAddress') || '',      // 門市地址
+            CVSTelephone: urlParams.get('CVSTelephone') || '',  // 門市電話
+        };
+
+        console.log('綠界回傳門市資料:', storeData);
+
+        // 儲存到 localStorage
+        if (storeData.CVSStoreID) {
+            localStorage.setItem('ecpay_store', JSON.stringify(storeData));
+            
+            // 回到主頁面
+            setTimeout(() => {
+                window.location.href = 'ecommerce-with-approval.html?store=selected';
+            }, 500);
+        } else {
+            // 沒有選擇門市，直接回主頁
+            setTimeout(() => {
+                window.location.href = 'ecommerce-with-approval.html';
+            }, 500);
+        }
+    </script>
+</body>
+</html>
