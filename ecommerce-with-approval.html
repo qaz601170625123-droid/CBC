@@ -9,6 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <!-- Crypto-JS for SHA256 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         // 強制清除快取
         if ('serviceWorker' in navigator) {
@@ -1867,18 +1869,93 @@ function toggleStoreSelector() {
 }
 
 function openStoreMap() {
-    const storeName = prompt('請輸入 7-11 門市名稱:');
-    const storeAddress = prompt('請輸入門市地址:');
+    // 綠界 7-11 地圖選擇
+    openECPayMap();
+}
+
+// ==========================================
+// 綠界地圖整合
+// ==========================================
+
+const ECPAY_CONFIG = {
+    MerchantID: '3490304',
+    HashKey: 'O7MpUtX9Inc7e4Ud',
+    HashIV: 'B6BxB56xLdGv4fBd',
+    MapURL: 'https://logistics.ecpay.com.tw/Express/map'
+};
+
+function openECPayMap() {
+    // 產生訂單編號（用於識別）
+    const tempOrderNo = 'TEMP' + Date.now();
     
-    if (storeName && storeAddress) {
-        selectedStore = {
-            name: storeName,
-            address: storeAddress
-        };
-        document.getElementById('selectedStore').style.display = 'block';
-        document.getElementById('storeName').textContent = selectedStore.name;
-        document.getElementById('storeAddress').textContent = selectedStore.address;
+    // 動態取得當前路徑
+    const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const serverReplyURL = `${window.location.origin}${pathPrefix}ecpay-map.html`;
+    
+    // 綠界地圖參數
+    const params = {
+        MerchantID: ECPAY_CONFIG.MerchantID,
+        MerchantTradeNo: tempOrderNo,
+        LogisticsType: 'CVS',
+        LogisticsSubType: 'UNIMART',  // 7-11
+        IsCollection: 'N',
+        ServerReplyURL: serverReplyURL,
+        ExtraData: '',
+        Device: /Mobi|Android/i.test(navigator.userAgent) ? '1' : '0'
+    };
+    
+    // 產生 CheckMacValue
+    params.CheckMacValue = generateCheckMacValue(params);
+    
+    // 建立表單並提交
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = ECPAY_CONFIG.MapURL;
+    form.target = '_blank';
+    
+    for (const key in params) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
     }
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    
+    showToast('請在新視窗中選擇門市');
+}
+
+function generateCheckMacValue(params) {
+    // 排除 CheckMacValue
+    const sortedParams = Object.keys(params)
+        .filter(key => key !== 'CheckMacValue')
+        .sort()
+        .map(key => `${key}=${params[key]}`)
+        .join('&');
+    
+    // 加上 HashKey 和 HashIV
+    const rawString = `HashKey=${ECPAY_CONFIG.HashKey}&${sortedParams}&HashIV=${ECPAY_CONFIG.HashIV}`;
+    
+    // URL encode（綠界特殊規則）
+    let encoded = encodeURIComponent(rawString);
+    encoded = encoded.replace(/%2d/gi, '-');
+    encoded = encoded.replace(/%5f/gi, '_');
+    encoded = encoded.replace(/%2e/gi, '.');
+    encoded = encoded.replace(/%21/gi, '!');
+    encoded = encoded.replace(/%2a/gi, '*');
+    encoded = encoded.replace(/%28/gi, '(');
+    encoded = encoded.replace(/%29/gi, ')');
+    encoded = encoded.replace(/%20/g, '+');
+    
+    // 轉小寫
+    encoded = encoded.toLowerCase();
+    
+    // SHA256 hash
+    const hash = CryptoJS.SHA256(encoded).toString(CryptoJS.enc.Hex);
+    return hash.toUpperCase();
 }
 
 async function submitOrder() {
@@ -2350,6 +2427,33 @@ window.addEventListener('load', () => {
                 openProfileUpdateModal();
             }
         }, 500);
+    }
+    
+    // 檢查是否從綠界地圖回來
+    if (urlParams.get('store') === 'selected') {
+        const storeData = localStorage.getItem('ecpay_store');
+        if (storeData) {
+            const store = JSON.parse(storeData);
+            selectedStore = {
+                id: store.CVSStoreID,
+                name: store.CVSStoreName,
+                address: store.CVSAddress,
+                phone: store.CVSTelephone
+            };
+            
+            // 顯示選擇的門市
+            document.getElementById('selectedStore').style.display = 'block';
+            document.getElementById('storeName').textContent = selectedStore.name;
+            document.getElementById('storeAddress').textContent = selectedStore.address;
+            
+            // 清除 localStorage
+            localStorage.removeItem('ecpay_store');
+            
+            // 移除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            showToast('門市選擇成功！');
+        }
     }
 });
     </script>
