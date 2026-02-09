@@ -59,7 +59,7 @@
             
             // 動態取得主頁面路徑
             const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-same-window.html?store=selected`;
+            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-final.html?store=selected`;
             
             // 回到主頁面（同視窗直接跳轉）
             setTimeout(() => {
@@ -72,7 +72,7 @@
         } else {
             // 沒有選擇門市，回主頁
             const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-same-window.html`;
+            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-final.html`;
             
             setTimeout(() => {
                 window.location.href = mainPage;
