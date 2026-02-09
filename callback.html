@@ -136,11 +136,23 @@
                     })
                 });
 
-                // 步驟 5: 登入成功，跳回首頁
+                // 步驟 5: 檢查是否需要補充資料
                 document.getElementById('message').textContent = '登入成功！';
-                setTimeout(() => {
-                    window.location.href = 'ecommerce-with-line-login.html';
-                }, 1000);
+                
+                // 檢查會員是否已有電話
+                const needPhoneCheck = !memberData.phone || memberData.phone === '';
+                
+                if (needPhoneCheck) {
+                    // 需要補充電話，跳轉到補充資料頁面
+                    setTimeout(() => {
+                        window.location.href = 'ecommerce-with-approval.html?action=updateProfile';
+                    }, 1000);
+                } else {
+                    // 已有電話，直接跳回首頁
+                    setTimeout(() => {
+                        window.location.href = 'ecommerce-with-approval.html';
+                    }, 1000);
+                }
 
             } catch (error) {
                 console.error('LINE 登入錯誤:', error);
