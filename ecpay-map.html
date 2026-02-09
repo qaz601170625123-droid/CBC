@@ -57,14 +57,33 @@
         if (storeData.CVSStoreID) {
             localStorage.setItem('ecpay_store', JSON.stringify(storeData));
             
+            // 動態取得主頁面路徑
+            const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-with-approval-1.html?store=selected`;
+            
             // 回到主頁面
             setTimeout(() => {
-                window.location.href = 'ecommerce-with-approval.html?store=selected';
+                if (window.opener) {
+                    // 如果是彈出視窗，更新父視窗並關閉
+                    window.opener.location.href = mainPage;
+                    window.close();
+                } else {
+                    // 否則直接跳轉
+                    window.location.href = mainPage;
+                }
             }, 500);
         } else {
-            // 沒有選擇門市，直接回主頁
+            // 沒有選擇門市，回主頁
+            const pathPrefix = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+            const mainPage = `${window.location.origin}${pathPrefix}ecommerce-with-approval-1.html`;
+            
             setTimeout(() => {
-                window.location.href = 'ecommerce-with-approval.html';
+                if (window.opener) {
+                    window.opener.focus();
+                    window.close();
+                } else {
+                    window.location.href = mainPage;
+                }
             }, 500);
         }
     </script>
