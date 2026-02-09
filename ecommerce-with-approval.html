@@ -3,8 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CANDY BOSS - 購物商城</title>
+    <title>CANDY BOSS - 購物商城 v2.2</title>
+    <!-- 強制刷新快取 - 版本 2.2 - 移除會員名稱顯示 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <script>
+        // 強制清除快取
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -814,31 +828,73 @@
         }
 
         /* 響應式設計 */
-        @media (max-width: 360px) {
+        /* 手機版優化 (< 480px) */
+        @media (max-width: 480px) {
             .navbar {
                 padding: 8px 10px;
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
             }
 
             .logo {
-                font-size: 16px;
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
             }
 
             .nav-btn {
-                padding: 6px 10px;
-                font-size: 11px;
+                padding: 6px 12px;
+                font-size: 12px;
+                border-radius: 20px;
+                white-space: nowrap;
+                min-width: auto;
+            }
+
+            /* 會員資訊區 - 橫向緊湊排列 */
+            #memberInfo {
+                display: flex !important;
+                gap: 6px !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            #memberAvatar {
+                width: 30px !important;
+                height: 30px !important;
+                flex-shrink: 0;
+            }
+
+            /* LINE 登入按鈕 - 縮小 */
+            #lineLoginBtn {
+                padding: 0 !important;
+                background: none !important;
+                border: none !important;
+            }
+
+            #lineLoginBtn img {
+                height: 32px !important;
+                width: auto;
             }
 
             .section-title {
-                font-size: 18px;
+                font-size: 20px;
             }
 
             .container {
-                padding: 8px;
+                padding: 10px;
             }
 
             .products-grid {
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 12px;
             }
 
             .product-card {
@@ -846,15 +902,26 @@
             }
 
             .product-image {
-                height: 150px;
+                height: 180px;
             }
 
             .cart-float {
-                width: 55px;
-                height: 55px;
-                font-size: 24px;
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
                 bottom: 15px;
                 right: 15px;
+            }
+
+            /* 模態框優化 */
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+                padding: 15px;
+            }
+
+            .modal-title {
+                font-size: 18px;
             }
         }
 
@@ -1083,13 +1150,12 @@
     <!-- 導航列 -->
     <nav class="navbar">
         <div class="logo">🍬 CANDY BOSS</div>
-        <div class="nav-buttons">
-            <button class="nav-btn" id="lineLoginBtn" onclick="lineLogin()" style="display:block;">
+        <div class="nav-buttons" id="navButtons" style="display:none;">
+            <button class="nav-btn" id="lineLoginBtn" onclick="lineLogin()" style="display:none;">
                 <img src="https://developers.line.biz/media/line-login/btn_base.png" alt="LINE Login" style="height:40px;">
             </button>
             <div id="memberInfo" style="display:none; align-items:center; gap:10px;">
                 <img id="memberAvatar" src="" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
-                <span id="memberName" style="color:var(--primary); font-weight:700;"></span>
                 <button class="nav-btn" onclick="logout()">登出</button>
             </div>
             <button class="nav-btn" onclick="openOrderSearch()">📦 查詢訂單</button>
@@ -1261,6 +1327,37 @@
         </div>
     </div>
 
+    <!-- 會員補充資料彈窗 -->
+    <div class="modal" id="profileUpdateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📝 完善會員資料</div>
+            </div>
+            
+            <div style="padding: 20px 0; text-align: center; color: #999;">
+                <p style="margin-bottom: 20px;">歡迎！請補充以下資料，讓購物更便利</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📱 電話號碼 *</label>
+                <input type="tel" class="form-input" id="updatePhone" placeholder="例: 0912345678" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📧 Email（選填）</label>
+                <input type="email" class="form-input" id="updateEmail" placeholder="例: example@gmail.com">
+            </div>
+
+            <button class="submit-order-btn" onclick="submitProfileUpdate()">✅ 完成</button>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="skipProfileUpdate()" style="background: none; border: none; color: #999; text-decoration: underline; cursor: pointer; font-size: 14px;">
+                    暫時跳過
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast 提示 -->
     <div class="toast" id="toast"></div>
 
@@ -1384,10 +1481,19 @@ function displayProducts() {
         const maxPrice = Math.max(...specs.map(s => s.price));
         const totalStock = specs.reduce((sum, s) => sum + s.stock, 0);
         
+        // 修正圖片網址（自動補上 https://）
+        let imageUrl = product.image || '';
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            imageUrl = 'https://' + imageUrl;
+        }
+        if (!imageUrl) {
+            imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}`;
+        }
+        
         return `
             <div class="product-card" onclick="openSpecModal('${product.id}')">
                 <div class="product-image">
-                    <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}'">
+                    <img src="${imageUrl}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}'">
                 </div>
                 <div class="product-name">${product.name}</div>
                 <div class="product-price">$${minPrice}${minPrice !== maxPrice ? ` - $${maxPrice}` : ''}</div>
@@ -1470,7 +1576,16 @@ function selectSpec(index) {
     
     // 更新圖片
     const imageContainer = document.getElementById('specModalImage');
-    const imageUrl = spec.image || currentProduct.image;
+    let imageUrl = spec.image || currentProduct.image || '';
+    
+    // 自動補上 https://
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = 'https://' + imageUrl;
+    }
+    if (!imageUrl) {
+        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}`;
+    }
+    
     imageContainer.innerHTML = `<img src="${imageUrl}" alt="${spec.specName}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}'">`;
     
     // 更新價格和庫存顯示
@@ -1975,14 +2090,19 @@ function showLoginWall() {
     document.getElementById('pendingApproval').style.display = 'none';
     document.getElementById('rejectedApproval').style.display = 'none';
     document.getElementById('productsSection').style.display = 'none';
+    
+    // 隱藏所有導航按鈕
+    document.getElementById('navButtons').style.display = 'none';
 }
 
 function updateMemberUI() {
     if (currentMember) {
+        // 顯示導航按鈕區
+        document.getElementById('navButtons').style.display = 'flex';
         document.getElementById('lineLoginBtn').style.display = 'none';
         document.getElementById('memberInfo').style.display = 'flex';
         document.getElementById('memberAvatar').src = currentMember.pictureUrl || '';
-        document.getElementById('memberName').textContent = currentMember.displayName || '會員';
+        // 不顯示名稱
         
         // 根據審核狀態顯示不同內容
         const approvalStatus = currentMember.approvalStatus || '待審核';
@@ -2043,12 +2163,106 @@ async function checkApprovalStatus() {
 
 function logout() {
     if (confirm('確定要登出嗎？')) {
+        // 清除會員資料
         currentMember = null;
         localStorage.removeItem('candyboss_member');
-        showLoginWall();
+        
+        // 重置 UI
         document.getElementById('lineLoginBtn').style.display = 'block';
         document.getElementById('memberInfo').style.display = 'none';
+        
+        // 顯示登入牆，隱藏其他所有內容
+        document.getElementById('loginWall').style.display = 'flex';
+        document.getElementById('pendingApproval').style.display = 'none';
+        document.getElementById('rejectedApproval').style.display = 'none';
+        document.getElementById('productsSection').style.display = 'none';
+        
         showToast('已登出');
+        
+        // 為了確保，3秒後重新整理頁面
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+}
+
+// ==========================================
+// 會員資料更新
+// ==========================================
+
+function openProfileUpdateModal() {
+    document.getElementById('profileUpdateModal').classList.add('active');
+}
+
+function closeProfileUpdateModal() {
+    document.getElementById('profileUpdateModal').classList.remove('active');
+}
+
+async function submitProfileUpdate() {
+    const phone = document.getElementById('updatePhone').value.trim();
+    const email = document.getElementById('updateEmail').value.trim();
+    
+    // 驗證電話
+    if (!phone) {
+        showToast('請輸入電話號碼', 'error');
+        return;
+    }
+    
+    // 驗證電話格式（台灣手機號碼）
+    const phonePattern = /^09\d{8}$/;
+    if (!phonePattern.test(phone)) {
+        showToast('請輸入正確的手機號碼格式（例：0912345678）', 'error');
+        return;
+    }
+    
+    if (!currentMember) {
+        showToast('會員資料異常，請重新登入', 'error');
+        return;
+    }
+    
+    try {
+        showToast('更新中...', 'success');
+        
+        // 更新到 Google Sheets
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'saveMember',
+                lineId: currentMember.lineId,
+                displayName: currentMember.displayName,
+                pictureUrl: currentMember.pictureUrl,
+                phone: phone,
+                email: email
+            })
+        });
+        
+        // 更新本地資料
+        currentMember.phone = phone;
+        currentMember.email = email;
+        localStorage.setItem('candyboss_member', JSON.stringify(currentMember));
+        
+        // 關閉彈窗
+        closeProfileUpdateModal();
+        showToast('資料更新成功！');
+        
+        // 移除網址參數
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+    } catch (error) {
+        console.error('更新失敗:', error);
+        showToast('更新失敗，請稍後再試', 'error');
+    }
+}
+
+function skipProfileUpdate() {
+    if (confirm('跳過後，下單時需要手動輸入電話。\n\n確定要跳過嗎？')) {
+        closeProfileUpdateModal();
+        // 移除網址參數
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
@@ -2059,6 +2273,17 @@ window.addEventListener('load', () => {
     loadProductsData();
     updateCart();
     checkMemberStatus();
+    
+    // 檢查是否需要補充資料
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'updateProfile') {
+        // 延遲一下，等會員狀態載入完成
+        setTimeout(() => {
+            if (currentMember && (!currentMember.phone || currentMember.phone === '')) {
+                openProfileUpdateModal();
+            }
+        }, 500);
+    }
 });
     </script>
 </body>
