@@ -1,0 +1,3163 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CANDY BOSS - 購物商城 v2.4</title>
+    <!-- 強制刷新快取 - 版本 2.4 - 三層選擇：類別→口味→數量規格 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <!-- Crypto-JS for SHA256 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // 強制清除快取
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FFD700;
+            --secondary: #1a1a1a;
+            --bg-dark: #0a0a0a;
+            --text-light: #ffffff;
+            --text-muted: #999;
+            --accent-green: #00FF00;
+            --gradient-start: #FF6B9D;
+            --gradient-end: #C084FC;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+        }
+
+        /* 頂部導航 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            color: var(--secondary);
+        }
+
+        /* 主要容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 商品網格 */
+        .products-section {
+            margin-top: 30px;
+        }
+        
+        /* 主打商品區域 */
+        .featured-section {
+            margin-bottom: 50px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.08) 50%, rgba(255, 215, 0, 0.1) 100%);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 215, 0, 0.4);
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 主打商品背景動畫 */
+        .featured-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 215, 0, 0.05) 50%,
+                transparent 70%
+            );
+            animation: shimmer 3s linear infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .featured-title {
+            font-size: 36px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .featured-subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .featured-grid .product-card {
+            position: relative;
+            overflow: visible;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .featured-grid .product-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: rgba(255, 215, 0, 0.6);
+            box-shadow: 0 15px 40px rgba(255, 215, 0, 0.3);
+        }
+        
+        .featured-grid .product-card::before {
+            content: '⭐ 主打推薦';
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            padding: 6px 18px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(-5px) rotate(3deg); }
+        }
+        
+        /* 商品分類標籤 */
+        .category-tabs {
+            display: flex;
+            gap: 12px;
+            margin: 30px 0;
+            padding: 20px 0;
+            overflow-x: auto;
+            scrollbar-width: none; /* 隱藏滾動條 */
+            -ms-overflow-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .category-tabs::-webkit-scrollbar {
+            display: none; /* 隱藏滾動條 */
+        }
+        
+        .category-tab {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-size: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+        }
+        
+        .category-tab::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 215, 0, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .category-tab:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .category-tab:hover {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 140, 0, 0.15) 100%);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+            border-color: #FFA500;
+        }
+        
+        .category-tab.active {
+            background: linear-gradient(135deg, var(--primary) 0%, #FFA500 100%);
+            color: var(--secondary);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+            transform: scale(1.08);
+            border-color: var(--primary);
+        }
+        
+        .category-tab.active::before {
+            display: none;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        @supports not (grid-template-columns: repeat(auto-fill, minmax(250px, 1fr))) {
+            .products-grid {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            
+            .product-card {
+                flex: 1 1 250px;
+                max-width: 100%;
+            }
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .product-price {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .product-stock {
+            font-size: 14px;
+            color: var(--accent-green);
+            margin-bottom: 15px;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-to-cart-btn:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* 購物車浮動按鈕 */
+        .cart-float {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, #FFA500 100%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+
+        .cart-float:hover {
+            transform: scale(1.1);
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4444;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* 購物車側邊欄 */
+        .cart-sidebar {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100%;
+            background: var(--bg-dark);
+            border-left: 2px solid var(--primary);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .cart-sidebar.active {
+            right: 0;
+        }
+
+        .cart-header {
+            padding: 20px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .close-cart {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        .cart-items {
+            padding: 20px;
+        }
+
+        .cart-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .cart-item-name {
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .cart-item-price {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .cart-item-qty {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .qty-btn {
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .remove-item {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .cart-footer {
+            padding: 20px;
+            border-top: 2px solid var(--primary);
+        }
+
+        .cart-total {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* 彈窗共用樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            padding: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* 規格選擇模態框 */
+        .spec-header-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        
+        .spec-image {
+            width: 50%;
+            height: 150px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .spec-info-display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+        }
+        
+        .spec-info-price {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1.2;
+            text-align: center;
+        }
+        
+        .spec-info-stock {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-align: center;
+        }
+
+        .spec-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .spec-options {
+            margin-bottom: 10px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 5px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 6px;
+            align-content: start;
+        }
+
+        .spec-options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .spec-options::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .spec-options::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .spec-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .spec-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 45px;
+        }
+
+        .spec-option:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary), 0 0 20px rgba(255, 215, 0, 0.4);
+            background: rgba(255, 215, 0, 0.08);
+        }
+
+        .spec-option.selected {
+            border-color: var(--primary);
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 0 1px var(--primary), 0 0 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .spec-option.out-of-stock {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .spec-option.out-of-stock:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spec-name {
+            font-weight: 700;
+            line-height: 1.3;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .spec-stock.low {
+            color: #ff9900;
+        }
+
+        .spec-stock.out {
+            color: #ff4444;
+        }
+
+        .quantity-selector {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .quantity-label {
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .quantity-btn {
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .quantity-display {
+            font-size: 24px;
+            font-weight: 700;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .add-to-cart-modal-btn {
+            width: 100%;
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .add-to-cart-modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 結帳表單 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            color: var(--text-light);
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .store-selector {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .store-selector.active {
+            display: block;
+        }
+
+        .store-select-btn {
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .selected-store {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .submit-order-btn {
+            width: 100%;
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* 訂單查詢 */
+        .order-result {
+            display: none;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .tracking-link {
+            display: inline-block;
+            background: var(--primary);
+            color: var(--secondary);
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        /* Toast 提示 */
+        .toast {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: var(--accent-green);
+            color: var(--secondary);
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 700;
+            z-index: 3000;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #ff4444;
+            color: white;
+        }
+
+        /* 登入牆樣式 */
+        .login-wall {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .login-wall-content {
+            text-align: center;
+            max-width: 450px;
+            width: 100%;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
+            padding: 60px 40px;
+            border-radius: 24px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .login-wall-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .login-wall-content h2 {
+            font-size: 28px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: 900;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .login-wall-content p {
+            font-size: 16px;
+            color: #ccc;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .login-wall-btn {
+            background: #06C755;
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(6, 199, 85, 0.3);
+        }
+
+        .login-wall-btn:hover {
+            background: #05B34A;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 199, 85, 0.4);
+        }
+
+        .login-wall-btn:active {
+            transform: translateY(0);
+        }
+        
+        .line-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #06C755;
+            font-size: 16px;
+        }
+
+        /* 審核狀態樣式 */
+        .approval-status {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .approval-content {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 60px 40px;
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+        }
+
+        .approval-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .approval-content h2 {
+            font-size: 28px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: 900;
+        }
+
+        .approval-content p {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        /* 動畫效果 */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .animate-pulse {
+            animation: pulse 0.5s ease;
+        }
+
+        /* 響應式設計 */
+        /* 手機版優化 (< 480px) */
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 8px 10px;
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
+
+            .logo {
+                font-size: 18px;
+                text-align: center;
+            }
+
+            .nav-buttons {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .nav-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                border-radius: 20px;
+                white-space: nowrap;
+                min-width: auto;
+            }
+
+            /* 會員資訊區 - 橫向緊湊排列 */
+            #memberInfo {
+                display: flex !important;
+                gap: 6px !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            #memberAvatar {
+                width: 30px !important;
+                height: 30px !important;
+                flex-shrink: 0;
+            }
+
+            /* LINE 登入按鈕 - 縮小 */
+            #lineLoginBtn {
+                padding: 0 !important;
+                background: none !important;
+                border: none !important;
+            }
+
+            #lineLoginBtn img {
+                height: 32px !important;
+                width: auto;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .product-card {
+                padding: 12px;
+            }
+
+            .product-image {
+                height: 180px;
+            }
+
+            .cart-float {
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+                bottom: 15px;
+                right: 15px;
+            }
+
+            /* 模態框優化 */
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+                padding: 15px;
+            }
+
+            .modal-title {
+                font-size: 18px;
+            }
+            
+            /* 登入牆手機版優化 */
+            .login-wall-content {
+                padding: 40px 25px;
+                max-width: 90%;
+            }
+            
+            .login-wall-icon {
+                font-size: 60px;
+            }
+            
+            .login-wall-content h2 {
+                font-size: 22px;
+            }
+            
+            .login-wall-content p {
+                font-size: 14px;
+                margin-bottom: 30px;
+            }
+            
+            .login-wall-btn {
+                padding: 12px 30px;
+                font-size: 16px;
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            /* 商品分類標籤手機版 */
+            .category-tabs {
+                gap: 8px;
+                margin: 20px 0;
+                padding: 15px 0;
+                justify-content: flex-start;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+            
+            .category-tab {
+                padding: 11px 20px;
+                font-size: 13px;
+            }
+            
+            /* 主打商品手機版 */
+            .featured-section {
+                padding: 20px 10px;
+                margin-bottom: 30px;
+            }
+            
+            .featured-title {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .featured-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        @media (min-width: 361px) and (max-width: 480px) {
+            .navbar {
+                padding: 10px 15px;
+            }
+
+            .logo {
+                font-size: 18px;
+            }
+
+            .nav-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .cart-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 15px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .product-card {
+                padding: 12px;
+            }
+
+            .product-image {
+                height: 120px;
+            }
+
+            .product-name {
+                font-size: 14px;
+            }
+
+            .product-price {
+                font-size: 18px;
+            }
+
+            .add-to-cart-btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .spec-header-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .spec-image {
+                width: 100%;
+                height: 120px;
+            }
+            
+            .spec-info-price {
+                font-size: 24px;
+            }
+            
+            .spec-info-stock {
+                font-size: 14px;
+            }
+            
+            .spec-options {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+
+            .spec-option {
+                padding: 10px 8px;
+                min-height: 40px;
+            }
+
+            .spec-name {
+                font-size: 12px;
+            }
+
+            .spec-stock {
+                font-size: 9px;
+            }
+
+            .cart-float {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .cart-badge {
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            .cart-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+
+            .spec-options {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 8px;
+            }
+
+            .spec-option {
+                padding: 10px;
+                min-height: 100px;
+            }
+
+            .spec-name {
+                font-size: 12px;
+            }
+
+            .spec-price {
+                font-size: 14px;
+            }
+
+            .spec-stock {
+                font-size: 10px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .spec-options {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .spec-options {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+
+        /* 訂單摘要樣式 */
+        .order-summary {
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+        }
+
+        .summary-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .summary-items {
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-name {
+            flex: 1;
+            color: var(--text-light);
+        }
+
+        .item-price {
+            color: var(--primary);
+            font-weight: 700;
+            margin-left: 10px;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-top: 2px solid var(--primary);
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .total-amount {
+            font-size: 28px;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航列 -->
+    <nav class="navbar">
+        <div class="logo">🍬 CANDY BOSS</div>
+        <div class="nav-buttons" id="navButtons" style="display:none;">
+            <button class="nav-btn" id="lineLoginBtn" onclick="lineLogin()" style="display:none;">
+                <img src="https://developers.line.biz/media/line-login/btn_base.png" alt="LINE Login" style="height:40px;">
+            </button>
+            <div id="memberInfo" style="display:none; align-items:center; gap:10px;">
+                <img id="memberAvatar" src="" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
+                <button class="nav-btn" onclick="logout()">登出</button>
+            </div>
+            <button class="nav-btn" onclick="openOrderSearch()">📦 查詢訂單</button>
+        </div>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="container">
+        <!-- 登入牆 -->
+        <div id="loginWall" class="login-wall" style="display:none;">
+            <div class="login-wall-content">
+                <div class="login-wall-icon">🔐</div>
+                <h2>歡迎來到 CANDY BOSS</h2>
+                <p>請先登入以繼續購物</p>
+                <button class="login-wall-btn" onclick="lineLogin()">
+                    <span class="line-icon">L</span>
+                    <span>LINE 登入</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 審核中狀態 -->
+        <div id="pendingApproval" class="approval-status" style="display:none;">
+            <div class="approval-content">
+                <div class="approval-icon">⏳</div>
+                <h2>帳號審核中</h2>
+                <p>您的帳號正在審核中，請稍候片刻</p>
+                <p style="color:#999; font-size:14px; margin-top:20px;">審核通過後即可開始購物</p>
+                <button class="nav-btn" style="margin-top:30px;" onclick="checkApprovalStatus()">重新檢查狀態</button>
+            </div>
+        </div>
+
+        <!-- 審核拒絕狀態 -->
+        <div id="rejectedApproval" class="approval-status" style="display:none;">
+            <div class="approval-content">
+                <div class="approval-icon" style="color:#ff4444;">❌</div>
+                <h2>審核未通過</h2>
+                <p>很抱歉，您的申請未通過審核</p>
+                <p style="color:#999; font-size:14px; margin-top:20px;">如有疑問，請聯繫客服</p>
+                <button class="nav-btn" style="margin-top:30px;" onclick="logout()">登出</button>
+            </div>
+        </div>
+
+        <!-- 商品區域（審核通過後才顯示） -->
+        <section class="products-section" id="productsSection" style="display:none;">
+            <!-- 主打商品區域 -->
+            <div class="featured-section" id="featuredSection">
+                <h2 class="featured-title">⭐ 本月主打推薦 ⭐</h2>
+                <p class="featured-subtitle">精選熱門商品，限時優惠中</p>
+                <div class="featured-grid" id="featuredGrid"></div>
+            </div>
+            
+            <!-- 系列分類標籤 - 動態生成 -->
+            <div class="category-tabs" id="categoryTabs">
+                <button class="category-tab active" onclick="filterCategory('all')">全部</button>
+                <!-- 其他分類按鈕會從 Google Sheets 動態載入 -->
+            </div>
+            
+            <div class="products-grid" id="productsGrid"></div>
+        </section>
+    </div>
+
+    <!-- 購物車浮動按鈕 -->
+    <div class="cart-float" onclick="toggleCart()">
+        🛒
+        <div class="cart-badge" id="cartBadge">0</div>
+    </div>
+
+    <!-- 購物車側邊欄 -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <div class="cart-title">🛒 購物車</div>
+            <button class="close-cart" onclick="toggleCart()">×</button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-footer">
+            <div class="cart-total">總計:$<span id="cartTotal">0</span></div>
+            <button class="checkout-btn" onclick="openCheckout()">前往結帳</button>
+        </div>
+    </div>
+
+    <!-- 規格選擇彈窗 -->
+    <div class="modal" id="specModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="specModalTitle">選擇規格</div>
+                <button class="close-modal" onclick="closeSpecModal()">×</button>
+            </div>
+            <div class="spec-header-container">
+                <div class="spec-image" id="specModalImage"></div>
+                <div class="spec-info-display">
+                    <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
+                    <div class="spec-info-stock" id="specInfoStock"></div>
+                </div>
+            </div>
+            <div class="spec-options" id="specOptions"></div>
+            <div class="quantity-selector">
+                <div class="quantity-label" style="display: none;">選擇數量:</div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
+                    <div class="quantity-display" id="quantityDisplay">1</div>
+                    <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
+                </div>
+            </div>
+            <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
+            <div style="text-align: center; margin-top: 15px; color: #999; font-size: 14px;">
+                💡 加入後可繼續選購其他規格
+            </div>
+        </div>
+    </div>
+
+    <!-- 結帳彈窗 -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">💳 結帳資訊</div>
+                <button class="close-modal" onclick="closeCheckout()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">姓名</label>
+                <input type="text" class="form-input" id="customerName" placeholder="請輸入姓名">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">電話</label>
+                <input type="tel" class="form-input" id="customerPhone" placeholder="請輸入電話號碼">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">取貨方式</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="shipping" value="711" onchange="toggleStoreSelector()" checked>
+                        7-11店到店
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="shipping" value="pickup" onchange="toggleStoreSelector()">
+                        自取
+                    </label>
+                </div>
+                <div class="store-selector active" id="storeSelector">
+                    <button class="store-select-btn" onclick="openStoreMap()">📍 選擇門市</button>
+                    <div class="selected-store" id="selectedStore">
+                        <strong>已選門市:</strong><br>
+                        <span id="storeName"></span><br>
+                        <span id="storeAddress"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">匯款末五碼</label>
+                <input type="text" class="form-input" id="bankLast5" placeholder="請輸入匯款帳號末五碼" maxlength="5">
+            </div>
+
+            <!-- 訂單摘要 -->
+            <div class="order-summary">
+                <h3 class="summary-title">📋 訂單摘要</h3>
+                <div class="summary-items" id="checkoutSummary"></div>
+                <div class="summary-total">
+                    <span>總計</span>
+                    <span class="total-amount" id="checkoutTotal">$0</span>
+                </div>
+            </div>
+
+            <button class="submit-order-btn" onclick="submitOrder()">確認送出訂單</button>
+        </div>
+    </div>
+
+    <!-- 訂單查詢彈窗 -->
+    <div class="modal" id="orderSearchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📦 我的訂單</div>
+                <button class="close-modal" onclick="closeOrderSearch()">×</button>
+            </div>
+            
+            <div id="ordersList" style="max-height: 500px; overflow-y: auto;">
+                <!-- 訂單列表會動態生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 會員補充資料彈窗 -->
+    <div class="modal" id="profileUpdateModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📝 完善會員資料</div>
+            </div>
+            
+            <div style="padding: 20px 0; text-align: center; color: #999;">
+                <p style="margin-bottom: 20px;">歡迎！請補充以下資料，讓購物更便利</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📱 電話號碼 *</label>
+                <input type="tel" class="form-input" id="updatePhone" placeholder="例: 0912345678" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📧 Email（選填）</label>
+                <input type="email" class="form-input" id="updateEmail" placeholder="例: example@gmail.com">
+            </div>
+
+            <button class="submit-order-btn" onclick="submitProfileUpdate()">✅ 完成</button>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="skipProfileUpdate()" style="background: none; border: none; color: #999; text-decoration: underline; cursor: pointer; font-size: 14px;">
+                    暫時跳過
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+// ==========================================
+// 全域變數設定
+// ==========================================
+const SHEET_ID = '1v1ecAE2XYAJgCnT3jbUp6Lfz64npIAzdiepzy-PSr_4';
+const API_KEY = 'AIzaSyD3zhGgpz3SBgp62_1GhTql2CW5vrzI7NA';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
+
+// LINE Login 設定
+const LINE_CHANNEL_ID = '2009077580';
+const LINE_REDIRECT_URI = 'https://qaz601170625123-droid.github.io/CBC/callback.html';
+const LINE_STATE = 'random_state_' + Math.random().toString(36).substr(2, 9);
+
+const PRODUCTS_SHEET = '商品列表';
+const SPECS_SHEET = '商品規格表';
+
+let products = [];
+let productSpecs = {};
+let currentCategory = 'all';  // 當前選擇的分類
+let cart = [];
+let selectedStore = null;
+
+// 會員相關
+let currentMember = null;
+let currentProduct = null;
+let selectedSpec = null;
+let quantity = 1;
+
+// ==========================================
+// 載入商品資料
+// ==========================================
+async function loadProductsData() {
+    try {
+        showToast('載入商品資料中...', 'success');
+        
+        // 載入商品列表
+        const productsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PRODUCTS_SHEET}?key=${API_KEY}`;
+        const productsResponse = await fetch(productsUrl);
+        
+        if (!productsResponse.ok) throw new Error('無法載入商品資料');
+        
+        const productsData = await productsResponse.json();
+        
+        if (!productsData.values || productsData.values.length < 2) {
+            throw new Error('商品資料為空');
+        }
+
+        products = productsData.values.slice(1).map(row => ({
+            id: row[0] || '',
+            name: row[1] || '',
+            image: row[2] || '',
+            isFeatured: (row[3] || '').trim() === '是',  // D欄：主打（填「是」表示主打）
+            productType: row[5] || '',  // F欄：產品類型（機子/蛋）
+            price: 0,
+            stock: 0
+        })).filter(p => p.id);
+
+        // 載入商品規格表
+        const specsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SPECS_SHEET}?key=${API_KEY}`;
+        const specsResponse = await fetch(specsUrl);
+        
+        if (!specsResponse.ok) throw new Error('無法載入規格資料');
+        
+        const specsData = await specsResponse.json();
+        
+        if (specsData.values && specsData.values.length > 1) {
+            specsData.values.slice(1).forEach(row => {
+                const productId = row[0];
+                const spec = {
+                    productId: row[0] || '',
+                    productName: row[1] || '',
+                    specName: row[2] || '',
+                    price: parseInt(row[3]) || 0,
+                    stock: parseInt(row[4]) || 0,
+                    image: row[5] || '',
+                    quantityMultiplier: parseInt(row[6]) || 1  // 數量倍數（G欄），預設為1
+                };
+                
+                if (!productSpecs[productId]) {
+                    productSpecs[productId] = [];
+                }
+                productSpecs[productId].push(spec);
+            });
+            
+            // 更新商品的價格和庫存
+            products.forEach(product => {
+                const specs = productSpecs[product.id];
+                if (specs && specs.length > 0) {
+                    product.price = Math.min(...specs.map(s => s.price));
+                    product.stock = specs.reduce((sum, spec) => sum + spec.stock, 0);
+                }
+            });
+        }
+
+        displayFeaturedProducts();  // 顯示主打商品
+        displayProducts();          // 顯示所有商品
+        loadCategories();           // 🆕 載入並生成分類按鈕
+        showToast('商品載入完成!', 'success');
+        
+    } catch (error) {
+        console.error('載入商品失敗:', error);
+        showToast('載入商品失敗：' + error.message, 'error');
+    }
+}
+
+// ==========================================
+// 🆕 載入並生成分類按鈕（基於產品類型）
+// ==========================================
+async function loadCategories() {
+    try {
+        // 固定的分類按鈕設定
+        const categories = [
+            { name: 'PLOOM蛋', icon: '🔥', filter: 'PLOOM' },
+            { name: 'GLO蛋', icon: '✨', filter: 'GLO' }
+        ];
+        
+        // 生成分類按鈕
+        const categoryTabs = document.getElementById('categoryTabs');
+        
+        // 保留「全部」按鈕，清除其他按鈕
+        categoryTabs.innerHTML = '<button class="category-tab active" onclick="filterCategory(\'all\')">全部</button>';
+        
+        // 生成 PLOOM蛋 和 GLO蛋 按鈕
+        categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'category-tab';
+            button.onclick = () => filterCategory(category.filter);
+            button.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+            categoryTabs.appendChild(button);
+        });
+        
+        console.log(`✅ 已載入 ${categories.length} 個分類`);
+        
+    } catch (error) {
+        console.error('載入分類時發生錯誤：', error);
+    }
+}
+
+/**
+ * 根據分類名稱自動配對圖標（保留向下相容）
+ */
+function getCategoryIcon(categoryName) {
+    const iconMap = {
+        'PLOOM蛋': '🔥',
+        'PLOOM系列': '🔥',
+        'PLOOM': '🔥',
+        'GLO蛋': '✨',
+        'GLO系列': '✨',
+        'GLO': '✨',
+        '境內系列': '🎯',
+        '境內': '🎯',
+        '機子': '🔧',
+        '其他配件': '⚙️',
+        '配件': '⚙️'
+    };
+    
+    return iconMap[categoryName] || '';
+}
+
+// ==========================================
+// 主打商品顯示
+// ==========================================
+function displayFeaturedProducts() {
+    const featuredGrid = document.getElementById('featuredGrid');
+    const featuredSection = document.getElementById('featuredSection');
+    
+    // 篩選主打商品
+    const featuredProducts = products.filter(p => p.isFeatured);
+    
+    if (featuredProducts.length === 0) {
+        featuredSection.style.display = 'none';
+        return;
+    }
+    
+    featuredSection.style.display = 'block';
+    
+    featuredGrid.innerHTML = featuredProducts.map(product => {
+        const specs = productSpecs[product.id];
+        if (!specs || specs.length === 0) {
+            return '';
+        }
+        
+        const minPrice = Math.min(...specs.map(s => s.price));
+        const maxPrice = Math.max(...specs.map(s => s.price));
+        const totalStock = specs.reduce((sum, s) => sum + s.stock, 0);
+        
+        // 修正圖片網址
+        let imageUrl = product.image || '';
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            imageUrl = 'https://' + imageUrl;
+        }
+        if (!imageUrl) {
+            imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}`;
+        }
+        
+        return `
+            <div class="product-card" onclick="openSpecModal('${product.id}')">
+                <div class="product-image">
+                    <img src="${imageUrl}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}'">
+                </div>
+                <div class="product-name">${product.name}</div>
+                <div class="product-price">$${minPrice}${minPrice !== maxPrice ? ` - $${maxPrice}` : ''}</div>
+                <div class="product-stock">庫存:${totalStock} 件</div>
+                <button class="add-to-cart-btn" onclick="event.stopPropagation(); openSpecModal('${product.id}')">
+                    選擇規格
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// 商品顯示 - 顯示類別卡片
+// ==========================================
+function displayProducts() {
+    const grid = document.getElementById('productsGrid');
+    
+    if (products.length === 0) {
+        grid.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">暫無商品</p>';
+        return;
+    }
+    
+    // 🔥 根據當前分類過濾商品（新邏輯）
+    let filteredProducts;
+    
+    if (currentCategory === 'all') {
+        // 顯示所有商品
+        filteredProducts = products;
+    } else if (currentCategory === 'PLOOM') {
+        // PLOOM蛋：F欄=「蛋」且商品名稱包含「PLOOM」或以「七星」/「P0」開頭
+        filteredProducts = products.filter(p => {
+            const isEggType = p.productType === '蛋';
+            const isPLOOM = p.name.includes('PLOOM') || 
+                           p.name.includes('七星') || 
+                           p.id.startsWith('P0');
+            return isEggType && isPLOOM;
+        });
+    } else if (currentCategory === 'GLO') {
+        // GLO蛋：F欄=「蛋」且商品名稱包含「GLO」/「neo」/「KENT」/「LUCKY」或以「G0」開頭
+        filteredProducts = products.filter(p => {
+            const isEggType = p.productType === '蛋';
+            const isGLO = p.name.includes('GLO') || 
+                         p.name.includes('neo') || 
+                         p.name.includes('KENT') || 
+                         p.name.includes('LUCKY') ||
+                         p.id.startsWith('G0');
+            return isEggType && isGLO;
+        });
+    } else {
+        // 其他自訂分類（保留向下相容）
+        filteredProducts = products.filter(p => p.productType === currentCategory);
+    }
+    
+    if (filteredProducts.length === 0) {
+        grid.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">此分類暫無商品</p>';
+        return;
+    }
+    
+    // 按類別分組統計（使用商品名稱作為類別）
+    const categoriesMap = {};
+    filteredProducts.forEach(product => {
+        const category = product.name;  // 🔥 使用商品名稱作為類別
+        if (!categoriesMap[category]) {
+            categoriesMap[category] = {
+                name: category,
+                products: [],
+                totalStock: 0,
+                minPrice: Infinity,
+                maxPrice: 0,
+                image: ''
+            };
+        }
+        
+        const specs = productSpecs[product.id];
+        if (specs && specs.length > 0) {
+            categoriesMap[category].products.push(product);
+            
+            // 計算總庫存和價格範圍
+            const totalStock = specs.reduce((sum, s) => sum + s.stock, 0);
+            categoriesMap[category].totalStock += totalStock;
+            
+            const minPrice = Math.min(...specs.map(s => s.price));
+            const maxPrice = Math.max(...specs.map(s => s.price));
+            
+            if (minPrice < categoriesMap[category].minPrice) {
+                categoriesMap[category].minPrice = minPrice;
+            }
+            if (maxPrice > categoriesMap[category].maxPrice) {
+                categoriesMap[category].maxPrice = maxPrice;
+            }
+            
+            // 使用第一個商品的圖片作為類別圖片
+            if (!categoriesMap[category].image && product.image) {
+                categoriesMap[category].image = product.image;
+            }
+        }
+    });
+    
+    // 生成類別卡片
+    const categories = Object.values(categoriesMap);
+    
+    grid.innerHTML = categories.map(category => {
+        // 修正圖片網址
+        let imageUrl = category.image || '';
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            imageUrl = 'https://' + imageUrl;
+        }
+        if (!imageUrl) {
+            imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(category.name)}`;
+        }
+        
+        return `
+            <div class="product-card" onclick="openCategoryModal('${category.name}')">
+                <div class="product-image">
+                    <img src="${imageUrl}" alt="${category.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(category.name)}'">
+                </div>
+                <div class="product-name">${category.name}</div>
+                <div class="product-price">$${category.minPrice}${category.minPrice !== category.maxPrice ? ` - $${category.maxPrice}` : ''}</div>
+                <div class="product-stock">庫存:${category.totalStock} 件</div>
+                <button class="add-to-cart-btn" onclick="event.stopPropagation(); openCategoryModal('${category.name}')">
+                    選擇規格
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// 商品分類過濾
+// ==========================================
+function filterCategory(category) {
+    currentCategory = category;
+    
+    // 更新標籤狀態
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 重新渲染商品
+    displayProducts();
+    
+    // 滾動到商品區域
+    document.getElementById('productsGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ==========================================
+// 第一層：類別選擇彈窗
+// ==========================================
+let currentCategoryProducts = []; // 當前類別的所有商品
+let selectedFlavor = null; // 選中的口味（商品）
+
+function openCategoryModal(categoryName) {
+    // 獲取該類別下的所有商品（口味）
+    currentCategoryProducts = products.filter(p => p.category === categoryName);
+    
+    if (currentCategoryProducts.length === 0) {
+        showToast('此類別暫無商品', 'error');
+        return;
+    }
+    
+    // 設置彈窗標題
+    document.getElementById('specModalTitle').textContent = categoryName;
+    document.getElementById('specModal').classList.add('active');
+    
+    // 渲染該類別下的所有口味選項
+    renderFlavorOptions(categoryName);
+    
+    // 重置選擇狀態
+    selectedFlavor = null;
+    selectedSpec = null;
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+}
+
+function renderFlavorOptions(categoryName) {
+    const optionsContainer = document.getElementById('specOptions');
+    const imageContainer = document.getElementById('specModalImage');
+    const priceDisplay = document.getElementById('specInfoPrice');
+    const stockDisplay = document.getElementById('specInfoStock');
+    
+    // 計算該類別的總體信息
+    let totalStock = 0;
+    let minPrice = Infinity;
+    let maxPrice = 0;
+    
+    currentCategoryProducts.forEach(product => {
+        const specs = productSpecs[product.id];
+        if (specs && specs.length > 0) {
+            specs.forEach(spec => {
+                totalStock += spec.stock;
+                if (spec.price < minPrice) minPrice = spec.price;
+                if (spec.price > maxPrice) maxPrice = spec.price;
+            });
+        }
+    });
+    
+    // 更新圖片（使用第一個商品的圖片）
+    let imageUrl = currentCategoryProducts[0].image || '';
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = 'https://' + imageUrl;
+    }
+    if (!imageUrl) {
+        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(categoryName)}`;
+    }
+    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${categoryName}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(categoryName)}'">`;
+    
+    // 更新價格和庫存
+    priceDisplay.textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
+    stockDisplay.textContent = `庫存：${totalStock} 件`;
+    stockDisplay.style.color = 'var(--accent-green)';
+    
+    // 生成口味選項（2列網格布局）
+    const flavorTitle = `<div class="spec-section-title" style="grid-column: 1 / -1;">🎯 選擇口味 (${currentCategoryProducts.length} 種選項)</div>`;
+    
+    const flavorOptions = currentCategoryProducts.map((product, index) => {
+        const specs = productSpecs[product.id];
+        const hasStock = specs && specs.some(s => s.stock > 0);
+        const isOutOfStock = !hasStock;
+        
+        return `
+            <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
+                 onclick="selectFlavor(${index})"
+                 id="flavor-${index}"
+                 title="${product.name}${isOutOfStock ? ' - 已售完' : ''}">
+                <div class="spec-name">${product.name}${isOutOfStock ? ' ❌' : ''}</div>
+            </div>
+        `;
+    }).join('');
+    
+    optionsContainer.innerHTML = flavorTitle + flavorOptions;
+}
+
+// ==========================================
+// 第二層：選擇口味後顯示數量規格選項
+// ==========================================
+function selectFlavor(index) {
+    const product = currentCategoryProducts[index];
+    const specs = productSpecs[product.id];
+    
+    if (!specs || specs.length === 0) {
+        showToast('此口味暫無規格', 'error');
+        return;
+    }
+    
+    // 檢查是否有庫存
+    const hasStock = specs.some(s => s.stock > 0);
+    if (!hasStock) {
+        showToast('此口味已售完', 'error');
+        return;
+    }
+    
+    selectedFlavor = product;
+    
+    // 更新口味選項的選中狀態
+    document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+    });
+    
+    // 更新圖片
+    const imageContainer = document.getElementById('specModalImage');
+    let imageUrl = product.image || '';
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = 'https://' + imageUrl;
+    }
+    if (!imageUrl) {
+        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}`;
+    }
+    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}'">`;
+    
+    // 顯示該口味的數量規格選項（單包、10包組合等）
+    renderQuantitySpecOptions(specs);
+}
+
+function renderQuantitySpecOptions(specs) {
+    const optionsContainer = document.getElementById('specOptions');
+    
+    // 保留口味選項，在下方添加數量規格選項
+    const currentFlavorOptions = Array.from(document.querySelectorAll('[id^="flavor-"]')).map(el => el.outerHTML).join('');
+    const flavorTitle = `<div class="spec-section-title" style="grid-column: 1 / -1;">🎯 選擇口味 (${currentCategoryProducts.length} 種選項)</div>`;
+    
+    // 添加數量規格選項標題
+    const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
+    
+    const quantityOptions = specs.map((spec, index) => {
+        const isOutOfStock = spec.stock === 0;
+        
+        return `
+            <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
+                 onclick="selectQuantitySpec(${index})"
+                 id="qty-spec-${index}"
+                 title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+            </div>
+        `;
+    }).join('');
+    
+    optionsContainer.innerHTML = flavorTitle + currentFlavorOptions + quantityTitle + quantityOptions;
+    
+    // 重新綁定口味選項的點擊事件
+    currentCategoryProducts.forEach((_, index) => {
+        const flavorOption = document.getElementById(`flavor-${index}`);
+        if (flavorOption) {
+            flavorOption.onclick = () => selectFlavor(index);
+            // 保持當前選中狀態
+            if (selectedFlavor && currentCategoryProducts[index].id === selectedFlavor.id) {
+                flavorOption.classList.add('selected');
+            }
+        }
+    });
+    
+    // 儲存當前規格到全域變數
+    window.currentQuantitySpecs = specs;
+}
+
+// ==========================================
+// 第三層：選擇數量規格（單包或10包組合）
+// ==========================================
+function selectQuantitySpec(index) {
+    const specs = window.currentQuantitySpecs;
+    const spec = specs[index];
+    
+    if (spec.stock === 0) {
+        showToast('此規格已售完', 'error');
+        return;
+    }
+    
+    selectedSpec = {
+        ...spec,
+        productId: selectedFlavor.id,
+        productName: selectedFlavor.name,
+        productImage: selectedFlavor.image
+    };
+    
+    // 更新選中狀態
+    document.querySelectorAll('[id^="qty-spec-"]').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+    });
+    
+    // 更新價格和庫存顯示
+    document.getElementById('specInfoPrice').textContent = `$${spec.price}`;
+    
+    const stockDisplay = document.getElementById('specInfoStock');
+    const multiplier = spec.quantityMultiplier || 1;
+    const actualStock = spec.stock;
+    
+    let stockText = '';
+    if (multiplier > 1) {
+        const availableUnits = Math.floor(actualStock / multiplier);
+        stockText = `庫存：${actualStock} 個 (可售 ${availableUnits} 組)`;
+    } else {
+        stockText = `庫存：${actualStock} 件`;
+    }
+    
+    const isLowStock = actualStock > 0 && actualStock <= 10;
+    stockDisplay.textContent = stockText + (isLowStock ? ' ⚠️ 即將售完' : '');
+    stockDisplay.style.color = isLowStock ? '#ff9900' : 'var(--accent-green)';
+    
+    // 重置數量
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+}
+
+// ==========================================
+// 規格選擇彈窗（保留原有功能）
+// ==========================================
+function openSpecModal(productId) {
+    currentProduct = products.find(p => p.id === productId);
+    if (!currentProduct) return;
+
+    const specs = productSpecs[productId];
+    if (!specs || specs.length === 0) {
+        showToast('此商品暫無規格', 'error');
+        return;
+    }
+
+    document.getElementById('specModalTitle').textContent = currentProduct.name;
+    document.getElementById('specModal').classList.add('active');
+    
+    renderSpecOptions();
+    quantity = 1;
+    selectedSpec = null;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+}
+
+function closeSpecModal() {
+    document.getElementById('specModal').classList.remove('active');
+    currentProduct = null;
+    selectedSpec = null;
+    selectedFlavor = null;
+    currentCategoryProducts = [];
+    quantity = 1;
+}
+
+function renderSpecOptions() {
+    const specs = productSpecs[currentProduct.id];
+    const optionsContainer = document.getElementById('specOptions');
+    
+    const specTitle = `<div class="spec-section-title" style="grid-column: 1 / -1;">📦 選擇規格 (${specs.length} 種選項)</div>`;
+    
+    const specOptions = specs.map((spec, index) => {
+        const isOutOfStock = spec.stock === 0;
+        
+        return `
+            <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
+                 onclick="selectSpec(${index})"
+                 id="spec-${index}"
+                 title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+            </div>
+        `;
+    }).join('');
+    
+    optionsContainer.innerHTML = specTitle + specOptions;
+}
+
+function selectSpec(index) {
+    const specs = productSpecs[currentProduct.id];
+    const spec = specs[index];
+    
+    if (spec.stock === 0) {
+        showToast('此規格已售完', 'error');
+        return;
+    }
+
+    selectedSpec = spec;
+    
+    // 更新選中狀態
+    document.querySelectorAll('.spec-option').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+    });
+    
+    // 更新圖片
+    const imageContainer = document.getElementById('specModalImage');
+    let imageUrl = spec.image || currentProduct.image || '';
+    
+    // 自動補上 https://
+    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = 'https://' + imageUrl;
+    }
+    if (!imageUrl) {
+        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}`;
+    }
+    
+    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${spec.specName}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}'">`;
+    
+    // 更新價格和庫存顯示
+    document.getElementById('specInfoPrice').textContent = `$${spec.price}`;
+    
+    const stockDisplay = document.getElementById('specInfoStock');
+    const multiplier = spec.quantityMultiplier || 1;
+    const actualStock = spec.stock;
+    
+    // 如果有倍數，顯示實際數量
+    let stockText = '';
+    if (multiplier > 1) {
+        const availableUnits = Math.floor(actualStock / multiplier);  // 可售組數
+        stockText = `庫存：${actualStock} 個 (可售 ${availableUnits} 組)`;
+    } else {
+        stockText = `庫存：${actualStock} 件`;
+    }
+    
+    const isLowStock = actualStock > 0 && actualStock <= 10;
+    stockDisplay.textContent = stockText + (isLowStock ? ' ⚠️ 即將售完' : '');
+    stockDisplay.style.color = isLowStock ? '#ff9900' : 'var(--accent-green)';
+    
+    // 重置數量
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+}
+
+function changeQuantity(change) {
+    if (!selectedSpec) {
+        showToast('請先選擇規格', 'error');
+        return;
+    }
+
+    const newQty = quantity + change;
+    
+    if (newQty < 1) {
+        showToast('數量不可小於 1', 'error');
+        return;
+    }
+    
+    if (newQty > selectedSpec.stock) {
+        showToast('已達庫存上限', 'error');
+        return;
+    }
+
+    quantity = newQty;
+    updateQuantityDisplay();
+}
+
+function updateQuantityDisplay() {
+    document.getElementById('quantityDisplay').textContent = quantity;
+}
+
+function updateAddToCartButton() {
+    const btn = document.getElementById('addToCartModalBtn');
+    btn.disabled = !selectedSpec;
+}
+
+function confirmAddToCart() {
+    if (!selectedSpec) {
+        showToast('請選擇規格', 'error');
+        return;
+    }
+
+    // 取得數量倍數
+    const multiplier = selectedSpec.quantityMultiplier || 1;
+    const actualStock = selectedSpec.stock;
+    
+    // 使用 selectedSpec 中的 productId 和 productName（從三層選擇中設置）
+    const actualProductId = selectedSpec.productId || (currentProduct ? currentProduct.id : null);
+    const actualProductName = selectedSpec.productName || (currentProduct ? currentProduct.name : '');
+    
+    if (!actualProductId) {
+        showToast('商品資訊錯誤', 'error');
+        return;
+    }
+    
+    // 檢查購物車中是否已有相同商品+規格
+    const existingIndex = cart.findIndex(item => 
+        item.productId === actualProductId && item.specName === selectedSpec.specName
+    );
+
+    if (existingIndex !== -1) {
+        // 更新數量
+        const newQty = cart[existingIndex].quantity + quantity;
+        const totalUnits = newQty * multiplier;  // 實際佔用庫存
+        
+        if (totalUnits > actualStock) {
+            showToast('已達庫存上限', 'error');
+            return;
+        }
+        cart[existingIndex].quantity = newQty;
+    } else {
+        // 檢查庫存
+        const totalUnits = quantity * multiplier;
+        if (totalUnits > actualStock) {
+            showToast('庫存不足', 'error');
+            return;
+        }
+        
+        // 新增項目
+        cart.push({
+            productId: actualProductId,
+            productName: actualProductName,
+            specName: selectedSpec.specName,
+            price: selectedSpec.price,
+            quantity: quantity,
+            quantityMultiplier: multiplier,  // 儲存倍數
+            image: selectedSpec.productImage || selectedSpec.image || (currentProduct ? currentProduct.image : '')
+        });
+    }
+    
+    updateCart();
+    
+    // 顯示提示訊息（如果有倍數，顯示實際數量）
+    const displayMsg = multiplier > 1 
+        ? `✅ 已加入 ${quantity} 組「${actualProductName} - ${selectedSpec.specName}」(共 ${quantity * multiplier} 個)到購物車!`
+        : `✅ 已加入 ${quantity} 件「${actualProductName} - ${selectedSpec.specName}」到購物車!`;
+    showToast(displayMsg);
+    
+    // 重置選擇狀態,讓使用者可以繼續選購其他規格
+    quantity = 1;
+    selectedSpec = null;
+    selectedFlavor = null;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+    
+    // 移除所有規格的選中狀態
+    document.querySelectorAll('.spec-option.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    const cartIcon = document.querySelector('.cart-float');
+    if (cartIcon) {
+        cartIcon.classList.add('animate-pulse');
+        setTimeout(() => cartIcon.classList.remove('animate-pulse'), 500);
+    }
+}
+
+// ==========================================
+// 購物車功能
+// ==========================================
+function updateCart() {
+    const cartItems = document.getElementById('cartItems');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartTotal = document.getElementById('cartTotal');
+
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartBadge.textContent = totalItems;
+
+    if (cart.length === 0) {
+        cartItems.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">購物車是空的</p>';
+        cartTotal.textContent = '0';
+        return;
+    }
+
+    cartItems.innerHTML = cart.map((item, index) => `
+        <div class="cart-item">
+            <div class="cart-item-name" title="${item.productName} - ${item.specName}">
+                ${item.productName}<br>
+                <span style="color: var(--primary); font-size: 14px;">📦 ${item.specName}</span>
+            </div>
+            <div class="cart-item-price">$${item.price} × ${item.quantity} = <span style="font-size: 20px;">$${item.price * item.quantity}</span></div>
+            <div class="cart-item-qty">
+                <button class="qty-btn" onclick="updateCartQuantity(${index}, -1)">−</button>
+                <span>${item.quantity}</span>
+                <button class="qty-btn" onclick="updateCartQuantity(${index}, 1)">+</button>
+            </div>
+            <button class="remove-item" onclick="removeCartItem(${index})">🗑️ 移除</button>
+        </div>
+    `).join('');
+
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    cartTotal.textContent = total;
+}
+
+function updateCartQuantity(index, change) {
+    const item = cart[index];
+    const newQty = item.quantity + change;
+
+    if (newQty <= 0) {
+        removeCartItem(index);
+        return;
+    }
+
+    // 查找規格（支持三層選擇結構）
+    let spec = null;
+    const specs = productSpecs[item.productId];
+    
+    if (specs) {
+        spec = specs.find(s => s.specName === item.specName);
+    }
+    
+    // 如果找不到規格，嘗試從所有規格中查找
+    if (!spec) {
+        for (let productId in productSpecs) {
+            const foundSpec = productSpecs[productId].find(s => s.specName === item.specName);
+            if (foundSpec) {
+                spec = foundSpec;
+                break;
+            }
+        }
+    }
+    
+    if (!spec) {
+        showToast('找不到商品規格', 'error');
+        return;
+    }
+    
+    if (newQty > spec.stock) {
+        showToast('已達庫存上限', 'error');
+        return;
+    }
+
+    item.quantity = newQty;
+    updateCart();
+}
+
+function removeCartItem(index) {
+    cart.splice(index, 1);
+    updateCart();
+}
+
+function toggleCart() {
+    document.getElementById('cartSidebar').classList.toggle('active');
+}
+
+// ==========================================
+// 結帳流程
+// ==========================================
+function openCheckout() {
+    if (cart.length === 0) {
+        showToast('購物車是空的', 'error');
+        return;
+    }
+    
+    // 更新結帳頁面的訂單摘要
+    updateCheckoutSummary();
+    
+    document.getElementById('checkoutModal').classList.add('active');
+}
+
+function updateCheckoutSummary() {
+    const summaryItems = document.getElementById('checkoutSummary');
+    const checkoutTotal = document.getElementById('checkoutTotal');
+    
+    // 生成商品列表
+    summaryItems.innerHTML = cart.map(item => `
+        <div class="summary-item">
+            <span class="item-name">${item.productName} - ${item.specName} × ${item.quantity}</span>
+            <span class="item-price">$${item.price * item.quantity}</span>
+        </div>
+    `).join('');
+    
+    // 計算總金額
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    checkoutTotal.textContent = `$${total}`;
+}
+
+function closeCheckout() {
+    document.getElementById('checkoutModal').classList.remove('active');
+}
+
+function toggleStoreSelector() {
+    const shipping = document.querySelector('input[name="shipping"]:checked').value;
+    const selector = document.getElementById('storeSelector');
+    
+    if (shipping === '711') {
+        selector.classList.add('active');
+    } else {
+        selector.classList.remove('active');
+        selectedStore = null;
+    }
+}
+
+function openStoreMap() {
+    // 綠界 7-11 地圖選擇
+    openECPayMap();
+}
+
+// ==========================================
+// 綠界地圖整合
+// ==========================================
+
+const ECPAY_CONFIG = {
+    MerchantID: '3490304',
+    HashKey: 'O7MpUtX9Inc7e4Ud',
+    HashIV: 'B6BxB56xLdGv4fBd',
+    MapURL: 'https://logistics.ecpay.com.tw/Express/map'
+};
+
+function openECPayMap() {
+    // 產生訂單編號（用於識別）
+    const tempOrderNo = 'TEMP' + Date.now();
+    
+    // 綠界地圖參數
+    const params = {
+        MerchantID: ECPAY_CONFIG.MerchantID,
+        MerchantTradeNo: tempOrderNo,
+        LogisticsType: 'CVS',
+        LogisticsSubType: 'UNIMART',  // 7-11
+        IsCollection: 'N',
+        ServerReplyURL: `${window.location.origin}/CBC/ecpay-map.html`,
+        ExtraData: '',
+        Device: /Mobi|Android/i.test(navigator.userAgent) ? '1' : '0'
+    };
+    
+    // 產生 CheckMacValue
+    params.CheckMacValue = generateCheckMacValue(params);
+    
+    // 建立表單並提交
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = ECPAY_CONFIG.MapURL;
+    form.target = '_blank';
+    
+    for (const key in params) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    
+    showToast('請在新視窗中選擇門市');
+}
+
+function generateCheckMacValue(params) {
+    // 排除 CheckMacValue
+    const sortedParams = Object.keys(params)
+        .filter(key => key !== 'CheckMacValue')
+        .sort()
+        .map(key => `${key}=${params[key]}`)
+        .join('&');
+    
+    // 加上 HashKey 和 HashIV
+    const rawString = `HashKey=${ECPAY_CONFIG.HashKey}&${sortedParams}&HashIV=${ECPAY_CONFIG.HashIV}`;
+    
+    // URL encode（綠界特殊規則）
+    let encoded = encodeURIComponent(rawString);
+    encoded = encoded.replace(/%2d/gi, '-');
+    encoded = encoded.replace(/%5f/gi, '_');
+    encoded = encoded.replace(/%2e/gi, '.');
+    encoded = encoded.replace(/%21/gi, '!');
+    encoded = encoded.replace(/%2a/gi, '*');
+    encoded = encoded.replace(/%28/gi, '(');
+    encoded = encoded.replace(/%29/gi, ')');
+    encoded = encoded.replace(/%20/g, '+');
+    
+    // 轉小寫
+    encoded = encoded.toLowerCase();
+    
+    // SHA256 hash
+    const hash = CryptoJS.SHA256(encoded).toString(CryptoJS.enc.Hex);
+    return hash.toUpperCase();
+}
+
+async function submitOrder() {
+    const shipping = document.querySelector('input[name="shipping"]:checked').value;
+    const name = document.getElementById('customerName').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const bankLast5 = document.getElementById('bankLast5').value.trim();
+
+    if (!name || !phone || !bankLast5) {
+        showToast('請填寫完整資料', 'error');
+        return;
+    }
+
+    if (shipping === '711' && !selectedStore) {
+        showToast('請選擇 7-11 門市', 'error');
+        return;
+    }
+
+    if (bankLast5.length !== 5) {
+        showToast('匯款末五碼必須是 5 位數字', 'error');
+        return;
+    }
+
+    const orderData = {
+        action: 'createOrder',
+        訂單編號: 'ORD' + Date.now(),
+        訂購時間: new Date().toLocaleString('zh-TW'),
+        姓名: name,
+        電話: phone,
+        取貨方式: shipping === '711' ? '7-11店到店' : '自取',
+        門市名稱: shipping === '711' ? selectedStore.name : '-',
+        門市地址: shipping === '711' ? selectedStore.address : '-',
+        匯款末五碼: bankLast5,
+        商品明細: cart.map(item => {
+            const multiplier = item.quantityMultiplier || 1;
+            const displayQty = multiplier > 1 ? `${item.quantity}組(共${item.quantity * multiplier}個)` : `${item.quantity}`;
+            return `${item.productName}-${item.specName} x${displayQty}`;
+        }).join(', '),
+        總金額: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        訂單狀態: '待處理',
+        物流編號: '-',
+        會員ID: currentMember ? currentMember.lineId : '',
+        商品資料: cart.map(item => ({
+            productId: item.productId,
+            specName: item.specName,
+            quantity: (item.quantity * (item.quantityMultiplier || 1))  // 傳送實際扣庫存數量
+        }))
+    };
+
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        });
+        
+        showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
+        alert(`訂單已建立!\n\n訂單編號:${orderData.訂單編號}\n姓名:${orderData.姓名}\n電話:${orderData.電話}\n總金額:$${orderData.總金額}\n\n請使用您的電話號碼查詢訂單狀態。`);
+        
+        cart = [];
+        updateCart();
+        closeCheckout();
+        toggleCart();
+        
+        document.getElementById('customerName').value = '';
+        document.getElementById('customerPhone').value = '';
+        document.getElementById('bankLast5').value = '';
+        selectedStore = null;
+    } catch (error) {
+        console.log('訂單已送出(no-cors 模式)');
+        showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
+        
+        cart = [];
+        updateCart();
+        closeCheckout();
+        toggleCart();
+    }
+}
+
+// ==========================================
+// 訂單查詢
+// ==========================================
+async function openOrderSearch() {
+    // 檢查是否已登入
+    if (!currentMember || !currentMember.lineId) {
+        showToast('請先登入 LINE 帳號', 'error');
+        return;
+    }
+    
+    // 顯示模態框
+    document.getElementById('orderSearchModal').classList.add('active');
+    
+    // 顯示載入中
+    document.getElementById('ordersList').innerHTML = `
+        <div style="text-align:center; padding:40px; color:#999;">
+            <div style="font-size:40px; margin-bottom:20px;">⏳</div>
+            <div>載入中...</div>
+        </div>
+    `;
+    
+    // 查詢訂單
+    await loadMemberOrders();
+}
+
+function closeOrderSearch() {
+    document.getElementById('orderSearchModal').classList.remove('active');
+}
+
+async function loadMemberOrders() {
+    if (!currentMember || !currentMember.lineId) {
+        document.getElementById('ordersList').innerHTML = `
+            <div style="text-align:center; padding:40px; color:#999;">
+                <div style="font-size:40px; margin-bottom:20px;">🔐</div>
+                <div>請先登入</div>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getOrdersByLine&lineId=${encodeURIComponent(currentMember.lineId)}`);
+        const result = await response.json();
+        
+        const ordersList = document.getElementById('ordersList');
+        
+        if (result.success && result.orders && result.orders.length > 0) {
+            // 顯示訂單列表
+            ordersList.innerHTML = result.orders.map((order, index) => `
+                <div class="order-card" style="
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                    border-radius: 10px;
+                    padding: 20px;
+                    margin-bottom: 15px;
+                ">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:10px;">
+                        <div>
+                            <div style="font-size:16px; font-weight:700; color:var(--primary);">
+                                訂單 #${index + 1}
+                            </div>
+                            <div style="font-size:12px; color:#999; margin-top:5px;">
+                                ${order.訂購時間}
+                            </div>
+                        </div>
+                        <div style="
+                            background: ${order.訂單狀態 === '已完成' ? 'var(--accent-green)' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : 'var(--primary)'};
+                            color: var(--secondary);
+                            padding: 5px 15px;
+                            border-radius: 15px;
+                            font-size: 12px;
+                            font-weight: 700;
+                        ">
+                            ${order.訂單狀態}
+                        </div>
+                    </div>
+                    
+                    <div style="line-height:1.8; font-size:14px;">
+                        <div><strong>訂單編號：</strong>${order.訂單編號}</div>
+                        <div><strong>姓名：</strong>${order.姓名}</div>
+                        <div><strong>電話：</strong>${order.電話}</div>
+                        <div><strong>取貨方式：</strong>${order.取貨方式}</div>
+                        ${order.門市名稱 && order.門市名稱 !== '-' ? `<div><strong>門市：</strong>${order.門市名稱}</div>` : ''}
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,215,0,0.2);">
+                            <strong>商品明細：</strong><br>
+                            <div style="color:#999; margin-top:5px; padding-left:10px;">
+                                ${order.商品明細}
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; font-size:18px; font-weight:900; color:var(--primary);">
+                            總金額：$${order.總金額}
+                        </div>
+                        ${order.物流編號 && order.物流編號 !== '-' ? `
+                            <div style="margin-top:15px;">
+                                <strong>物流編號：</strong>${order.物流編號}<br>
+                                <a href="https://www.ezship.com.tw/tracking?id=${order.物流編號}" 
+                                   style="display:inline-block; margin-top:10px; background:var(--primary); color:var(--secondary); padding:8px 20px; border-radius:20px; text-decoration:none; font-weight:700;"
+                                   target="_blank">
+                                    🔍 追蹤物流
+                                </a>
+                            </div>
+                        ` : '<div style="color:#999; margin-top:10px; font-size:12px;">尚未出貨</div>'}
+                    </div>
+                </div>
+            `).join('');
+            
+            // 加上總訂單數
+            ordersList.innerHTML += `
+                <div style="text-align:center; padding:20px; color:#999; font-size:14px;">
+                    共 ${result.orders.length} 筆訂單
+                </div>
+            `;
+        } else {
+            // 沒有訂單
+            ordersList.innerHTML = `
+                <div style="text-align:center; padding:60px 20px; color:#999;">
+                    <div style="font-size:60px; margin-bottom:20px;">📦</div>
+                    <div style="font-size:18px; font-weight:700; margin-bottom:10px;">尚無訂單記錄</div>
+                    <div style="font-size:14px;">開始購物，建立您的第一筆訂單吧！</div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('查詢訂單失敗:', error);
+        document.getElementById('ordersList').innerHTML = `
+            <div style="text-align:center; padding:40px; color:#ff4444;">
+                <div style="font-size:40px; margin-bottom:20px;">❌</div>
+                <div>查詢失敗，請稍後再試</div>
+            </div>
+        `;
+    }
+}
+
+// ==========================================
+// 提示訊息
+// ==========================================
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + (type === 'error' ? 'error' : '');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ==========================================
+// LINE 登入功能
+// ==========================================
+
+function lineLogin() {
+    const url = `https://access.line.me/oauth2/v2.1/authorize?` +
+        `response_type=code` +
+        `&client_id=${LINE_CHANNEL_ID}` +
+        `&redirect_uri=${encodeURIComponent(LINE_REDIRECT_URI)}` +
+        `&state=${LINE_STATE}` +
+        `&scope=profile%20openid`;
+    
+    window.location.href = url;
+}
+
+async function checkMemberStatus() {
+    const memberData = localStorage.getItem('candyboss_member');
+    if (memberData) {
+        try {
+            currentMember = JSON.parse(memberData);
+            
+            // 從 Google Sheets 取得最新的審核狀態
+            await fetchMemberApprovalStatus();
+            
+            updateMemberUI();
+        } catch (e) {
+            console.error('會員資料解析錯誤:', e);
+            localStorage.removeItem('candyboss_member');
+            showLoginWall();
+        }
+    } else {
+        showLoginWall();
+    }
+}
+
+async function fetchMemberApprovalStatus() {
+    if (!currentMember || !currentMember.lineId) return;
+    
+    try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getMember&lineId=${currentMember.lineId}`);
+        const result = await response.json();
+        
+        if (result.success && result.member) {
+            // 更新審核狀態到 localStorage
+            currentMember.approvalStatus = result.member.approvalStatus || '待審核';
+            localStorage.setItem('candyboss_member', JSON.stringify(currentMember));
+        }
+    } catch (error) {
+        console.error('取得審核狀態失敗:', error);
+        // 如果取得失敗，預設為待審核
+        currentMember.approvalStatus = currentMember.approvalStatus || '待審核';
+    }
+}
+
+function showLoginWall() {
+    document.getElementById('loginWall').style.display = 'flex';
+    document.getElementById('pendingApproval').style.display = 'none';
+    document.getElementById('rejectedApproval').style.display = 'none';
+    document.getElementById('productsSection').style.display = 'none';
+    
+    // 隱藏所有導航按鈕
+    document.getElementById('navButtons').style.display = 'none';
+}
+
+function updateMemberUI() {
+    if (currentMember) {
+        // 顯示導航按鈕區
+        document.getElementById('navButtons').style.display = 'flex';
+        document.getElementById('lineLoginBtn').style.display = 'none';
+        document.getElementById('memberInfo').style.display = 'flex';
+        document.getElementById('memberAvatar').src = currentMember.pictureUrl || '';
+        // 不顯示名稱
+        
+        // 根據審核狀態顯示不同內容
+        const approvalStatus = currentMember.approvalStatus || '待審核';
+        
+        if (approvalStatus === '已通過') {
+            // 審核通過：顯示商品
+            document.getElementById('loginWall').style.display = 'none';
+            document.getElementById('pendingApproval').style.display = 'none';
+            document.getElementById('rejectedApproval').style.display = 'none';
+            document.getElementById('productsSection').style.display = 'block';
+            
+            // 自動填入會員資料到結帳表單
+            if (currentMember.phone) {
+                const phoneInput = document.getElementById('customerPhone');
+                if (phoneInput && phoneInput.value === '') {
+                    phoneInput.value = currentMember.phone;
+                }
+            }
+            if (currentMember.displayName) {
+                const nameInput = document.getElementById('customerName');
+                if (nameInput && nameInput.value === '') {
+                    nameInput.value = currentMember.displayName;
+                }
+            }
+        } else if (approvalStatus === '已拒絕') {
+            // 審核拒絕
+            document.getElementById('loginWall').style.display = 'none';
+            document.getElementById('pendingApproval').style.display = 'none';
+            document.getElementById('rejectedApproval').style.display = 'flex';
+            document.getElementById('productsSection').style.display = 'none';
+        } else {
+            // 待審核
+            document.getElementById('loginWall').style.display = 'none';
+            document.getElementById('pendingApproval').style.display = 'flex';
+            document.getElementById('rejectedApproval').style.display = 'none';
+            document.getElementById('productsSection').style.display = 'none';
+        }
+    } else {
+        document.getElementById('lineLoginBtn').style.display = 'block';
+        document.getElementById('memberInfo').style.display = 'none';
+        showLoginWall();
+    }
+}
+
+async function checkApprovalStatus() {
+    showToast('檢查中...', 'success');
+    await fetchMemberApprovalStatus();
+    updateMemberUI();
+    
+    if (currentMember.approvalStatus === '已通過') {
+        showToast('審核已通過！歡迎購物！');
+    } else if (currentMember.approvalStatus === '已拒絕') {
+        showToast('審核未通過', 'error');
+    } else {
+        showToast('仍在審核中，請耐心等候', 'error');
+    }
+}
+
+function logout() {
+    if (confirm('確定要登出嗎？')) {
+        // 清除會員資料
+        currentMember = null;
+        localStorage.removeItem('candyboss_member');
+        
+        // 重置 UI
+        document.getElementById('lineLoginBtn').style.display = 'block';
+        document.getElementById('memberInfo').style.display = 'none';
+        
+        // 顯示登入牆，隱藏其他所有內容
+        document.getElementById('loginWall').style.display = 'flex';
+        document.getElementById('pendingApproval').style.display = 'none';
+        document.getElementById('rejectedApproval').style.display = 'none';
+        document.getElementById('productsSection').style.display = 'none';
+        
+        showToast('已登出');
+        
+        // 為了確保，3秒後重新整理頁面
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }
+}
+
+// ==========================================
+// 會員資料更新
+// ==========================================
+
+function openProfileUpdateModal() {
+    document.getElementById('profileUpdateModal').classList.add('active');
+}
+
+function closeProfileUpdateModal() {
+    document.getElementById('profileUpdateModal').classList.remove('active');
+}
+
+async function submitProfileUpdate() {
+    const phone = document.getElementById('updatePhone').value.trim();
+    const email = document.getElementById('updateEmail').value.trim();
+    
+    // 驗證電話
+    if (!phone) {
+        showToast('請輸入電話號碼', 'error');
+        return;
+    }
+    
+    // 驗證電話格式（台灣手機號碼）
+    const phonePattern = /^09\d{8}$/;
+    if (!phonePattern.test(phone)) {
+        showToast('請輸入正確的手機號碼格式（例：0912345678）', 'error');
+        return;
+    }
+    
+    if (!currentMember) {
+        showToast('會員資料異常，請重新登入', 'error');
+        return;
+    }
+    
+    try {
+        showToast('更新中...', 'success');
+        
+        // 更新到 Google Sheets
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'saveMember',
+                lineId: currentMember.lineId,
+                displayName: currentMember.displayName,
+                pictureUrl: currentMember.pictureUrl,
+                phone: phone,
+                email: email
+            })
+        });
+        
+        // 更新本地資料
+        currentMember.phone = phone;
+        currentMember.email = email;
+        localStorage.setItem('candyboss_member', JSON.stringify(currentMember));
+        
+        // 關閉彈窗
+        closeProfileUpdateModal();
+        showToast('資料更新成功！');
+        
+        // 移除網址參數
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+    } catch (error) {
+        console.error('更新失敗:', error);
+        showToast('更新失敗，請稍後再試', 'error');
+    }
+}
+
+function skipProfileUpdate() {
+    if (confirm('跳過後，下單時需要手動輸入電話。\n\n確定要跳過嗎？')) {
+        closeProfileUpdateModal();
+        // 移除網址參數
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+// ==========================================
+// 初始化
+// ==========================================
+window.addEventListener('load', () => {
+    loadProductsData();
+    updateCart();
+    checkMemberStatus();
+    
+    // 檢查是否需要補充資料
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'updateProfile') {
+        // 延遲一下，等會員狀態載入完成
+        setTimeout(() => {
+            if (currentMember && (!currentMember.phone || currentMember.phone === '')) {
+                openProfileUpdateModal();
+            }
+        }, 500);
+    }
+    
+    // 檢查是否從綠界地圖回來
+    if (urlParams.get('store') === 'selected') {
+        const storeData = localStorage.getItem('ecpay_store');
+        if (storeData) {
+            const store = JSON.parse(storeData);
+            selectedStore = {
+                id: store.CVSStoreID,
+                name: store.CVSStoreName,
+                address: store.CVSAddress,
+                phone: store.CVSTelephone
+            };
+            
+            // 顯示選擇的門市
+            document.getElementById('selectedStore').style.display = 'block';
+            document.getElementById('storeName').textContent = selectedStore.name;
+            document.getElementById('storeAddress').textContent = selectedStore.address;
+            
+            // 清除 localStorage
+            localStorage.removeItem('ecpay_store');
+            
+            // 移除 URL 參數
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            showToast('門市選擇成功！');
+        }
+    }
+});
+    </script>
+</body>
+</html>
