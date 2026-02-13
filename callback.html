@@ -43,7 +43,7 @@
 <body>
     <div class="loading">
         <div class="spinner"></div>
-        <div class="message" id="message">登入中，請稍候...</div>
+        <div class="message" id="message">登入中,請稍候...</div>
     </div>
 
     <script>
@@ -58,10 +58,10 @@
         const error = urlParams.get('error');
 
         if (error) {
-            document.getElementById('message').textContent = '登入失敗：' + error;
+            document.getElementById('message').textContent = '登入失敗:' + error;
             document.getElementById('message').classList.add('error');
             setTimeout(() => {
-                window.location.href = 'ecommerce-with-line-login.html';
+                window.location.href = 'ecommerce.html';
             }, 2000);
         } else if (code) {
             handleLineCallback(code);
@@ -137,29 +137,29 @@
                 });
 
                 // 步驟 5: 檢查是否需要補充資料
-                document.getElementById('message').textContent = '登入成功！';
+                document.getElementById('message').textContent = '登入成功!';
                 
                 // 檢查會員是否已有電話
                 const needPhoneCheck = !memberData.phone || memberData.phone === '';
                 
                 if (needPhoneCheck) {
-                    // 需要補充電話，跳轉到補充資料頁面
+                    // 需要補充電話,跳轉到補充資料頁面
                     setTimeout(() => {
-                        window.location.href = 'ecommerce-with-approval-1.html?action=updateProfile';
+                        window.location.href = 'ecommerce.html?action=updateProfile';
                     }, 1000);
                 } else {
-                    // 已有電話，直接跳回首頁
+                    // 已有電話,直接跳回首頁
                     setTimeout(() => {
-                        window.location.href = 'ecommerce-with-approval-1.html';
+                        window.location.href = 'ecommerce.html';
                     }, 1000);
                 }
 
             } catch (error) {
                 console.error('LINE 登入錯誤:', error);
-                document.getElementById('message').textContent = '登入失敗：' + error.message;
+                document.getElementById('message').textContent = '登入失敗:' + error.message;
                 document.getElementById('message').classList.add('error');
                 setTimeout(() => {
-                    window.location.href = 'ecommerce-with-line-login.html';
+                    window.location.href = 'ecommerce.html';
                 }, 3000);
             }
         }
