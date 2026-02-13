@@ -2832,16 +2832,39 @@ function updateCheckoutSummary() {
     const summaryItems = document.getElementById('checkoutSummary');
     const checkoutTotal = document.getElementById('checkoutTotal');
     
+    // 計算商品小計
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // 檢查是否選擇 7-11 配送
+    const shipping = document.querySelector('input[name="shipping"]:checked');
+    const shippingFee = (shipping && shipping.value === '711') ? 60 : 0;
+    
     // 生成商品列表
-    summaryItems.innerHTML = cart.map(item => `
+    let itemsHtml = cart.map(item => `
         <div class="summary-item">
             <span class="item-name">${item.productName} - ${item.specName} × ${item.quantity}</span>
             <span class="item-price">$${item.price * item.quantity}</span>
         </div>
     `).join('');
     
-    // 計算總金額
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // 如果有運費，顯示小計和運費
+    if (shippingFee > 0) {
+        itemsHtml += `
+            <div class="summary-item" style="border-top: 1px solid rgba(255,215,0,0.2); margin-top: 10px; padding-top: 10px;">
+                <span class="item-name">商品小計</span>
+                <span class="item-price">$${subtotal}</span>
+            </div>
+            <div class="summary-item">
+                <span class="item-name">7-11 運費</span>
+                <span class="item-price" style="color: var(--primary);">$${shippingFee}</span>
+            </div>
+        `;
+    }
+    
+    summaryItems.innerHTML = itemsHtml;
+    
+    // 計算總金額（商品 + 運費）
+    const total = subtotal + shippingFee;
     checkoutTotal.textContent = `$${total}`;
 }
 
@@ -2859,6 +2882,9 @@ function toggleStoreSelector() {
         selector.classList.remove('active');
         selectedStore = null;
     }
+    
+    // 🔥 更新結帳摘要（重新計算運費）
+    updateCheckoutSummary();
 }
 
 function openStoreMap() {
@@ -2968,6 +2994,11 @@ async function submitOrder() {
         return;
     }
 
+    // 🔥 計算運費和總金額
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shippingFee = shipping === '711' ? 60 : 0;
+    const totalAmount = subtotal + shippingFee;
+
     const orderData = {
         action: 'createOrder',
         訂單編號: 'ORD' + Date.now(),
@@ -2983,7 +3014,9 @@ async function submitOrder() {
             const displayQty = multiplier > 1 ? `${item.quantity}組(共${item.quantity * multiplier}個)` : `${item.quantity}`;
             return `${item.productName}-${item.specName} x${displayQty}`;
         }).join(', '),
-        總金額: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        商品金額: subtotal,
+        運費: shippingFee,
+        總金額: totalAmount,
         訂單狀態: '待處理',
         物流編號: '-',
         會員ID: currentMember ? currentMember.lineId : '',
@@ -3009,7 +3042,18 @@ async function submitOrder() {
         });
         
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
-        alert(`訂單已建立!\n\n訂單編號:${orderData.訂單編號}\n姓名:${orderData.姓名}\n電話:${orderData.電話}\n總金額:$${orderData.總金額}\n\n請使用您的電話號碼查詢訂單狀態。`);
+        
+        // 🔥 根據是否有運費顯示不同的訊息
+        let orderMessage = `訂單已建立!\n\n訂單編號:${orderData.訂單編號}\n姓名:${orderData.姓名}\n電話:${orderData.電話}\n取貨方式:${orderData.取貨方式}`;
+        
+        if (shippingFee > 0) {
+            orderMessage += `\n\n商品金額:$${orderData.商品金額}\n運費:$${orderData.運費}\n總金額:$${orderData.總金額}`;
+        } else {
+            orderMessage += `\n\n總金額:$${orderData.總金額}`;
+        }
+        
+        orderMessage += `\n\n請使用您的電話號碼查詢訂單狀態。`;
+        alert(orderMessage);
         
         cart = [];
         updateCart();
@@ -3135,6 +3179,18 @@ async function loadMemberOrders() {
                                 ${order.商品明細}
                             </div>
                         </div>
+                        ${order.運費 && order.運費 > 0 ? `
+                            <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,215,0,0.2);">
+                                <div style="display:flex; justify-content:space-between; color:#999; font-size:14px;">
+                                    <span>商品金額：</span>
+                                    <span>$${order.商品金額 || (order.總金額 - order.運費)}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; color:var(--primary); font-size:14px; margin-top:5px;">
+                                    <span>運費：</span>
+                                    <span>$${order.運費}</span>
+                                </div>
+                            </div>
+                        ` : ''}
                         <div style="margin-top:10px; font-size:18px; font-weight:900; color:var(--primary);">
                             總金額：$${order.總金額}
                         </div>
