@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CANDY BOSS - 購物商城 v2.5</title>
+    <title>蛋博士 Rex - 購物商城 v2.5</title>
     <!-- 強制刷新快取 - 版本 2.5 - 支援F欄大分類過濾功能 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
@@ -585,16 +585,16 @@
         /* 規格選擇模態框 */
         .spec-header-container {
             display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 12px;
             flex-shrink: 0;
         }
         
         .spec-image {
-            width: 50%;
-            height: 150px;
+            width: 35%;
+            height: 100px;
             background: #f5f5f5;
-            border-radius: 10px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -608,15 +608,15 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            padding: 10px;
+            gap: 6px;
+            padding: 8px;
             background: rgba(255, 215, 0, 0.1);
             border: 2px solid var(--primary);
-            border-radius: 10px;
+            border-radius: 8px;
         }
         
         .spec-info-price {
-            font-size: 32px;
+            font-size: 24px;
             font-weight: 900;
             color: var(--primary);
             line-height: 1.2;
@@ -624,7 +624,7 @@
         }
         
         .spec-info-stock {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--accent-green);
             text-align: center;
@@ -643,8 +643,8 @@
             overflow-y: auto;
             padding-right: 5px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 6px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             align-content: start;
         }
 
@@ -663,11 +663,11 @@
         }
 
         .spec-section-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
             border-bottom: 1px solid rgba(255, 215, 0, 0.3);
         }
 
@@ -675,7 +675,7 @@
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(255, 215, 0, 0.3);
             border-radius: 8px;
-            padding: 12px 10px;
+            padding: 10px 6px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
@@ -683,7 +683,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 45px;
+            min-height: 42px;
         }
 
         .spec-option:hover {
@@ -1259,39 +1259,49 @@
             }
 
             .spec-header-container {
-                flex-direction: column;
-                gap: 10px;
+                gap: 8px;
             }
             
             .spec-image {
-                width: 100%;
-                height: 120px;
+                width: 35%;
+                height: 90px;
+            }
+            
+            .spec-info-display {
+                padding: 6px;
+                gap: 4px;
             }
             
             .spec-info-price {
-                font-size: 24px;
+                font-size: 20px;
             }
             
             .spec-info-stock {
-                font-size: 14px;
+                font-size: 11px;
             }
             
             .spec-options {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
                 gap: 6px;
             }
 
             .spec-option {
-                padding: 10px 8px;
-                min-height: 40px;
+                padding: 8px 4px;
+                min-height: 38px;
             }
 
             .spec-name {
-                font-size: 12px;
+                font-size: 11px;
             }
 
             .spec-stock {
                 font-size: 9px;
+            }
+            
+            .spec-section-title {
+                font-size: 13px;
+                margin-bottom: 8px;
+                padding-bottom: 5px;
             }
 
             .cart-float {
@@ -1323,15 +1333,28 @@
             .products-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             }
+            
+            .spec-image {
+                width: 35%;
+                height: 100px;
+            }
+            
+            .spec-info-price {
+                font-size: 22px;
+            }
+            
+            .spec-info-stock {
+                font-size: 12px;
+            }
 
             .spec-options {
-                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                grid-template-columns: repeat(3, 1fr);
                 gap: 8px;
             }
 
             .spec-option {
-                padding: 10px;
-                min-height: 100px;
+                padding: 10px 6px;
+                min-height: 40px;
             }
 
             .spec-name {
@@ -1422,7 +1445,7 @@
 <body>
     <!-- 導航列 -->
     <nav class="navbar">
-        <div class="logo">🍬 CANDY BOSS</div>
+        <div class="logo">🍬 蛋博士 Rex</div>
         <div class="nav-buttons" id="navButtons" style="display:none;">
             <button class="nav-btn" id="lineLoginBtn" onclick="lineLogin()" style="display:none;">
                 <img src="https://developers.line.biz/media/line-login/btn_base.png" alt="LINE Login" style="height:40px;">
@@ -1441,7 +1464,7 @@
         <div id="loginWall" class="login-wall" style="display:none;">
             <div class="login-wall-content">
                 <div class="login-wall-icon">🔐</div>
-                <h2>歡迎來到 CANDY BOSS</h2>
+                <h2>歡迎來到 蛋博士 Rex</h2>
                 <p>請先登入以繼續購物</p>
                 <button class="login-wall-btn" onclick="lineLogin()">
                     <span class="line-icon">L</span>
