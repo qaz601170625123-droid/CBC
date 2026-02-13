@@ -1753,6 +1753,144 @@ async function loadProductsData() {
 }
 
 // ==========================================
+// 🔥 只更新已購買商品的庫存（輕量級更新）
+// ==========================================
+async function updatePurchasedProductsStock(purchasedItems) {
+    try {
+        // 載入最新的商品規格表
+        const specsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SPECS_SHEET}?key=${API_KEY}`;
+        const specsResponse = await fetch(specsUrl);
+        
+        if (!specsResponse.ok) return;
+        
+        const specsData = await specsResponse.json();
+        
+        if (specsData.values && specsData.values.length > 1) {
+            // 只更新已購買商品的規格
+            const updatedProductIds = new Set();
+            
+            specsData.values.slice(1).forEach(row => {
+                const productId = row[0];
+                const specName = row[2] || '';
+                
+                // 檢查這個規格是否在購買清單中
+                const isPurchased = purchasedItems.some(item => 
+                    item.productId === productId && item.specName === specName
+                );
+                
+                if (isPurchased) {
+                    // 更新這個規格的庫存
+                    if (productSpecs[productId]) {
+                        const spec = productSpecs[productId].find(s => s.specName === specName);
+                        if (spec) {
+                            spec.stock = parseInt(row[4]) || 0;
+                            updatedProductIds.add(productId);
+                        }
+                    }
+                }
+            });
+            
+            // 重新計算受影響商品的總庫存
+            updatedProductIds.forEach(productId => {
+                const product = products.find(p => p.id === productId);
+                if (product && productSpecs[productId]) {
+                    product.stock = productSpecs[productId].reduce((sum, spec) => sum + spec.stock, 0);
+                }
+            });
+            
+            // 只重新渲染商品顯示（不重新載入分類）
+            displayFeaturedProducts();
+            displayProducts();
+            
+            console.log('✅ 已更新', updatedProductIds.size, '個商品的庫存');
+        }
+        
+    } catch (error) {
+        console.error('更新庫存失敗:', error);
+        // 如果輕量更新失敗，靜默失敗（用戶下次重整頁面時會看到最新庫存）
+    }
+}
+
+// ==========================================
+// 🔥 定期自動刷新所有商品庫存（解決多人同時下單問題）
+// ==========================================
+let autoRefreshInterval = null;
+
+async function refreshAllStock() {
+    try {
+        // 靜默更新，不顯示提示訊息
+        const specsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SPECS_SHEET}?key=${API_KEY}`;
+        const specsResponse = await fetch(specsUrl);
+        
+        if (!specsResponse.ok) return;
+        
+        const specsData = await specsResponse.json();
+        
+        if (specsData.values && specsData.values.length > 1) {
+            // 清空並重建規格數據
+            productSpecs = {};
+            
+            specsData.values.slice(1).forEach(row => {
+                const productId = row[0];
+                const spec = {
+                    productId: row[0] || '',
+                    productName: row[1] || '',
+                    specName: row[2] || '',
+                    price: parseInt(row[3]) || 0,
+                    stock: parseInt(row[4]) || 0,
+                    image: row[5] || '',
+                    quantityMultiplier: parseInt(row[6]) || 1
+                };
+                
+                if (!productSpecs[productId]) {
+                    productSpecs[productId] = [];
+                }
+                productSpecs[productId].push(spec);
+            });
+            
+            // 更新所有商品的庫存
+            products.forEach(product => {
+                const specs = productSpecs[product.id];
+                if (specs && specs.length > 0) {
+                    product.stock = specs.reduce((sum, spec) => sum + spec.stock, 0);
+                }
+            });
+            
+            // 重新渲染商品顯示
+            displayFeaturedProducts();
+            displayProducts();
+            
+            console.log('🔄 自動刷新庫存完成 -', new Date().toLocaleTimeString());
+        }
+        
+    } catch (error) {
+        console.error('自動刷新庫存失敗:', error);
+    }
+}
+
+function startAutoRefresh(intervalSeconds = 30) {
+    // 清除舊的定時器
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    // 設置新的定時器（預設30秒刷新一次）
+    autoRefreshInterval = setInterval(() => {
+        refreshAllStock();
+    }, intervalSeconds * 1000);
+    
+    console.log(`✅ 已啟動自動刷新，每 ${intervalSeconds} 秒更新一次庫存`);
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        console.log('⏹️ 已停止自動刷新');
+    }
+}
+
+// ==========================================
 // 🆕 載入並生成分類按鈕（從「分類設定」工作表）
 // ==========================================
 async function loadCategories() {
@@ -2714,6 +2852,12 @@ async function submitOrder() {
         }))
     };
 
+    // 🔥 保存購買清單，用於後續更新庫存
+    const purchasedItems = cart.map(item => ({
+        productId: item.productId,
+        specName: item.specName
+    }));
+
     try {
         await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
@@ -2735,8 +2879,11 @@ async function submitOrder() {
         document.getElementById('bankLast5').value = '';
         selectedStore = null;
         
-        // 🔥 重新載入商品數據以更新庫存顯示
-        await loadProductsData();
+        // 🔥 輕量級更新：只更新已購買商品的庫存（不會重新載入全部資料）
+        setTimeout(() => {
+            updatePurchasedProductsStock(purchasedItems);
+        }, 1000); // 延遲1秒，等後端扣庫存完成
+        
     } catch (error) {
         console.log('訂單已送出(no-cors 模式)');
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
@@ -2746,8 +2893,11 @@ async function submitOrder() {
         closeCheckout();
         toggleCart();
         
-        // 🔥 重新載入商品數據以更新庫存顯示
-        await loadProductsData();
+        // 🔥 輕量級更新：只更新已購買商品的庫存
+        setTimeout(() => {
+            updatePurchasedProductsStock(purchasedItems);
+        }, 1000);
+    }
     }
 }
 
@@ -3137,6 +3287,10 @@ window.addEventListener('load', () => {
     updateCart();
     checkMemberStatus();
     
+    // 🔥 啟動自動刷新庫存功能（每30秒刷新一次）
+    // 可以調整秒數：15秒更快但耗流量、60秒更慢但省流量
+    startAutoRefresh(30);
+    
     // 檢查是否需要補充資料
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('action') === 'updateProfile') {
@@ -3174,6 +3328,11 @@ window.addEventListener('load', () => {
             showToast('門市選擇成功！');
         }
     }
+});
+
+// 當用戶離開頁面時，停止自動刷新以節省資源
+window.addEventListener('beforeunload', () => {
+    stopAutoRefresh();
 });
     </script>
 </body>
