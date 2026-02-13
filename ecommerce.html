@@ -2734,6 +2734,9 @@ async function submitOrder() {
         document.getElementById('customerPhone').value = '';
         document.getElementById('bankLast5').value = '';
         selectedStore = null;
+        
+        // 🔥 重新載入商品數據以更新庫存顯示
+        await loadProductsData();
     } catch (error) {
         console.log('訂單已送出(no-cors 模式)');
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
@@ -2742,6 +2745,9 @@ async function submitOrder() {
         updateCart();
         closeCheckout();
         toggleCart();
+        
+        // 🔥 重新載入商品數據以更新庫存顯示
+        await loadProductsData();
     }
 }
 
