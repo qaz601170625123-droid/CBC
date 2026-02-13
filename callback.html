@@ -61,13 +61,16 @@
             document.getElementById('message').textContent = '登入失敗:' + error;
             document.getElementById('message').classList.add('error');
             setTimeout(() => {
-                window.location.href = 'ecommerce.html';
+                window.location.replace('ecommerce.html');
             }, 2000);
         } else if (code) {
             handleLineCallback(code);
         } else {
             document.getElementById('message').textContent = '登入參數錯誤';
             document.getElementById('message').classList.add('error');
+            setTimeout(() => {
+                window.location.replace('ecommerce.html');
+            }, 2000);
         }
 
         async function handleLineCallback(code) {
@@ -136,30 +139,21 @@
                     })
                 });
 
-                // 步驟 5: 檢查是否需要補充資料
+                // 步驟 5: 登入成功，直接跳轉
                 document.getElementById('message').textContent = '登入成功!';
                 
-                // 檢查會員是否已有電話
-                const needPhoneCheck = !memberData.phone || memberData.phone === '';
-                
-                if (needPhoneCheck) {
-                    // 需要補充電話,跳轉到補充資料頁面
-                    setTimeout(() => {
-                        window.location.href = 'ecommerce.html?action=updateProfile';
-                    }, 1000);
-                } else {
-                    // 已有電話,直接跳回首頁
-                    setTimeout(() => {
-                        window.location.href = 'ecommerce.html';
-                    }, 1000);
-                }
+                // 🔥 使用 location.replace 而不是 location.href
+                // 這樣可以替換當前頁面歷史記錄，按返回鍵不會回到 callback 頁面
+                setTimeout(() => {
+                    window.location.replace('ecommerce.html');
+                }, 1000);
 
             } catch (error) {
                 console.error('LINE 登入錯誤:', error);
                 document.getElementById('message').textContent = '登入失敗:' + error.message;
                 document.getElementById('message').classList.add('error');
                 setTimeout(() => {
-                    window.location.href = 'ecommerce.html';
+                    window.location.replace('ecommerce.html');
                 }, 3000);
             }
         }

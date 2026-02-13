@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>蛋博士 Rex - 購物商城 v2.5</title>
+    <title>CANDY BOSS - 購物商城 v2.5</title>
     <!-- 強制刷新快取 - 版本 2.5 - 支援F欄大分類過濾功能 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
@@ -1445,13 +1445,14 @@
 <body>
     <!-- 導航列 -->
     <nav class="navbar">
-        <div class="logo">🍬 蛋博士 Rex</div>
+        <div class="logo">🍬 CANDY BOSS</div>
         <div class="nav-buttons" id="navButtons" style="display:none;">
             <button class="nav-btn" id="lineLoginBtn" onclick="lineLogin()" style="display:none;">
                 <img src="https://developers.line.biz/media/line-login/btn_base.png" alt="LINE Login" style="height:40px;">
             </button>
             <div id="memberInfo" style="display:none; align-items:center; gap:10px;">
                 <img id="memberAvatar" src="" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
+                <button class="nav-btn" onclick="openMemberProfileModal()">👤 會員資料</button>
                 <button class="nav-btn" onclick="logout()">登出</button>
             </div>
             <button class="nav-btn" onclick="openOrderSearch()">📦 查詢訂單</button>
@@ -1464,7 +1465,7 @@
         <div id="loginWall" class="login-wall" style="display:none;">
             <div class="login-wall-content">
                 <div class="login-wall-icon">🔐</div>
-                <h2>歡迎來到 蛋博士 Rex</h2>
+                <h2>歡迎來到 CANDY BOSS</h2>
                 <p>請先登入以繼續購物</p>
                 <button class="login-wall-btn" onclick="lineLogin()">
                     <span class="line-icon">L</span>
@@ -1635,33 +1636,67 @@
         </div>
     </div>
 
-    <!-- 會員補充資料彈窗 -->
+    <!-- 會員資料查看彈窗 -->
+    <div class="modal" id="memberProfileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">👤 會員資料</div>
+                <button class="close-modal" onclick="closeMemberProfileModal()">✕</button>
+            </div>
+            
+            <div style="padding: 20px 0;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img id="profileAvatar" src="" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--primary);">
+                    <div style="margin-top: 10px; font-size: 18px; font-weight: 700; color: var(--primary);" id="profileDisplayName"></div>
+                </div>
+                
+                <div style="background: rgba(255, 215, 0, 0.1); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 12px; color: #999; margin-bottom: 5px;">📱 電話號碼</div>
+                        <div style="font-size: 16px; font-weight: 700;" id="profilePhone">未設定</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 12px; color: #999; margin-bottom: 5px;">📧 Email</div>
+                        <div style="font-size: 16px; font-weight: 700;" id="profileEmail">未設定</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 12px; color: #999; margin-bottom: 5px;">🎯 審核狀態</div>
+                        <div style="font-size: 16px; font-weight: 700;" id="profileApprovalStatus">待審核</div>
+                    </div>
+                    
+                    <div>
+                        <div style="font-size: 12px; color: #999; margin-bottom: 5px;">🆔 會員 ID</div>
+                        <div style="font-size: 12px; color: #666; word-break: break-all;" id="profileLineId"></div>
+                    </div>
+                </div>
+                
+                <button class="submit-order-btn" onclick="openEditProfileModal()">✏️ 編輯資料</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 會員資料編輯彈窗 -->
     <div class="modal" id="profileUpdateModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">📝 完善會員資料</div>
+                <div class="modal-title">✏️ 編輯會員資料</div>
+                <button class="close-modal" onclick="closeProfileUpdateModal()">✕</button>
             </div>
             
-            <div style="padding: 20px 0; text-align: center; color: #999;">
-                <p style="margin-bottom: 20px;">歡迎！請補充以下資料，讓購物更便利</p>
-            </div>
+            <div style="padding: 20px 0;">
+                <div class="form-group">
+                    <label class="form-label">📱 電話號碼 *</label>
+                    <input type="tel" class="form-input" id="updatePhone" placeholder="例: 0912345678" required>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label">📱 電話號碼 *</label>
-                <input type="tel" class="form-input" id="updatePhone" placeholder="例: 0912345678" required>
-            </div>
+                <div class="form-group">
+                    <label class="form-label">📧 Email（選填）</label>
+                    <input type="email" class="form-input" id="updateEmail" placeholder="例: example@gmail.com">
+                </div>
 
-            <div class="form-group">
-                <label class="form-label">📧 Email（選填）</label>
-                <input type="email" class="form-input" id="updateEmail" placeholder="例: example@gmail.com">
-            </div>
-
-            <button class="submit-order-btn" onclick="submitProfileUpdate()">✅ 完成</button>
-            
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="skipProfileUpdate()" style="background: none; border: none; color: #999; text-decoration: underline; cursor: pointer; font-size: 14px;">
-                    暫時跳過
-                </button>
+                <button class="submit-order-btn" onclick="submitProfileUpdate()">✅ 儲存變更</button>
             </div>
         </div>
     </div>
@@ -3244,10 +3279,53 @@ function logout() {
 }
 
 // ==========================================
-// 會員資料更新
+// 會員資料查看與編輯
 // ==========================================
 
-function openProfileUpdateModal() {
+function openMemberProfileModal() {
+    if (!currentMember) {
+        showToast('請先登入', 'error');
+        return;
+    }
+    
+    // 填入會員資料
+    document.getElementById('profileAvatar').src = currentMember.pictureUrl || '';
+    document.getElementById('profileDisplayName').textContent = currentMember.displayName || '未設定';
+    document.getElementById('profilePhone').textContent = currentMember.phone || '未設定';
+    document.getElementById('profileEmail').textContent = currentMember.email || '未設定';
+    document.getElementById('profileLineId').textContent = currentMember.lineId || '';
+    
+    // 顯示審核狀態
+    const approvalStatus = currentMember.approvalStatus || '待審核';
+    const statusElement = document.getElementById('profileApprovalStatus');
+    statusElement.textContent = approvalStatus;
+    
+    // 根據狀態改變顏色
+    if (approvalStatus === '已通過') {
+        statusElement.style.color = 'var(--accent-green)';
+    } else if (approvalStatus === '已拒絕') {
+        statusElement.style.color = '#ff4444';
+    } else {
+        statusElement.style.color = '#ffa500';
+    }
+    
+    // 顯示彈窗
+    document.getElementById('memberProfileModal').classList.add('active');
+}
+
+function closeMemberProfileModal() {
+    document.getElementById('memberProfileModal').classList.remove('active');
+}
+
+function openEditProfileModal() {
+    // 關閉查看彈窗
+    closeMemberProfileModal();
+    
+    // 填入現有資料
+    document.getElementById('updatePhone').value = currentMember.phone || '';
+    document.getElementById('updateEmail').value = currentMember.email || '';
+    
+    // 顯示編輯彈窗
     document.getElementById('profileUpdateModal').classList.add('active');
 }
 
@@ -3306,20 +3384,9 @@ async function submitProfileUpdate() {
         closeProfileUpdateModal();
         showToast('資料更新成功！');
         
-        // 移除網址參數
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
     } catch (error) {
         console.error('更新失敗:', error);
         showToast('更新失敗，請稍後再試', 'error');
-    }
-}
-
-function skipProfileUpdate() {
-    if (confirm('跳過後，下單時需要手動輸入電話。\n\n確定要跳過嗎？')) {
-        closeProfileUpdateModal();
-        // 移除網址參數
-        window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
@@ -3335,18 +3402,8 @@ window.addEventListener('load', () => {
     // 可以調整秒數：15秒更快但耗流量、60秒更慢但省流量
     startAutoRefresh(30);
     
-    // 檢查是否需要補充資料
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('action') === 'updateProfile') {
-        // 延遲一下，等會員狀態載入完成
-        setTimeout(() => {
-            if (currentMember && (!currentMember.phone || currentMember.phone === '')) {
-                openProfileUpdateModal();
-            }
-        }, 500);
-    }
-    
     // 檢查是否從綠界地圖回來
+    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('store') === 'selected') {
         const storeData = localStorage.getItem('ecpay_store');
         if (storeData) {
