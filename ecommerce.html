@@ -2220,6 +2220,10 @@ function openCategoryModal(categoryName) {
     document.getElementById('specModalTitle').textContent = categoryName;
     document.getElementById('specModal').classList.add('active');
     
+    // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
+    history.pushState({ modal: 'spec' }, '');
+    isModalOpen = true;
+    
     // 渲染該類別下的所有口味選項
     renderFlavorOptions(categoryName);
     
@@ -2442,6 +2446,47 @@ function selectQuantitySpec(index) {
 }
 
 // ==========================================
+// 🔥 瀏覽器返回鍵處理 - 關閉彈窗回到主頁
+// ==========================================
+let isModalOpen = false;
+
+// 監聽瀏覽器返回鍵
+window.addEventListener('popstate', function(event) {
+    // 檢查是否有任何彈窗開啟
+    const specModal = document.getElementById('specModal');
+    const cartSidebar = document.getElementById('cartSidebar');
+    const checkoutModal = document.getElementById('checkoutModal');
+    const orderSearchModal = document.getElementById('orderSearchModal');
+    const profileUpdateModal = document.getElementById('profileUpdateModal');
+    
+    // 依序檢查並關閉開啟的彈窗
+    if (specModal && specModal.classList.contains('active')) {
+        closeSpecModal();
+        isModalOpen = false;
+    } else if (cartSidebar && cartSidebar.classList.contains('active')) {
+        toggleCart();
+        isModalOpen = false;
+    } else if (checkoutModal && checkoutModal.classList.contains('active')) {
+        closeCheckout();
+        isModalOpen = false;
+    } else if (orderSearchModal && orderSearchModal.classList.contains('active')) {
+        closeOrderSearch();
+        isModalOpen = false;
+    } else if (profileUpdateModal && profileUpdateModal.classList.contains('active')) {
+        closeProfileUpdateModal();
+        isModalOpen = false;
+    } else {
+        // 如果沒有彈窗開啟，阻止返回（停留在主頁）
+        history.pushState(null, '', location.href);
+    }
+});
+
+// 頁面載入時，設置初始狀態，防止返回跳出網站
+window.addEventListener('load', function() {
+    history.pushState(null, '', location.href);
+});
+
+// ==========================================
 // 規格選擇彈窗（保留原有功能）
 // ==========================================
 function openSpecModal(productId) {
@@ -2456,6 +2501,10 @@ function openSpecModal(productId) {
 
     document.getElementById('specModalTitle').textContent = currentProduct.name;
     document.getElementById('specModal').classList.add('active');
+    
+    // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
+    history.pushState({ modal: 'spec' }, '');
+    isModalOpen = true;
     
     renderSpecOptions();
     quantity = 1;
@@ -2748,7 +2797,16 @@ function removeCartItem(index) {
 }
 
 function toggleCart() {
-    document.getElementById('cartSidebar').classList.toggle('active');
+    const cartSidebar = document.getElementById('cartSidebar');
+    const isOpening = !cartSidebar.classList.contains('active');
+    
+    cartSidebar.classList.toggle('active');
+    
+    // 🔥 開啟購物車時添加歷史記錄
+    if (isOpening) {
+        history.pushState({ modal: 'cart' }, '');
+        isModalOpen = true;
+    }
 }
 
 // ==========================================
@@ -2764,6 +2822,10 @@ function openCheckout() {
     updateCheckoutSummary();
     
     document.getElementById('checkoutModal').classList.add('active');
+    
+    // 🔥 添加歷史記錄
+    history.pushState({ modal: 'checkout' }, '');
+    isModalOpen = true;
 }
 
 function updateCheckoutSummary() {
@@ -2992,6 +3054,10 @@ async function openOrderSearch() {
     
     // 顯示模態框
     document.getElementById('orderSearchModal').classList.add('active');
+    
+    // 🔥 添加歷史記錄
+    history.pushState({ modal: 'orderSearch' }, '');
+    isModalOpen = true;
     
     // 顯示載入中
     document.getElementById('ordersList').innerHTML = `
