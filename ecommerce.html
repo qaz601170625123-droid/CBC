@@ -1913,6 +1913,7 @@ async function loadCategories() {
                         enabled: (row[2] || '').toString().toUpperCase() === 'TRUE'  // C欄：是否啟用（TRUE/FALSE）
                     }))
                     .filter(c => c.name && c.enabled)  // 🔥 只保留已啟用的分類
+                    .filter(c => c.name !== '全部')    // 🔥 排除「全部」分類（因為會自動生成）
                     .sort((a, b) => a.order - b.order);  // 依照順序排序
                     
                     console.log('✅ 從「分類設定」工作表載入分類：', categories);
@@ -2269,6 +2270,27 @@ function selectFlavor(index) {
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
     renderQuantitySpecOptions(specs);
+    
+    // 🔥 自動預選「單包」規格
+    // 尋找規格名稱包含「單包」的選項，或者第一個有庫存的規格
+    let autoSelectIndex = -1;
+    
+    // 優先尋找名稱包含「單包」的規格
+    autoSelectIndex = specs.findIndex(s => 
+        s.specName.includes('單包') && s.stock > 0
+    );
+    
+    // 如果沒有找到，則選擇第一個有庫存的規格
+    if (autoSelectIndex === -1) {
+        autoSelectIndex = specs.findIndex(s => s.stock > 0);
+    }
+    
+    // 自動選擇規格
+    if (autoSelectIndex !== -1) {
+        setTimeout(() => {
+            selectQuantitySpec(autoSelectIndex);
+        }, 100); // 延遲一點點，確保 DOM 已渲染
+    }
 }
 
 function renderQuantitySpecOptions(specs) {
