@@ -88,6 +88,73 @@
             color: var(--secondary);
         }
 
+        /* 🆕 公告列樣式 */
+        .announcement-bar {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%);
+            border-bottom: 2px solid var(--primary);
+            padding: 12px 0;
+            overflow: hidden;
+            position: relative;
+            display: none; /* 預設隱藏，有公告才顯示 */
+        }
+        
+        .announcement-bar.active {
+            display: block;
+        }
+        
+        .announcement-content {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+            overflow: hidden;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .announcement-icon {
+            font-size: 20px;
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        
+        .announcement-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+            display: inline-block;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* 跑馬燈效果（單則公告） */
+        .announcement-text.marquee {
+            animation: marquee 30s linear infinite;
+        }
+        
+        @keyframes marquee {
+            0% {
+                transform: translateX(100%);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+        
+        /* 淡入淡出效果（多則公告輪播） */
+        .announcement-text.fade {
+            animation: fadeInOut 5s ease-in-out;
+            white-space: normal;
+            word-break: break-word;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(10px); }
+        }
+
         /* 主要容器 */
         .container {
             max-width: 1200px;
@@ -1459,6 +1526,14 @@
         </div>
     </nav>
 
+    <!-- 🆕 公告列 -->
+    <div class="announcement-bar" id="announcementBar">
+        <div class="announcement-content">
+            <span class="announcement-icon">📢</span>
+            <span class="announcement-text" id="announcementText"></span>
+        </div>
+    </div>
+
     <!-- 主要內容 -->
     <div class="container">
         <!-- 登入牆 -->
@@ -1719,9 +1794,11 @@ const LINE_STATE = 'random_state_' + Math.random().toString(36).substr(2, 9);
 
 const PRODUCTS_SHEET = '商品列表';
 const SPECS_SHEET = '商品規格表';
+const ANNOUNCEMENT_SHEET = '公告設定';  // 🆕 公告工作表
 
 let products = [];
 let productSpecs = {};
+let announcements = [];  // 🆕 儲存公告資料
 let currentCategory = 'all';  // 當前選擇的分類
 let cart = [];
 let selectedStore = null;
@@ -1802,11 +1879,123 @@ async function loadProductsData() {
         displayFeaturedProducts();  // 顯示主打商品
         displayProducts();          // 顯示所有商品
         loadCategories();           // 🆕 載入並生成分類按鈕
+        loadAnnouncements();        // 🆕 載入公告
         showToast('商品載入完成!', 'success');
         
     } catch (error) {
         console.error('載入商品失敗:', error);
         showToast('載入商品失敗：' + error.message, 'error');
+    }
+}
+
+// ==========================================
+// 🆕 公告列功能
+// ==========================================
+
+/**
+ * 載入公告資料
+ */
+async function loadAnnouncements() {
+    try {
+        const announcementUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${ANNOUNCEMENT_SHEET}?key=${API_KEY}`;
+        const response = await fetch(announcementUrl);
+        
+        if (!response.ok) {
+            console.log('找不到公告設定工作表，跳過公告載入');
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data.values || data.values.length < 2) {
+            console.log('公告資料為空');
+            return;
+        }
+        
+        // 解析公告資料
+        // 格式：A欄=公告內容, B欄=啟用狀態（是/否）, C欄=連結(可選)
+        announcements = data.values.slice(1)
+            .filter(row => row[0] && (row[1] || '').trim() === '是')  // 只取啟用的公告
+            .map(row => ({
+                text: row[0] || '',
+                link: row[2] || ''
+            }));
+        
+        if (announcements.length > 0) {
+            displayAnnouncements();
+        }
+        
+    } catch (error) {
+        console.error('載入公告失敗:', error);
+    }
+}
+
+/**
+ * 顯示公告
+ */
+function displayAnnouncements() {
+    const announcementBar = document.getElementById('announcementBar');
+    const announcementText = document.getElementById('announcementText');
+    
+    if (announcements.length === 0) {
+        announcementBar.classList.remove('active');
+        return;
+    }
+    
+    announcementBar.classList.add('active');
+    
+    if (announcements.length === 1) {
+        // 單則公告：使用跑馬燈效果
+        const announcement = announcements[0];
+        announcementText.textContent = announcement.text;
+        announcementText.classList.add('marquee');
+        announcementText.classList.remove('fade');
+        
+        // 如果有連結，設定點擊事件
+        if (announcement.link) {
+            announcementBar.style.cursor = 'pointer';
+            announcementBar.onclick = () => {
+                window.open(announcement.link, '_blank');
+            };
+        }
+    } else {
+        // 多則公告：使用輪播效果
+        let currentIndex = 0;
+        announcementText.classList.remove('marquee');
+        announcementText.classList.add('fade');
+        
+        function rotateAnnouncement() {
+            const announcement = announcements[currentIndex];
+            
+            // 先淡出
+            announcementText.style.opacity = '0';
+            
+            setTimeout(() => {
+                announcementText.textContent = announcement.text;
+                
+                // 更新連結
+                if (announcement.link) {
+                    announcementBar.style.cursor = 'pointer';
+                    announcementBar.onclick = () => {
+                        window.open(announcement.link, '_blank');
+                    };
+                } else {
+                    announcementBar.style.cursor = 'default';
+                    announcementBar.onclick = null;
+                }
+                
+                // 淡入
+                announcementText.style.opacity = '1';
+                
+                currentIndex = (currentIndex + 1) % announcements.length;
+            }, 300);
+        }
+        
+        // 初始顯示第一則
+        rotateAnnouncement();
+        
+        // 每 5 秒切換一次
+        setInterval(rotateAnnouncement, 5000);
     }
 }
 
