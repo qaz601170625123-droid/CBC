@@ -487,29 +487,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" 
-            onerror="loadCryptoJSBackup()"></script>
-    <script>
-        // 備用載入CryptoJS
-        function loadCryptoJSBackup() {
-            console.log('主要CDN載入失敗，嘗試備用CDN...');
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.js';
-            script.onerror = function() {
-                alert('❌ 無法載入加密函式庫\n\n請檢查網路連線後重新整理頁面');
-            };
-            document.head.appendChild(script);
-        }
-        
-        // 檢查CryptoJS是否載入
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                if (typeof CryptoJS === 'undefined') {
-                    alert('⚠️ 加密函式庫載入失敗\n\n請重新整理頁面\n或檢查網路連線');
-                }
-            }, 2000);
-        });
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         // 綠界設定
         const ECPAY_CONFIG = {
@@ -582,40 +560,29 @@
         
         // 生成CheckMacValue
         function generateCheckMacValue(params) {
-            try {
-                // 檢查CryptoJS是否存在
-                if (typeof CryptoJS === 'undefined') {
-                    throw new Error('CryptoJS未載入，請重新整理頁面');
+            const sortedKeys = Object.keys(params).sort();
+            
+            let checkStr = 'HashKey=' + ECPAY_CONFIG.HashKey + '&';
+            sortedKeys.forEach(key => {
+                if (key !== 'CheckMacValue') {
+                    checkStr += key + '=' + params[key] + '&';
                 }
-                
-                const sortedKeys = Object.keys(params).sort();
-                
-                let checkStr = 'HashKey=' + ECPAY_CONFIG.HashKey + '&';
-                sortedKeys.forEach(key => {
-                    if (key !== 'CheckMacValue') {
-                        checkStr += key + '=' + params[key] + '&';
-                    }
-                });
-                checkStr += 'HashIV=' + ECPAY_CONFIG.HashIV;
-                
-                checkStr = encodeURIComponent(checkStr);
-                checkStr = checkStr.toLowerCase();
-                checkStr = checkStr
-                    .replace(/%2d/g, '-')
-                    .replace(/%5f/g, '_')
-                    .replace(/%2e/g, '.')
-                    .replace(/%21/g, '!')
-                    .replace(/%2a/g, '*')
-                    .replace(/%28/g, '(')
-                    .replace(/%29/g, ')')
-                    .replace(/%20/g, '+');
-                
-                return CryptoJS.SHA256(checkStr).toString().toUpperCase();
-            } catch (error) {
-                console.error('生成CheckMacValue失敗:', error);
-                alert('❌ 加密處理失敗：' + error.message + '\n\n請重新整理頁面');
-                throw error;
-            }
+            });
+            checkStr += 'HashIV=' + ECPAY_CONFIG.HashIV;
+            
+            checkStr = encodeURIComponent(checkStr);
+            checkStr = checkStr.toLowerCase();
+            checkStr = checkStr
+                .replace(/%2d/g, '-')
+                .replace(/%5f/g, '_')
+                .replace(/%2e/g, '.')
+                .replace(/%21/g, '!')
+                .replace(/%2a/g, '*')
+                .replace(/%28/g, '(')
+                .replace(/%29/g, ')')
+                .replace(/%20/g, '+');
+            
+            return CryptoJS.SHA256(checkStr).toString().toUpperCase();
         }
         
         // 載入Google試算表資料
@@ -741,22 +708,31 @@
                 return;
             }
             
+            if (!scriptUrl) {
+                alert('⚠️ 請先設定Apps Script網址\n\n請在第一步「設定Google Apps Script」中填入並儲存您的Script網址');
+                return;
+            }
+            
+            // 使用您的Apps Script網址作為回傳網址
             const params = {
                 MerchantID: ECPAY_CONFIG.MerchantID,
                 MerchantTradeNo: orderNo,
                 LogisticsType: 'CVS',
                 LogisticsSubType: 'UNIMART',
                 IsCollection: 'N',
-                ServerReplyURL: window.location.origin + '/callback'
+                ServerReplyURL: scriptUrl
             };
             
+            console.log('選店參數:', params);
+            
             const checkMacValue = generateCheckMacValue(params);
+            console.log('CheckMacValue:', checkMacValue);
             
             // 建立表單
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = ECPAY_CONFIG.MapURL;
-            form.target = '_blank';
+            form.target = 'ecpay_map_window';
             form.id = 'ecpay-map-form-temp';
             
             Object.keys(params).forEach(key => {
@@ -775,32 +751,36 @@
             
             document.body.appendChild(form);
             
+            // 開啟指定名稱的視窗
+            const mapWindow = window.open('', 'ecpay_map_window', 'width=900,height=700,scrollbars=yes');
+            
+            if (!mapWindow || mapWindow.closed || typeof mapWindow.closed == 'undefined') {
+                // 彈出視窗被阻擋
+                alert('⚠️ 彈出視窗被阻擋！\n\n解決方法：\n1. 點選網址列的「🚫」圖示\n2. 允許彈出式視窗\n3. 重新點擊「開啟地圖」按鈕\n\n或直接使用：\n前往 https://emap.pcsc.com.tw/ 查詢門市代號');
+                document.getElementById('selected-store').style.display = 'block';
+                document.body.removeChild(form);
+                return;
+            }
+            
+            // 提交表單到新視窗
             try {
-                // 嘗試開啟新視窗
-                const newWindow = window.open('', '_blank');
+                form.submit();
                 
-                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                    // 彈出視窗被阻擋
-                    alert('⚠️ 彈出視窗被阻擋！\n\n請點選網址列旁的「🚫」圖示\n允許此網站的彈出式視窗\n\n或者：\n您也可以手動前往 7-11 官網查詢門市代號\nhttps://emap.pcsc.com.tw/');
-                    document.getElementById('selected-store').style.display = 'block';
-                } else {
-                    // 成功開啟，提交表單
-                    form.target = newWindow.name;
-                    form.submit();
-                    
-                    alert('📍 請在新視窗中選擇門市\n\n選擇完成後：\n1. 複製門市代號和名稱\n2. 關閉選店視窗\n3. 回到本頁面手動填入門市資訊\n\n💡 小提示：\n如果新視窗是空白的，可能需要等待幾秒\n或直接前往 https://emap.pcsc.com.tw/ 查詢門市');
-                    
-                    document.getElementById('selected-store').style.display = 'block';
-                }
+                // 顯示說明
+                alert('📍 選店說明：\n\n1. 在新視窗中搜尋並選擇門市\n2. 選擇後會自動顯示門市資訊\n3. 點擊「確認並關閉」或等待3秒\n4. 門市資訊會自動填入表單\n\n💡 如果沒有自動填入，請手動複製貼上');
+                
+                // 顯示門市輸入欄位
+                document.getElementById('selected-store').style.display = 'block';
+                
             } catch (error) {
-                console.error('開啟地圖失敗:', error);
-                alert('❌ 無法開啟選店頁面\n\n替代方案：\n請前往 7-11 官網查詢門市\nhttps://emap.pcsc.com.tw/\n\n查到門市後，在下方手動填入門市代號和名稱即可');
+                console.error('提交表單失敗:', error);
+                alert('❌ 開啟選店頁面失敗\n\n請改用手動方式：\n1. 前往 https://emap.pcsc.com.tw/\n2. 搜尋門市\n3. 複製門市代號（6位數字）\n4. 在下方填入門市資訊');
                 document.getElementById('selected-store').style.display = 'block';
             } finally {
                 // 清理表單
                 setTimeout(() => {
                     const formElement = document.getElementById('ecpay-map-form-temp');
-                    if (formElement) {
+                    if (formElement && formElement.parentNode) {
                         document.body.removeChild(formElement);
                     }
                 }, 1000);
@@ -907,6 +887,24 @@
                 createBtn.innerHTML = '🚀 建立物流訂單';
             }
         }
+        
+        // 接收門市資訊
+        window.addEventListener('message', function(event) {
+            console.log('收到postMessage:', event.data);
+            
+            if (event.data && event.data.type === 'storeSelected') {
+                // 自動填入門市資訊
+                document.getElementById('store-id').value = event.data.storeId;
+                document.getElementById('store-name').value = event.data.storeName;
+                document.getElementById('selected-store').style.display = 'block';
+                
+                // 更新步驟指示器
+                updateStep(4);
+                
+                // 顯示成功訊息
+                alert('✅ 門市已自動填入：' + event.data.storeName + '\n代號：' + event.data.storeId);
+            }
+        });
     </script>
 </body>
 </html>
