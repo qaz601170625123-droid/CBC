@@ -2050,9 +2050,10 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 修改：ServerReplyURL 使用 Google Apps Script
-    const serverReplyURL = APPS_SCRIPT_URL;  // 使用 Google Apps Script 接收 POST
-    const clientReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
+    // 🔥 修改：ServerReplyURL 和 ClientReplyURL 都使用 Google Apps Script
+    // Apps Script 會顯示成功頁面並自動關閉彈窗，同時傳資料回主頁面
+    const serverReplyURL = APPS_SCRIPT_URL;  // 後端接收（綠界 POST）
+    const clientReplyURL = APPS_SCRIPT_URL;  // 前端顯示（綠界 GET，顯示後關閉彈窗）
     
     // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
     const params = {
@@ -2061,8 +2062,8 @@ function openECPayMap() {
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: serverReplyURL,   // 🔥 改用 Google Apps Script 接收 POST
-        ClientReplyURL: clientReplyURL,   // 🔥 前端接收 GET
+        ServerReplyURL: serverReplyURL,   // 🔥 後端記錄用
+        ClientReplyURL: clientReplyURL,   // 🔥 前端顯示用（會自動關閉彈窗並傳資料）
         ExtraData: '',
         Device: getDeviceType()
     };
@@ -2093,8 +2094,8 @@ function openECPayMap() {
     document.getElementById('ecpay_MerchantID').value = params.MerchantID;
     document.getElementById('ecpay_MerchantTradeNo').value = params.MerchantTradeNo;
     document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType;
-    document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;  // 🔥 ServerReplyURL（必填）
-    document.getElementById('ecpay_ClientReplyURL').value = params.ClientReplyURL; // 🔥 ClientReplyURL（真正使用）
+    document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;
+    document.getElementById('ecpay_ClientReplyURL').value = params.ClientReplyURL;
     document.getElementById('ecpay_ExtraData').value = params.ExtraData;
     document.getElementById('ecpay_Device').value = params.Device;
     document.getElementById('ecpay_CheckMacValue').value = checkMacValue;
