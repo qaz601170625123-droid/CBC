@@ -2055,9 +2055,9 @@ function openECPayMap() {
     const merchantTradeNo = generateMerchantTradeNo();
     
     // 🔥 修改：ServerReplyURL 和 ClientReplyURL 都使用 Google Apps Script
-    // Apps Script 會顯示成功頁面並自動關閉彈窗，同時傳資料回主頁面
+    // Apps Script 會將資料儲存到 localStorage，然後關閉彈窗
     const serverReplyURL = APPS_SCRIPT_URL;  // 後端接收（綠界 POST）
-    const clientReplyURL = APPS_SCRIPT_URL;  // 前端顯示（綠界 GET，顯示後關閉彈窗）
+    const clientReplyURL = APPS_SCRIPT_URL;  // 前端顯示（綠界 GET，儲存到 localStorage 後關閉彈窗）
     
     // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
     const params = {
@@ -2067,7 +2067,7 @@ function openECPayMap() {
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
         ServerReplyURL: serverReplyURL,   // 🔥 後端記錄用
-        ClientReplyURL: clientReplyURL,   // 🔥 前端顯示用（會自動關閉彈窗並傳資料）
+        ClientReplyURL: clientReplyURL,   // 🔥 前端顯示用（儲存到 localStorage 並關閉彈窗）
         ExtraData: '',
         Device: getDeviceType()
     };
@@ -2106,8 +2106,11 @@ function openECPayMap() {
     localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
     console.log('✅ 已儲存訂單編號到 localStorage:', merchantTradeNo);
     
-    // 🔥 測試：確認 receiveStoreData 函數存在
-    console.log('檢查 receiveStoreData 函數是否存在:', typeof window.receiveStoreData);
+    // 🔥 清除舊的門市資料（如果有的話）
+    localStorage.removeItem('ecpay_store_data');
+    
+    // 🔥 開始監聽門市資料
+    startListeningForStoreData();
     
     // 🔥 開啟彈窗（800x600）
     const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
@@ -2129,16 +2132,69 @@ function openECPayMap() {
 // 🆕 接收彈窗傳來的門市資料
 // ==========================================
 // ==========================================
-// 🆕 處理綠界回傳的門市資料（彈窗方式）
+// 🆕 處理綠界回傳的門市資料（使用 localStorage）
 // ==========================================
+
+// 🔥 輪詢檢查 localStorage 中的門市資料
+let storeDataCheckInterval = null;
+
 /**
- * 🆕 接收綠界彈窗傳回的門市資料
- * 必須是全域函數，讓彈窗的 window.opener 可以呼叫
+ * 🆕 開始監聽 localStorage 中的門市資料
  */
-window.receiveStoreData = function(storeData) {
+function startListeningForStoreData() {
     console.log('========================================');
-    console.log('✅ receiveStoreData 被呼叫了！');
-    console.log('收到的門市資料：', storeData);
+    console.log('🎧 開始監聽門市資料...');
+    console.log('========================================');
+    
+    // 清除舊的監聽器
+    if (storeDataCheckInterval) {
+        clearInterval(storeDataCheckInterval);
+    }
+    
+    // 每 500ms 檢查一次 localStorage
+    storeDataCheckInterval = setInterval(() => {
+        const storeDataJson = localStorage.getItem('ecpay_store_data');
+        
+        if (storeDataJson) {
+            console.log('✅ 偵測到門市資料！');
+            
+            try {
+                const storeData = JSON.parse(storeDataJson);
+                console.log('收到的門市資料：', storeData);
+                
+                // 停止監聽
+                clearInterval(storeDataCheckInterval);
+                storeDataCheckInterval = null;
+                
+                // 處理門市資料
+                processStoreData(storeData);
+                
+                // 清除 localStorage 中的門市資料
+                localStorage.removeItem('ecpay_store_data');
+                
+            } catch (error) {
+                console.error('❌ 解析門市資料失敗：', error);
+                localStorage.removeItem('ecpay_store_data');
+            }
+        }
+    }, 500);
+    
+    // 30秒後自動停止監聽
+    setTimeout(() => {
+        if (storeDataCheckInterval) {
+            console.log('⏱️ 監聽逾時，停止監聽');
+            clearInterval(storeDataCheckInterval);
+            storeDataCheckInterval = null;
+        }
+    }, 30000);
+}
+
+/**
+ * 🆕 處理門市資料
+ */
+function processStoreData(storeData) {
+    console.log('========================================');
+    console.log('📦 開始處理門市資料');
     console.log('========================================');
     
     if (!storeData) {
@@ -2171,11 +2227,19 @@ window.receiveStoreData = function(storeData) {
     // 顯示門市資訊
     displaySelectedStore();
     
-    // 清除 localStorage
+    // 清除訂單編號
     localStorage.removeItem('ecpay_merchant_trade_no');
     
     // 顯示成功訊息
     showToast('✅ 門市選擇成功！', 'success');
+    
+    console.log('========================================');
+}
+
+// 🔥 保留舊的 receiveStoreData 函數作為備用（如果 window.opener 有效的話）
+window.receiveStoreData = function(storeData) {
+    console.log('✅ receiveStoreData 被呼叫（window.opener 方式）');
+    processStoreData(storeData);
 };
 
 /**
