@@ -3546,6 +3546,12 @@ function generateCheckMacValue(params) {
 }
 
 async function submitOrder() {
+    // 🔥 防重複點擊：檢查是否正在提交
+    if (window.isSubmittingOrder) {
+        showToast('訂單處理中，請稍候...', 'error');
+        return;
+    }
+    
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
@@ -3565,6 +3571,17 @@ async function submitOrder() {
         showToast('匯款末五碼必須是 5 位數字', 'error');
         return;
     }
+
+    // 🔥 設定提交中標記，防止重複點擊
+    window.isSubmittingOrder = true;
+    
+    // 🔥 禁用提交按鈕並顯示載入狀態
+    const submitBtn = document.querySelector('.submit-order-btn');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.6';
+    submitBtn.style.cursor = 'not-allowed';
+    submitBtn.innerHTML = '⏳ 訂單處理中，請稍候...';
 
     // 🆕 計算優惠
     const promotionResult = calculatePromotions(cart);
@@ -3670,6 +3687,13 @@ async function submitOrder() {
         document.getElementById('bankLast5').value = '';
         selectedStore = null;
         
+        // 🔥 重置提交狀態
+        window.isSubmittingOrder = false;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+        submitBtn.innerHTML = originalBtnText;
+        
         // 🔥 輕量級更新：只更新已購買商品的庫存（不會重新載入全部資料）
         setTimeout(() => {
             updatePurchasedProductsStock(purchasedItems);
@@ -3683,6 +3707,13 @@ async function submitOrder() {
         updateCart();
         closeCheckout();
         toggleCart();
+        
+        // 🔥 重置提交狀態
+        window.isSubmittingOrder = false;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+        submitBtn.innerHTML = originalBtnText;
         
         // 🔥 輕量級更新：只更新已購買商品的庫存
         setTimeout(() => {
