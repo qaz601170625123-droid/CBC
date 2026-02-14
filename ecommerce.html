@@ -1615,11 +1615,11 @@
 </head>
 <body>
     <!-- 🆕 隱藏的綠界表單（正式環境） -->
-    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;">
+    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="_blank">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
         <input type="text" name="MerchantTradeNo" id="ecpay_MerchantTradeNo">
         <input type="text" name="LogisticsType" value="CVS">
-        <input type="text" name="LogisticsSubType" value="UNIMART">
+        <input type="text" name="LogisticsSubType" id="ecpay_LogisticsSubType" value="UNIMARTC2C">
         <input type="text" name="IsCollection" value="N">
         <input type="text" name="ServerReplyURL" id="ecpay_ServerReplyURL">
         <input type="text" name="ExtraData" id="ecpay_ExtraData">
@@ -2055,12 +2055,23 @@ function openECPayMap() {
         MerchantID: ECPAY_CONFIG.MerchantID,
         MerchantTradeNo: merchantTradeNo,
         LogisticsType: 'CVS',
-        LogisticsSubType: 'UNIMART', // 7-11
+        LogisticsSubType: 'UNIMARTC2C', // 🔥 修正：7-11 店到店（C2C）
         IsCollection: 'N',
         ServerReplyURL: ECPAY_CONFIG.ServerReplyURL,
         ExtraData: '', // 可以傳遞自訂資料
         Device: getDeviceType()
     };
+    
+    // 🔥 除錯：記錄參數
+    console.log('========================================');
+    console.log('📦 綠界地圖參數：');
+    console.log('MerchantID:', params.MerchantID);
+    console.log('MerchantTradeNo:', params.MerchantTradeNo);
+    console.log('LogisticsType:', params.LogisticsType);
+    console.log('LogisticsSubType:', params.LogisticsSubType);
+    console.log('ServerReplyURL:', params.ServerReplyURL);
+    console.log('Device:', params.Device);
+    console.log('========================================');
     
     // 產生檢查碼
     const checkMacValue = generateCheckMacValue(
@@ -2069,9 +2080,13 @@ function openECPayMap() {
         ECPAY_CONFIG.HashIV
     );
     
+    console.log('CheckMacValue:', checkMacValue);
+    console.log('========================================');
+    
     // 填入表單
     document.getElementById('ecpay_MerchantID').value = params.MerchantID;
     document.getElementById('ecpay_MerchantTradeNo').value = params.MerchantTradeNo;
+    document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType; // 🔥 新增
     document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;
     document.getElementById('ecpay_ExtraData').value = params.ExtraData;
     document.getElementById('ecpay_Device').value = params.Device;
