@@ -2155,8 +2155,10 @@ function handleECPayCallback() {
     
     // 檢查是否為綠界回傳
     if (urlParams.get('action') !== 'ecpay_callback') {
-        return;
+        return false; // 返回 false 表示不是綠界回傳
     }
+    
+    console.log('🎯 偵測到綠界門市回傳');
     
     // 取得門市資料
     const storeData = {
@@ -2164,15 +2166,17 @@ function handleECPayCallback() {
         CVSStoreID: urlParams.get('CVSStoreID'),
         CVSStoreName: urlParams.get('CVSStoreName'),
         CVSAddress: urlParams.get('CVSAddress'),
-        CVSTelephone: urlParams.get('CVSTelephone'),
-        CVSOutSide: urlParams.get('CVSOutSide')
+        CVSTelephone: urlParams.get('CVSTelephone')
     };
+    
+    console.log('收到門市資料：', storeData);
     
     // 驗證訂單編號
     const savedTradeNo = localStorage.getItem('ecpay_merchant_trade_no');
     if (storeData.MerchantTradeNo !== savedTradeNo) {
+        console.error('訂單編號不符');
         showToast('門市資料驗證失敗', 'error');
-        return;
+        return true;
     }
     
     // 儲存選擇的門市
@@ -2183,17 +2187,24 @@ function handleECPayCallback() {
         phone: storeData.CVSTelephone
     };
     
-    // 顯示選擇的門市資訊
-    displaySelectedStore();
+    console.log('已儲存門市：', selectedStore);
     
-    // 清除 localStorage 和 URL 參數
-    localStorage.removeItem('ecpay_merchant_trade_no');
+    // 清除 URL 參數
     window.history.replaceState({}, document.title, window.location.pathname);
+    localStorage.removeItem('ecpay_merchant_trade_no');
     
-    // 自動開啟結帳彈窗
-    openCheckout();
+    // 🔥 延遲執行，確保頁面已完全載入
+    setTimeout(() => {
+        // 顯示門市資訊
+        displaySelectedStore();
+        
+        // 開啟結帳彈窗
+        openCheckout();
+        
+        showToast('✅ 門市選擇成功！', 'success');
+    }, 500);
     
-    showToast('✅ 門市選擇成功！', 'success');
+    return true; // 返回 true 表示已處理
 }
 
 /**
@@ -4537,26 +4548,29 @@ async function submitProfileUpdate() {
 // 初始化
 // ==========================================
 window.addEventListener('load', () => {
-    // 🆕 檢查 localStorage 是否有門市資料（從彈窗回來的）
-    const storedData = localStorage.getItem('ecpay_store_data');
-    if (storedData) {
-        try {
-            const storeData = JSON.parse(storedData);
-            receiveStoreData(storeData);
-            localStorage.removeItem('ecpay_store_data'); // 清除已使用的資料
-        } catch (e) {
-            console.error('解析門市資料錯誤:', e);
-        }
-    }
+    console.log('🚀 頁面載入完成');
     
     // 🆕 優先檢查是否從綠界地圖回來（URL 參數方式）
-    handleECPayCallback();
+    const isECPayCallback = handleECPayCallback();
     
-    loadProductsData();
-    updateCart();
-    checkMemberStatus();
+    // 如果是綠界回傳，延遲初始化避免被會員檢查干擾
+    if (isECPayCallback) {
+        console.log('✅ 綠界回傳模式：延遲初始化');
+        setTimeout(() => {
+            loadProductsData();
+            updateCart();
+            // 不執行 checkMemberStatus()，避免跳轉到登入畫面
+        }, 300);
+    } else {
+        // 正常模式：立即初始化
+        loadProductsData();
+        updateCart();
+        checkMemberStatus();
+    }
     
     // 🔥 啟動自動刷新庫存功能（每30秒刷新一次）
+    startAutoRefresh(30);
+});
     // 可以調整秒數：15秒更快但耗流量、60秒更慢但省流量
     startAutoRefresh(30);
 });
