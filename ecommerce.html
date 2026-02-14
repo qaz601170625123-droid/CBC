@@ -1691,6 +1691,8 @@
                     <span>總計</span>
                     <span class="total-amount" id="checkoutTotal">$0</span>
                 </div>
+                <!-- 🆕 優惠提示區域 -->
+                <div id="promotionHints"></div>
             </div>
 
             <button class="submit-order-btn" onclick="submitOrder()">確認送出訂單</button>
@@ -1795,10 +1797,12 @@ const LINE_STATE = 'random_state_' + Math.random().toString(36).substr(2, 9);
 const PRODUCTS_SHEET = '商品列表';
 const SPECS_SHEET = '商品規格表';
 const ANNOUNCEMENT_SHEET = '公告設定';  // 🆕 公告工作表
+const PROMOTION_SHEET = '優惠設定';     // 🆕 優惠工作表
 
 let products = [];
 let productSpecs = {};
 let announcements = [];  // 🆕 儲存公告資料
+let promotions = [];     // 🆕 儲存優惠資料
 let currentCategory = 'all';  // 當前選擇的分類
 let cart = [];
 let selectedStore = null;
@@ -1880,6 +1884,7 @@ async function loadProductsData() {
         displayProducts();          // 顯示所有商品
         loadCategories();           // 🆕 載入並生成分類按鈕
         loadAnnouncements();        // 🆕 載入公告
+        loadPromotions();           // 🆕 載入優惠設定
         showToast('商品載入完成!', 'success');
         
     } catch (error) {
@@ -1997,6 +2002,220 @@ function displayAnnouncements() {
         // 每 5 秒切換一次
         setInterval(rotateAnnouncement, 5000);
     }
+}
+
+// ==========================================
+// 🆕 優惠系統
+// ==========================================
+
+/**
+ * 載入優惠設定
+ */
+async function loadPromotions() {
+    try {
+        const promotionUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${PROMOTION_SHEET}?key=${API_KEY}`;
+        const response = await fetch(promotionUrl);
+        
+        if (!response.ok) {
+            console.log('找不到優惠設定工作表，跳過優惠載入');
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data.values || data.values.length < 2) {
+            console.log('優惠資料為空');
+            return;
+        }
+        
+        // 解析優惠資料
+        // 🆕 新增 C欄：單位（條/包）
+        // 格式：
+        // A欄=優惠名稱
+        // B欄=優惠類型（滿件折扣/滿額折扣/滿額免運/混搭折扣）
+        // C欄=單位（條/包/元）🆕
+        // D欄=條件數量/金額
+        // E欄=折扣金額
+        // F欄=啟用狀態（是/否）
+        // G欄=說明文字
+        promotions = data.values.slice(1)
+            .filter(row => row[0] && (row[5] || '').trim() === '是')  // F欄：啟用
+            .map(row => ({
+                name: row[0] || '',
+                type: row[1] || '',
+                unit: row[2] || '',           // 🆕 單位（條/包/元）
+                threshold: parseFloat(row[3]) || 0,
+                discount: parseFloat(row[4]) || 0,
+                description: row[6] || ''
+            }));
+        
+        console.log('已載入優惠:', promotions);
+        
+    } catch (error) {
+        console.error('載入優惠失敗:', error);
+    }
+}
+
+/**
+ * 計算優惠折扣
+ * @param {Array} cartItems - 購物車商品
+ * @returns {Object} 優惠詳情
+ */
+function calculatePromotions(cartItems) {
+    const result = {
+        appliedPromotions: [],  // 已套用的優惠
+        totalDiscount: 0,       // 總折扣金額
+        freeShipping: false,    // 是否免運
+        messages: []            // 優惠訊息
+    };
+    
+    if (promotions.length === 0 || cartItems.length === 0) {
+        return result;
+    }
+    
+    // 計算購物車統計資料
+    const stats = {
+        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        totalBoxes: 0,      // 總條數
+        totalPacks: 0,      // 總包數（單包）
+        totalItems: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+    };
+    
+    // 統計條數和包數
+    cartItems.forEach(item => {
+        const multiplier = item.quantityMultiplier || 1;
+        if (multiplier === 10) {
+            // 條（10包裝）
+            stats.totalBoxes += item.quantity;
+            stats.totalPacks += item.quantity * 10;
+        } else {
+            // 單包
+            stats.totalPacks += item.quantity;
+        }
+    });
+    
+    // 逐一檢查每個優惠
+    promotions.forEach(promo => {
+        let applied = false;
+        let discount = 0;
+        
+        switch (promo.type) {
+            case '滿件折扣':
+                // 🔥 修正：滿足門檻後，全部數量都享折扣
+                if (promo.unit === '條') {
+                    // 以「條」為單位
+                    if (stats.totalBoxes >= promo.threshold) {
+                        // 全部條數都折扣
+                        discount = stats.totalBoxes * promo.discount;
+                        applied = true;
+                    }
+                } else if (promo.unit === '包') {
+                    // 以「包」為單位
+                    if (stats.totalPacks >= promo.threshold) {
+                        // 全部包數都折扣
+                        discount = stats.totalPacks * promo.discount;
+                        applied = true;
+                    }
+                }
+                break;
+                
+            case '滿額折扣':
+                // 以「元」為單位
+                if (stats.totalAmount >= promo.threshold) {
+                    discount = promo.discount;
+                    applied = true;
+                }
+                break;
+                
+            case '滿額免運':
+                // 以「元」為單位
+                if (stats.totalAmount >= promo.threshold) {
+                    result.freeShipping = true;
+                    applied = true;
+                }
+                break;
+        }
+        
+        if (applied) {
+            result.appliedPromotions.push({
+                name: promo.name,
+                type: promo.type,
+                discount: discount,
+                description: promo.description
+            });
+            
+            if (discount > 0) {
+                result.totalDiscount += discount;
+            }
+            
+            // 生成優惠訊息
+            if (promo.type === '滿額免運') {
+                result.messages.push(`✅ ${promo.name}：免運費`);
+            } else if (discount > 0) {
+                result.messages.push(`✅ ${promo.name}：折扣 $${discount}`);
+            }
+        }
+    });
+    
+    return result;
+}
+
+/**
+ * 顯示優惠提示（在購物車或結帳頁面）
+ */
+function displayPromotionHints(cartItems) {
+    if (promotions.length === 0) return '';
+    
+    const stats = {
+        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        totalBoxes: 0,
+        totalPacks: 0
+    };
+    
+    cartItems.forEach(item => {
+        const multiplier = item.quantityMultiplier || 1;
+        if (multiplier === 10) {
+            stats.totalBoxes += item.quantity;
+            stats.totalPacks += item.quantity * 10;
+        } else {
+            stats.totalPacks += item.quantity;
+        }
+    });
+    
+    const hints = [];
+    
+    promotions.forEach(promo => {
+        let hint = '';
+        
+        switch (promo.type) {
+            case '滿件折扣':
+                // 🆕 根據單位判斷
+                if (promo.unit === '條') {
+                    if (stats.totalBoxes < promo.threshold) {
+                        const needed = promo.threshold - stats.totalBoxes;
+                        hint = `💡 再購買 ${needed} 條即可享「${promo.name}」`;
+                    }
+                } else if (promo.unit === '包') {
+                    if (stats.totalPacks < promo.threshold) {
+                        const needed = promo.threshold - stats.totalPacks;
+                        hint = `💡 再購買 ${needed} 包即可享「${promo.name}」`;
+                    }
+                }
+                break;
+                
+            case '滿額折扣':
+            case '滿額免運':
+                if (stats.totalAmount < promo.threshold) {
+                    const needed = promo.threshold - stats.totalAmount;
+                    hint = `💡 再加購 $${needed} 即可享「${promo.name}」`;
+                }
+                break;
+        }
+        
+        if (hint) hints.push(hint);
+    });
+    
+    return hints.join('<br>');
 }
 
 // ==========================================
@@ -3120,9 +3339,17 @@ function updateCheckoutSummary() {
     // 計算商品小計
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
+    // 🆕 計算優惠
+    const promotionResult = calculatePromotions(cart);
+    
     // 檢查是否選擇 7-11 配送
     const shipping = document.querySelector('input[name="shipping"]:checked');
-    const shippingFee = (shipping && shipping.value === '711') ? 60 : 0;
+    let shippingFee = (shipping && shipping.value === '711') ? 60 : 0;
+    
+    // 🆕 如果符合免運優惠，運費設為 0
+    if (promotionResult.freeShipping) {
+        shippingFee = 0;
+    }
     
     // 生成商品列表
     let itemsHtml = cart.map(item => `
@@ -3132,25 +3359,65 @@ function updateCheckoutSummary() {
         </div>
     `).join('');
     
-    // 如果有運費，顯示小計和運費
-    if (shippingFee > 0) {
+    // 顯示商品小計
+    itemsHtml += `
+        <div class="summary-item" style="border-top: 1px solid rgba(255,215,0,0.2); margin-top: 10px; padding-top: 10px;">
+            <span class="item-name">商品小計</span>
+            <span class="item-price">$${subtotal}</span>
+        </div>
+    `;
+    
+    // 🆕 顯示優惠折扣
+    if (promotionResult.appliedPromotions.length > 0) {
+        promotionResult.appliedPromotions.forEach(promo => {
+            if (promo.type === '滿額免運') {
+                itemsHtml += `
+                    <div class="summary-item" style="color: #00FF00;">
+                        <span class="item-name">🎁 ${promo.name}</span>
+                        <span class="item-price">免運費</span>
+                    </div>
+                `;
+            } else if (promo.discount > 0) {
+                itemsHtml += `
+                    <div class="summary-item" style="color: #00FF00;">
+                        <span class="item-name">🎁 ${promo.name}</span>
+                        <span class="item-price">-$${promo.discount}</span>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    // 顯示運費
+    if (shipping && shipping.value === '711') {
+        const shippingText = promotionResult.freeShipping ? 
+            `<span style="text-decoration: line-through; color: #666;">$60</span> <span style="color: #00FF00;">免運</span>` : 
+            `$${shippingFee}`;
+        
         itemsHtml += `
-            <div class="summary-item" style="border-top: 1px solid rgba(255,215,0,0.2); margin-top: 10px; padding-top: 10px;">
-                <span class="item-name">商品小計</span>
-                <span class="item-price">$${subtotal}</span>
-            </div>
             <div class="summary-item">
                 <span class="item-name">7-11 運費</span>
-                <span class="item-price" style="color: var(--primary);">$${shippingFee}</span>
+                <span class="item-price" style="color: var(--primary);">${shippingText}</span>
             </div>
         `;
     }
     
     summaryItems.innerHTML = itemsHtml;
     
-    // 計算總金額（商品 + 運費）
-    const total = subtotal + shippingFee;
+    // 🆕 計算總金額（商品 - 優惠 + 運費）
+    const total = subtotal - promotionResult.totalDiscount + shippingFee;
     checkoutTotal.textContent = `$${total}`;
+    
+    // 🆕 顯示優惠提示
+    const hints = displayPromotionHints(cart);
+    const hintContainer = document.getElementById('promotionHints');
+    if (hintContainer) {
+        if (hints) {
+            hintContainer.innerHTML = `<div style="background: rgba(255,215,0,0.1); padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 13px; line-height: 1.6;">${hints}</div>`;
+        } else {
+            hintContainer.innerHTML = '';
+        }
+    }
 }
 
 function closeCheckout() {
@@ -3279,10 +3546,31 @@ async function submitOrder() {
         return;
     }
 
+    // 🆕 計算優惠
+    const promotionResult = calculatePromotions(cart);
+    
     // 🔥 計算運費和總金額
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shippingFee = shipping === '711' ? 60 : 0;
-    const totalAmount = subtotal + shippingFee;
+    let shippingFee = shipping === '711' ? 60 : 0;
+    
+    // 🆕 如果符合免運優惠，運費設為 0
+    if (promotionResult.freeShipping) {
+        shippingFee = 0;
+    }
+    
+    // 🆕 計算優惠後的總金額
+    const totalAmount = subtotal - promotionResult.totalDiscount + shippingFee;
+    
+    // 🆕 組合優惠明細文字
+    const promotionText = promotionResult.appliedPromotions.length > 0 
+        ? promotionResult.appliedPromotions.map(p => {
+            if (p.type === '滿額免運') {
+                return `${p.name}(免運)`;
+            } else {
+                return `${p.name}(-$${p.discount})`;
+            }
+        }).join(', ')
+        : '-';
 
     const orderData = {
         action: 'createOrder',
@@ -3300,6 +3588,8 @@ async function submitOrder() {
             return `${item.productName}-${item.specName} x${displayQty}`;
         }).join(', '),
         商品金額: subtotal,
+        優惠折扣: promotionResult.totalDiscount,  // 🆕 優惠折扣
+        優惠明細: promotionText,                  // 🆕 優惠明細
         運費: shippingFee,
         總金額: totalAmount,
         訂單狀態: '待處理',
@@ -3328,14 +3618,24 @@ async function submitOrder() {
         
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
         
-        // 🔥 根據是否有運費顯示不同的訊息
+        // 🆕 組合訂單確認訊息（包含優惠）
         let orderMessage = `訂單已建立!\n\n訂單編號:${orderData.訂單編號}\n姓名:${orderData.姓名}\n電話:${orderData.電話}\n取貨方式:${orderData.取貨方式}`;
         
-        if (shippingFee > 0) {
-            orderMessage += `\n\n商品金額:$${orderData.商品金額}\n運費:$${orderData.運費}\n總金額:$${orderData.總金額}`;
-        } else {
-            orderMessage += `\n\n總金額:$${orderData.總金額}`;
+        orderMessage += `\n\n商品金額:$${orderData.商品金額}`;
+        
+        if (promotionResult.totalDiscount > 0) {
+            orderMessage += `\n優惠折扣:-$${promotionResult.totalDiscount}`;
         }
+        
+        if (shipping === '711') {
+            if (promotionResult.freeShipping) {
+                orderMessage += `\n運費:免運`;
+            } else {
+                orderMessage += `\n運費:$${shippingFee}`;
+            }
+        }
+        
+        orderMessage += `\n總金額:$${orderData.總金額}`;
         
         orderMessage += `\n\n請使用您的電話號碼查詢訂單狀態。`;
         alert(orderMessage);
