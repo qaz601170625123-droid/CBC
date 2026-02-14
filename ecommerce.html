@@ -2047,6 +2047,10 @@ function getDeviceType() {
 // 🆕 開啟綠界地圖選擇門市
 // ==========================================
 function openECPayMap() {
+    console.log('========================================');
+    console.log('🚀 開始執行 openECPayMap');
+    console.log('========================================');
+    
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
@@ -2069,7 +2073,6 @@ function openECPayMap() {
     };
     
     // 🔥 除錯：記錄參數
-    console.log('========================================');
     console.log('📦 綠界地圖參數：');
     console.log('MerchantID:', params.MerchantID);
     console.log('MerchantTradeNo:', params.MerchantTradeNo);
@@ -2078,7 +2081,6 @@ function openECPayMap() {
     console.log('ServerReplyURL:', params.ServerReplyURL);
     console.log('ClientReplyURL:', params.ClientReplyURL);
     console.log('Device:', params.Device);
-    console.log('========================================');
     
     // 產生檢查碼
     const checkMacValue = generateCheckMacValue(
@@ -2102,17 +2104,25 @@ function openECPayMap() {
     
     // 儲存訂單編號，供回傳時驗證
     localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
+    console.log('✅ 已儲存訂單編號到 localStorage:', merchantTradeNo);
+    
+    // 🔥 測試：確認 receiveStoreData 函數存在
+    console.log('檢查 receiveStoreData 函數是否存在:', typeof window.receiveStoreData);
     
     // 🔥 開啟彈窗（800x600）
     const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
     
     if (ecpayWindow) {
+        console.log('✅ 彈窗已開啟');
         // 提交表單到彈窗
         document.getElementById('ecpayMapForm').submit();
         showToast('開啟門市選擇視窗...', 'success');
     } else {
+        console.error('❌ 彈窗被阻擋！');
         showToast('請允許彈出視窗！', 'error');
     }
+    
+    console.log('========================================');
 }
 
 // ==========================================
@@ -2123,14 +2133,27 @@ function openECPayMap() {
 // ==========================================
 /**
  * 🆕 接收綠界彈窗傳回的門市資料
+ * 必須是全域函數，讓彈窗的 window.opener 可以呼叫
  */
-function receiveStoreData(storeData) {
-    console.log('✅ 收到彈窗傳回的門市資料：', storeData);
+window.receiveStoreData = function(storeData) {
+    console.log('========================================');
+    console.log('✅ receiveStoreData 被呼叫了！');
+    console.log('收到的門市資料：', storeData);
+    console.log('========================================');
+    
+    if (!storeData) {
+        console.error('❌ 門市資料為空');
+        showToast('門市資料為空', 'error');
+        return;
+    }
     
     // 驗證訂單編號
     const savedTradeNo = localStorage.getItem('ecpay_merchant_trade_no');
+    console.log('儲存的訂單編號：', savedTradeNo);
+    console.log('回傳的訂單編號：', storeData.MerchantTradeNo);
+    
     if (storeData.MerchantTradeNo !== savedTradeNo) {
-        console.error('訂單編號不符');
+        console.error('❌ 訂單編號不符！');
         showToast('門市資料驗證失敗', 'error');
         return;
     }
@@ -2143,7 +2166,7 @@ function receiveStoreData(storeData) {
         phone: storeData.CVSTelephone
     };
     
-    console.log('已儲存門市：', selectedStore);
+    console.log('✅ 已儲存門市：', selectedStore);
     
     // 顯示門市資訊
     displaySelectedStore();
@@ -2153,12 +2176,14 @@ function receiveStoreData(storeData) {
     
     // 顯示成功訊息
     showToast('✅ 門市選擇成功！', 'success');
-}
+};
 
 /**
  * 🆕 顯示已選擇的門市資訊
  */
 function displaySelectedStore() {
+    console.log('displaySelectedStore 被呼叫，selectedStore：', selectedStore);
+    
     if (!selectedStore) {
         // 沒有選擇門市，隱藏門市資訊區塊
         const infoElement = document.getElementById('selectedStoreInfo');
@@ -2175,6 +2200,9 @@ function displaySelectedStore() {
         document.getElementById('storeName').textContent = selectedStore.name || '';
         document.getElementById('storeAddress').textContent = selectedStore.address || '';
         document.getElementById('storePhone').textContent = selectedStore.phone || '';
+        console.log('✅ 門市資訊已顯示在頁面上');
+    } else {
+        console.error('❌ 找不到 selectedStoreInfo 元素');
     }
 }
 
