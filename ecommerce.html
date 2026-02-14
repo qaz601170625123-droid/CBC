@@ -1803,6 +1803,7 @@ let products = [];
 let productSpecs = {};
 let announcements = [];  // 🆕 儲存公告資料
 let promotions = [];     // 🆕 儲存優惠資料
+let categories = [];     // 🆕 儲存分類設定（含圖片）
 let currentCategory = 'all';  // 當前選擇的分類
 let cart = [];
 let selectedStore = null;
@@ -1880,6 +1881,9 @@ async function loadProductsData() {
             });
         }
 
+        // 🔥 先載入分類照片設定，再顯示商品
+        await loadCategoryImages();   // 等待載入完成
+        
         displayFeaturedProducts();  // 顯示主打商品
         displayProducts();          // 顯示所有商品
         loadCategories();           // 🆕 載入並生成分類按鈕
@@ -2377,6 +2381,39 @@ function stopAutoRefresh() {
 }
 
 // ==========================================
+// 🆕 載入分類照片設定（從「分類照片設定」工作表）
+// ==========================================
+let categoryImages = {};  // 儲存分類照片設定
+
+async function loadCategoryImages() {
+    try {
+        const sheetName = '分類照片設定';
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${sheetName}?key=${API_KEY}`;
+        
+        const response = await fetch(url);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.values && data.values.length > 1) {
+                // 從工作表讀取分類照片設定
+                categoryImages = {};
+                data.values.slice(1).forEach(row => {
+                    const categoryName = row[0] || '';      // A欄：分類名稱
+                    const imageUrl = row[1] || '';          // B欄：圖片網址
+                    
+                    if (categoryName && imageUrl) {
+                        categoryImages[categoryName] = imageUrl;
+                    }
+                });
+                
+                console.log('✅ 已載入分類照片設定：', categoryImages);
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ 沒有找到「分類照片設定」工作表，將使用商品圖片');
+    }
+}
+
+// ==========================================
 // 🆕 載入並生成分類按鈕（從「分類設定」工作表）
 // ==========================================
 async function loadCategories() {
@@ -2385,7 +2422,7 @@ async function loadCategories() {
         const categoriesSheetName = '分類設定';
         const categoriesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${categoriesSheetName}?key=${API_KEY}`;
         
-        let categories = [];
+        categories = [];  // 🔥 使用全域變數
         
         try {
             const response = await fetch(categoriesUrl);
@@ -2394,8 +2431,8 @@ async function loadCategories() {
                 if (data.values && data.values.length > 1) {
                     // 從工作表讀取分類
                     categories = data.values.slice(1).map(row => ({
-                        name: row[0] || '',           // A欄：分類名稱
-                        order: parseInt(row[1]) || 999,   // B欄：排序順序
+                        name: row[0] || '',                    // A欄：分類名稱
+                        order: parseInt(row[1]) || 999,        // B欄：排序順序
                         enabled: (row[2] || '').toString().toUpperCase() === 'TRUE'  // C欄：是否啟用（TRUE/FALSE）
                     }))
                     .filter(c => c.name && c.enabled)  // 🔥 只保留已啟用的分類
@@ -2501,8 +2538,17 @@ function displayFeaturedProducts() {
         }
     });
     
-    // 取得第一個主打商品的圖片作為代表圖片
-    let imageUrl = featuredProducts[0]?.image || '';
+    // 🔥 優先使用「分類照片設定」中「主打商品」的圖片，其次使用第一個主打商品的圖片
+    let imageUrl = '';
+    
+    // 先從分類照片設定找「主打商品」的圖片
+    if (categoryImages['主打商品']) {
+        imageUrl = categoryImages['主打商品'];
+    } else {
+        // 如果沒有設定，使用第一個主打商品的圖片
+        imageUrl = featuredProducts[0]?.image || '';
+    }
+    
     if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
         imageUrl = 'https://' + imageUrl;
     }
@@ -2670,9 +2716,14 @@ function displayProducts() {
                 categoriesMap[category].maxPrice = maxPrice;
             }
             
-            // 使用第一個商品的圖片作為類別圖片
-            if (!categoriesMap[category].image && product.image) {
-                categoriesMap[category].image = product.image;
+            // 🔥 優先使用「分類照片設定」的圖片，其次使用第一個商品的圖片
+            if (!categoriesMap[category].image) {
+                // 從 categoryImages 物件中找到對應的分類照片
+                if (categoryImages[category]) {
+                    categoriesMap[category].image = categoryImages[category];
+                } else if (product.image) {
+                    categoriesMap[category].image = product.image;
+                }
             }
         }
     });
