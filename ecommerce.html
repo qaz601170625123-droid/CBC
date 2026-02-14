@@ -1974,14 +1974,25 @@ const ECPAY_CONFIG = {
 
 /**
  * URL Encode（綠界專用）
+ * 綠界的 URL Encode 規則：
+ * 1. 先進行標準的 encodeURIComponent
+ * 2. 將特定字元還原（不編碼）：- _ . ! * ( )
+ * 3. 將 %20 (空格) 轉成 +
  */
 function ecpayUrlEncode(str) {
-    return encodeURIComponent(str)
-        .replace(/\!/g, '%21')
-        .replace(/\'/g, '%27')
-        .replace(/\(/g, '%28')
-        .replace(/\)/g, '%29')
-        .replace(/\*/g, '%2A');
+    let encoded = encodeURIComponent(str);
+    
+    // 將特定字元還原（綠界要求這些字元不要編碼）
+    encoded = encoded.replace(/%2D/g, '-');  // -
+    encoded = encoded.replace(/%5F/g, '_');  // _
+    encoded = encoded.replace(/%2E/g, '.');  // .
+    encoded = encoded.replace(/%21/g, '!');  // !
+    encoded = encoded.replace(/%2A/g, '*');  // *
+    encoded = encoded.replace(/%28/g, '(');  // (
+    encoded = encoded.replace(/%29/g, ')');  // )
+    encoded = encoded.replace(/%20/g, '+');  // 空格轉 +
+    
+    return encoded;
 }
 
 /**
