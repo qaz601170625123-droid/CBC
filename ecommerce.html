@@ -1614,8 +1614,8 @@
     </style>
 </head>
 <body>
-    <!-- 🆕 隱藏的綠界表單 -->
-    <form id="ecpayMapForm" method="POST" action="https://logistics-stage.ecpay.com.tw/Express/map" style="display: none;">
+    <!-- 🆕 隱藏的綠界表單（正式環境） -->
+    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
         <input type="text" name="MerchantTradeNo" id="ecpay_MerchantTradeNo">
         <input type="text" name="LogisticsType" value="CVS">
@@ -1957,16 +1957,14 @@ let selectedSpec = null;
 let quantity = 1;
 
 // ==========================================
-// 🆕 綠界物流設定
+// 🆕 綠界物流設定（正式環境）
 // ==========================================
 const ECPAY_CONFIG = {
     MerchantID: '3490304',
-    HashKey: '07MpUtX9Tnc7e4Ud',
+    HashKey: 'O7MpUtX9Inc7e4Ud',  // 注意：第一個字元是大寫 O
     HashIV: 'B6BxB56xLdGv4fBd',
-    // 測試環境
-    MapURL: 'https://logistics-stage.ecpay.com.tw/Express/map',
-    // 正式環境請改用：
-    // MapURL: 'https://logistics.ecpay.com.tw/Express/map',
+    // 正式環境
+    MapURL: 'https://logistics.ecpay.com.tw/Express/map',
     ServerReplyURL: window.location.origin + window.location.pathname + '?action=ecpay_callback'
 };
 
