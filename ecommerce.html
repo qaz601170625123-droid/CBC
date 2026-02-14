@@ -4296,8 +4296,10 @@ function showLoginWall() {
     document.getElementById('rejectedApproval').style.display = 'none';
     document.getElementById('productsSection').style.display = 'none';
     
-    // 隱藏所有導航按鈕
-    document.getElementById('navButtons').style.display = 'none';
+    // 🔥 修正：顯示導航按鈕區域，並顯示 LINE 登入按鈕
+    document.getElementById('navButtons').style.display = 'flex';
+    document.getElementById('lineLoginBtn').style.display = 'block';
+    document.getElementById('memberInfo').style.display = 'none';
 }
 
 function updateMemberUI() {
