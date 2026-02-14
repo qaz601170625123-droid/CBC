@@ -2029,24 +2029,28 @@ async function loadPromotions() {
         }
         
         // 解析優惠資料
-        // 🆕 新增 C欄：單位（條/包）
+        // 🆕 新增 H、I 欄：適用類別、適用規格
         // 格式：
         // A欄=優惠名稱
-        // B欄=優惠類型（滿件折扣/滿額折扣/滿額免運/混搭折扣）
-        // C欄=單位（條/包/元）🆕
+        // B欄=優惠類型（滿件折扣/滿額折扣/滿額免運）
+        // C欄=單位（條/包/元）
         // D欄=條件數量/金額
         // E欄=折扣金額
         // F欄=啟用狀態（是/否）
         // G欄=說明文字
+        // H欄=適用類別（空白=全部，或填寫類別，多個用逗號分隔）🆕
+        // I欄=適用規格（空白=全部，或填寫：單包/條）🆕
         promotions = data.values.slice(1)
             .filter(row => row[0] && (row[5] || '').trim() === '是')  // F欄：啟用
             .map(row => ({
                 name: row[0] || '',
                 type: row[1] || '',
-                unit: row[2] || '',           // 🆕 單位（條/包/元）
+                unit: row[2] || '',
                 threshold: parseFloat(row[3]) || 0,
                 discount: parseFloat(row[4]) || 0,
-                description: row[6] || ''
+                description: row[6] || '',
+                allowedCategories: row[7] ? row[7].split(',').map(c => c.trim()).filter(c => c) : [],  // 🆕 適用類別
+                allowedSpecs: row[8] ? row[8].split(',').map(s => s.trim()).filter(s => s) : []        // 🆕 適用規格
             }));
         
         console.log('已載入優惠:', promotions);
@@ -2073,46 +2077,62 @@ function calculatePromotions(cartItems) {
         return result;
     }
     
-    // 計算購物車統計資料
-    const stats = {
-        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        totalBoxes: 0,      // 總條數
-        totalPacks: 0,      // 總包數（單包）
-        totalItems: cartItems.reduce((sum, item) => sum + item.quantity, 0)
-    };
-    
-    // 統計條數和包數
-    cartItems.forEach(item => {
-        const multiplier = item.quantityMultiplier || 1;
-        if (multiplier === 10) {
-            // 條（10包裝）
-            stats.totalBoxes += item.quantity;
-            stats.totalPacks += item.quantity * 10;
-        } else {
-            // 單包
-            stats.totalPacks += item.quantity;
-        }
-    });
-    
     // 逐一檢查每個優惠
     promotions.forEach(promo => {
+        // 🆕 過濾符合條件的商品
+        const eligibleItems = cartItems.filter(item => {
+            // 檢查類別限制
+            if (promo.allowedCategories.length > 0) {
+                // 找出該商品的類別
+                const product = products.find(p => p.id === item.productId);
+                if (!product || !promo.allowedCategories.includes(product.category)) {
+                    return false;  // 不符合類別限制
+                }
+            }
+            
+            // 檢查規格限制
+            if (promo.allowedSpecs.length > 0) {
+                if (!promo.allowedSpecs.includes(item.specName)) {
+                    return false;  // 不符合規格限制
+                }
+            }
+            
+            return true;  // 符合所有限制
+        });
+        
+        if (eligibleItems.length === 0) {
+            return;  // 沒有符合的商品，跳過此優惠
+        }
+        
+        // 🆕 計算符合條件的商品統計
+        const stats = {
+            totalAmount: eligibleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            totalBoxes: 0,
+            totalPacks: 0
+        };
+        
+        eligibleItems.forEach(item => {
+            const multiplier = item.quantityMultiplier || 1;
+            if (multiplier === 10) {
+                stats.totalBoxes += item.quantity;
+                stats.totalPacks += item.quantity * 10;
+            } else {
+                stats.totalPacks += item.quantity;
+            }
+        });
+        
         let applied = false;
         let discount = 0;
         
         switch (promo.type) {
             case '滿件折扣':
-                // 🔥 修正：滿足門檻後，全部數量都享折扣
                 if (promo.unit === '條') {
-                    // 以「條」為單位
                     if (stats.totalBoxes >= promo.threshold) {
-                        // 全部條數都折扣
                         discount = stats.totalBoxes * promo.discount;
                         applied = true;
                     }
                 } else if (promo.unit === '包') {
-                    // 以「包」為單位
                     if (stats.totalPacks >= promo.threshold) {
-                        // 全部包數都折扣
                         discount = stats.totalPacks * promo.discount;
                         applied = true;
                     }
@@ -2120,7 +2140,6 @@ function calculatePromotions(cartItems) {
                 break;
                 
             case '滿額折扣':
-                // 以「元」為單位
                 if (stats.totalAmount >= promo.threshold) {
                     discount = promo.discount;
                     applied = true;
@@ -2128,8 +2147,9 @@ function calculatePromotions(cartItems) {
                 break;
                 
             case '滿額免運':
-                // 以「元」為單位
-                if (stats.totalAmount >= promo.threshold) {
+                // 🆕 免運優惠改用全部商品金額（不限制類別）
+                const allAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                if (allAmount >= promo.threshold) {
                     result.freeShipping = true;
                     applied = true;
                 }
