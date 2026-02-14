@@ -1614,19 +1614,6 @@
     </style>
 </head>
 <body>
-    <!-- 🆕 隱藏的綠界表單（ClientReplyURL + ServerReplyURL） -->
-    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="ecpayWindow">
-        <input type="text" name="MerchantID" id="ecpay_MerchantID">
-        <input type="text" name="MerchantTradeNo" id="ecpay_MerchantTradeNo">
-        <input type="text" name="LogisticsType" value="CVS">
-        <input type="text" name="LogisticsSubType" id="ecpay_LogisticsSubType" value="UNIMARTC2C">
-        <input type="text" name="IsCollection" value="N">
-        <input type="text" name="ServerReplyURL" id="ecpay_ServerReplyURL">
-        <input type="text" name="ClientReplyURL" id="ecpay_ClientReplyURL">
-        <input type="text" name="ExtraData" id="ecpay_ExtraData">
-        <input type="text" name="Device" id="ecpay_Device">
-        <input type="text" name="CheckMacValue" id="ecpay_CheckMacValue">
-    </form>
     <!-- 導航列 -->
     <nav class="navbar">
         <div class="logo">🍬 CANDY BOSS</div>
@@ -1777,21 +1764,28 @@
                 <label class="form-label">取貨方式</label>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="711" checked onchange="toggleStoreSelector()">
+                        <input type="radio" name="shipping" value="711" checked>
                         7-11店到店
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="pickup" onchange="toggleStoreSelector()">
+                        <input type="radio" name="shipping" value="pickup">
                         自取
                     </label>
                 </div>
                 
-                <!-- 🆕 綠界門市選擇區塊 -->
+                <!-- 🆕 門市選擇區塊（簡化版） -->
                 <div id="storeSelector" class="store-selector active">
-                    <button type="button" class="store-select-btn" onclick="openECPayMap()">
-                        <span>📍</span>
-                        <span>選擇 7-11 取貨門市</span>
-                    </button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" class="store-select-btn" onclick="manualEnterStore()" style="flex: 1; min-width: 200px;">
+                            <span>✏️</span>
+                            <span>手動輸入門市</span>
+                        </button>
+                        
+                        <button type="button" class="store-select-btn" onclick="selectFromCommonStores()" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <span>⭐</span>
+                            <span>常用門市</span>
+                        </button>
+                    </div>
                     
                     <div id="selectedStoreInfo" class="selected-store-info">
                         <div class="store-info-header">
@@ -1814,8 +1808,8 @@
                             <span class="store-detail-value" id="storePhone"></span>
                         </div>
                         
-                        <button type="button" class="change-store-btn" onclick="openECPayMap()">
-                            重新選擇門市
+                        <button type="button" class="change-store-btn" onclick="clearSelectedStore()">
+                            清除門市
                         </button>
                     </div>
                 </div>
@@ -1958,242 +1952,96 @@ let selectedSpec = null;
 let quantity = 1;
 
 // ==========================================
-// 🆕 綠界物流設定（正式環境）
+// 🆕 綠界物流設定（iframe 方式）
 // ==========================================
 const ECPAY_CONFIG = {
     MerchantID: '3490304',
-    HashKey: 'O7MpUtX9Inc7e4Ud',  // 注意：第一個字元是大寫 O
-    HashIV: 'B6BxB56xLdGv4fBd',
-    // 正式環境
-    MapURL: 'https://logistics.ecpay.com.tw/Express/map'
+    // iframe 方式不需要 HashKey 和 HashIV
+    MapURL: 'https://map.ecpay.com.tw/express_map/map_select.html'  // 綠界公開地圖
 };
 
 // ==========================================
-// 🆕 綠界加密函數
-// ==========================================
-
-/**
- * URL Encode（綠界專用）
- * 綠界的 URL Encode 規則：
- * 1. 先進行標準的 encodeURIComponent
- * 2. 將特定字元還原（不編碼）：- _ . ! * ( )
- * 3. 將 %20 (空格) 轉成 +
- */
-function ecpayUrlEncode(str) {
-    let encoded = encodeURIComponent(str);
-    
-    // 將特定字元還原（綠界要求這些字元不要編碼）
-    encoded = encoded.replace(/%2D/g, '-');  // -
-    encoded = encoded.replace(/%5F/g, '_');  // _
-    encoded = encoded.replace(/%2E/g, '.');  // .
-    encoded = encoded.replace(/%21/g, '!');  // !
-    encoded = encoded.replace(/%2A/g, '*');  // *
-    encoded = encoded.replace(/%28/g, '(');  // (
-    encoded = encoded.replace(/%29/g, ')');  // )
-    encoded = encoded.replace(/%20/g, '+');  // 空格轉 +
-    
-    return encoded;
-}
-
-/**
- * 產生 CheckMacValue
- */
-function generateCheckMacValue(params, hashKey, hashIV) {
-    // 1. 參數依照 A-Z 排序
-    const sortedKeys = Object.keys(params).sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-    
-    // 2. 組成字串：key1=value1&key2=value2...
-    let checkStr = sortedKeys.map(key => {
-        return `${key}=${params[key]}`;
-    }).join('&');
-    
-    // 3. 前後加上 HashKey 和 HashIV
-    checkStr = `HashKey=${hashKey}&${checkStr}&HashIV=${hashIV}`;
-    
-    // 4. URL Encode
-    checkStr = ecpayUrlEncode(checkStr);
-    
-    // 5. 轉小寫
-    checkStr = checkStr.toLowerCase();
-    
-    // 6. SHA256 加密
-    let hash = CryptoJS.SHA256(checkStr).toString(CryptoJS.enc.Hex);
-    
-    // 7. 轉大寫
-    return hash.toUpperCase();
-}
-
-/**
- * 產生訂單編號
- */
-function generateMerchantTradeNo() {
-    const timestamp = new Date().getTime();
-    const random = Math.floor(Math.random() * 1000);
-    return `CB${timestamp}${random}`;
-}
-
-/**
- * 偵測裝置類型
- */
-function getDeviceType() {
-    const ua = navigator.userAgent;
-    if (/mobile/i.test(ua)) return '0'; // 手機版
-    return '1'; // PC版
-}
-
-// ==========================================
-// 🆕 開啟綠界地圖選擇門市
+// 🆕 開啟綠界地圖（使用彈窗方式）
 // ==========================================
 function openECPayMap() {
-    // 產生唯一訂單編號
-    const merchantTradeNo = generateMerchantTradeNo();
+    // 顯示門市選擇彈窗
+    document.getElementById('storeMapModal').classList.add('active');
     
-    // 🔥 修改：ServerReplyURL 使用 Google Apps Script
-    const serverReplyURL = APPS_SCRIPT_URL;  // 使用 Google Apps Script 接收 POST
-    const clientReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
-    
-    // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
-    const params = {
-        MerchantID: ECPAY_CONFIG.MerchantID,
-        MerchantTradeNo: merchantTradeNo,
-        LogisticsType: 'CVS',
-        LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
-        IsCollection: 'N',
-        ServerReplyURL: serverReplyURL,   // 🔥 改用 Google Apps Script 接收 POST
-        ClientReplyURL: clientReplyURL,   // 🔥 前端接收 GET
-        ExtraData: '',
-        Device: getDeviceType()
-    };
-    
-    // 🔥 除錯：記錄參數
-    console.log('========================================');
-    console.log('📦 綠界地圖參數：');
-    console.log('MerchantID:', params.MerchantID);
-    console.log('MerchantTradeNo:', params.MerchantTradeNo);
-    console.log('LogisticsType:', params.LogisticsType);
-    console.log('LogisticsSubType:', params.LogisticsSubType);
-    console.log('ServerReplyURL:', params.ServerReplyURL);
-    console.log('ClientReplyURL:', params.ClientReplyURL);
-    console.log('Device:', params.Device);
-    console.log('========================================');
-    
-    // 產生檢查碼
-    const checkMacValue = generateCheckMacValue(
-        params,
-        ECPAY_CONFIG.HashKey,
-        ECPAY_CONFIG.HashIV
-    );
-    
-    console.log('CheckMacValue:', checkMacValue);
-    console.log('========================================');
-    
-    // 填入表單
-    document.getElementById('ecpay_MerchantID').value = params.MerchantID;
-    document.getElementById('ecpay_MerchantTradeNo').value = params.MerchantTradeNo;
-    document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType;
-    document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;  // 🔥 ServerReplyURL（必填）
-    document.getElementById('ecpay_ClientReplyURL').value = params.ClientReplyURL; // 🔥 ClientReplyURL（真正使用）
-    document.getElementById('ecpay_ExtraData').value = params.ExtraData;
-    document.getElementById('ecpay_Device').value = params.Device;
-    document.getElementById('ecpay_CheckMacValue').value = checkMacValue;
-    
-    // 儲存訂單編號，供回傳時驗證
-    localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
-    
-    // 🔥 開啟彈窗（800x600）
-    const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
-    
-    if (ecpayWindow) {
-        // 提交表單到彈窗
-        document.getElementById('ecpayMapForm').submit();
-        showToast('開啟門市選擇視窗...', 'success');
-    } else {
-        showToast('請允許彈出視窗！', 'error');
+    // 載入綠界地圖（使用 7-ELEVEN 的公開查詢）
+    const mapFrame = document.getElementById('storeMapFrame');
+    if (!mapFrame.src) {
+        // 使用 7-ELEVEN 官方門市查詢（不需要綠界帳號）
+        mapFrame.src = 'https://emap.pcsc.com.tw/';
     }
 }
 
-// ==========================================
-// 🆕 接收彈窗傳來的門市資料
-// ==========================================
-function receiveStoreData(storeData) {
-    console.log('========================================');
-    console.log('📍 收到門市資料：');
-    console.log(storeData);
-    console.log('========================================');
-    
-    if (!storeData || !storeData.CVSStoreID) {
-        showToast('門市資料不完整', 'error');
-        return;
-    }
-    
-    // 更新全域變數
-    selectedStore = {
-        id: storeData.CVSStoreID,
-        name: storeData.CVSStoreName,
-        address: storeData.CVSAddress,
-        phone: storeData.CVSTelephone
-    };
-    
-    // 顯示選擇的門市
-    const storeDisplay = document.getElementById('selectedStore');
-    if (storeDisplay) {
-        storeDisplay.style.display = 'block';
-        document.getElementById('storeName').textContent = selectedStore.name;
-        document.getElementById('storeAddress').textContent = selectedStore.address;
-    }
-    
-    showToast(`✅ 已選擇門市：${selectedStore.name}`, 'success');
+/**
+ * 🆕 關閉門市地圖彈窗
+ */
+function closeStoreMapModal() {
+    document.getElementById('storeMapModal').classList.remove('active');
 }
 
-// ==========================================
-// 🆕 處理綠界回傳的門市資料（URL 參數方式）
-// ==========================================
-function handleECPayCallback() {
-    const urlParams = new URLSearchParams(window.location.search);
+/**
+ * 🆕 手動輸入門市資訊（備用方案）
+ */
+function manualEnterStore() {
+    const storeName = prompt('請輸入門市名稱（例如：桃園市政門市）：');
+    if (!storeName) return;
     
-    // 檢查是否為綠界回傳
-    if (urlParams.get('action') !== 'ecpay_callback') {
-        return;
-    }
+    const storeAddress = prompt('請輸入門市地址：');
+    if (!storeAddress) return;
     
-    // 取得門市資料
-    const storeData = {
-        MerchantTradeNo: urlParams.get('MerchantTradeNo'),
-        CVSStoreID: urlParams.get('CVSStoreID'),
-        CVSStoreName: urlParams.get('CVSStoreName'),
-        CVSAddress: urlParams.get('CVSAddress'),
-        CVSTelephone: urlParams.get('CVSTelephone'),
-        CVSOutSide: urlParams.get('CVSOutSide')
-    };
+    const storePhone = prompt('請輸入門市電話（選填，可直接按確定）：') || '無';
     
-    // 驗證訂單編號
-    const savedTradeNo = localStorage.getItem('ecpay_merchant_trade_no');
-    if (storeData.MerchantTradeNo !== savedTradeNo) {
-        showToast('門市資料驗證失敗', 'error');
-        return;
-    }
+    // 產生門市 ID（使用時間戳記）
+    const storeId = 'MANUAL_' + Date.now();
     
     // 儲存選擇的門市
     selectedStore = {
-        id: storeData.CVSStoreID,
-        name: storeData.CVSStoreName,
-        address: storeData.CVSAddress,
-        phone: storeData.CVSTelephone
+        id: storeId,
+        name: storeName,
+        address: storeAddress,
+        phone: storePhone
     };
     
     // 顯示選擇的門市資訊
     displaySelectedStore();
     
-    // 清除 localStorage 和 URL 參數
-    localStorage.removeItem('ecpay_merchant_trade_no');
-    window.history.replaceState({}, document.title, window.location.pathname);
+    showToast('✅ 門市資訊已儲存！', 'success');
+}
+
+/**
+ * 🆕 從常用門市選擇
+ */
+function selectFromCommonStores() {
+    const commonStores = [
+        { id: '130743', name: '桃捷門市', address: '桃園市桃園區復興路127號', phone: '03-3388873' },
+        { id: '133085', name: '桃客門市', address: '桃園市桃園區延平路28號', phone: '03-3391085' },
+        { id: '296471', name: '統尊門市', address: '桃園市桃園區中正路1071號', phone: '03-3585147' },
+        { id: '133572', name: '桃鑫門市', address: '桃園市桃園區三民路三段218號', phone: '03-3572285' },
+        { id: '136966', name: '泰昌門市', address: '桃園市桃園區三民路三段33號', phone: '03-3397066' },
+        { id: '978691', name: '桃藝門市', address: '桃園市桃園區中正路1188號', phone: '03-3163691' },
+        { id: '133070', name: '桃德門市', address: '桃園市桃園區民生路495之3號', phone: '03-3330770' },
+        { id: '130636', name: '門牌號門市', address: '桃園市桃園區同德十一街89號', phone: '03-3569636' }
+    ];
     
-    // 自動開啟結帳彈窗
-    openCheckout();
+    let message = '請選擇桃園地區門市：\n\n';
+    commonStores.forEach((store, index) => {
+        message += `${index + 1}. ${store.name}\n   ${store.address}\n\n`;
+    });
+    message += `請輸入編號（1-${commonStores.length}）：`;
     
-    showToast('✅ 門市選擇成功！', 'success');
+    const choice = prompt(message);
+    const index = parseInt(choice) - 1;
+    
+    if (index >= 0 && index < commonStores.length) {
+        selectedStore = commonStores[index];
+        displaySelectedStore();
+        showToast('✅ 門市選擇成功！', 'success');
+    } else if (choice !== null) {
+        showToast('請輸入正確的編號', 'error');
+    }
 }
 
 /**
@@ -4537,27 +4385,12 @@ async function submitProfileUpdate() {
 // 初始化
 // ==========================================
 window.addEventListener('load', () => {
-    // 🆕 檢查 localStorage 是否有門市資料（從彈窗回來的）
-    const storedData = localStorage.getItem('ecpay_store_data');
-    if (storedData) {
-        try {
-            const storeData = JSON.parse(storedData);
-            receiveStoreData(storeData);
-            localStorage.removeItem('ecpay_store_data'); // 清除已使用的資料
-        } catch (e) {
-            console.error('解析門市資料錯誤:', e);
-        }
-    }
-    
-    // 🆕 優先檢查是否從綠界地圖回來（URL 參數方式）
-    handleECPayCallback();
-    
+    // 載入商品和會員資料
     loadProductsData();
     updateCart();
     checkMemberStatus();
     
     // 🔥 啟動自動刷新庫存功能（每30秒刷新一次）
-    // 可以調整秒數：15秒更快但耗流量、60秒更慢但省流量
     startAutoRefresh(30);
 });
 
