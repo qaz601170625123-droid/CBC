@@ -1614,14 +1614,14 @@
     </style>
 </head>
 <body>
-    <!-- 🆕 隱藏的綠界表單（彈窗模式） -->
+    <!-- 🆕 隱藏的綠界表單（ClientReplyURL 模式） -->
     <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="ecpayWindow">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
         <input type="text" name="MerchantTradeNo" id="ecpay_MerchantTradeNo">
         <input type="text" name="LogisticsType" value="CVS">
         <input type="text" name="LogisticsSubType" id="ecpay_LogisticsSubType" value="UNIMARTC2C">
         <input type="text" name="IsCollection" value="N">
-        <input type="text" name="ServerReplyURL" id="ecpay_ServerReplyURL">
+        <input type="text" name="ClientReplyURL" id="ecpay_ClientReplyURL">
         <input type="text" name="ExtraData" id="ecpay_ExtraData">
         <input type="text" name="Device" id="ecpay_Device">
         <input type="text" name="CheckMacValue" id="ecpay_CheckMacValue">
@@ -1776,11 +1776,11 @@
                 <label class="form-label">取貨方式</label>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="711" checked>
+                        <input type="radio" name="shipping" value="711" checked onchange="toggleStoreSelector()">
                         7-11店到店
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="pickup">
+                        <input type="radio" name="shipping" value="pickup" onchange="toggleStoreSelector()">
                         自取
                     </label>
                 </div>
@@ -1964,8 +1964,7 @@ const ECPAY_CONFIG = {
     HashKey: 'O7MpUtX9Inc7e4Ud',  // 注意：第一個字元是大寫 O
     HashIV: 'B6BxB56xLdGv4fBd',
     // 正式環境
-    MapURL: 'https://logistics.ecpay.com.tw/Express/map',
-    ServerReplyURL: window.location.origin + window.location.pathname + '?action=ecpay_callback'
+    MapURL: 'https://logistics.ecpay.com.tw/Express/map'
 };
 
 // ==========================================
@@ -2050,29 +2049,29 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 簡化 ServerReplyURL（避免 404 錯誤）
-    const serverReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
+    // 🔥 ClientReplyURL（前端接收，GET 方式）
+    const clientReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
     
-    // 準備參數
+    // 準備參數（使用 ClientReplyURL）
     const params = {
         MerchantID: ECPAY_CONFIG.MerchantID,
         MerchantTradeNo: merchantTradeNo,
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: serverReplyURL,
+        ClientReplyURL: clientReplyURL, // 🔥 使用 ClientReplyURL（GET 方式，前端接收）
         ExtraData: '',
         Device: getDeviceType()
     };
     
     // 🔥 除錯：記錄參數
     console.log('========================================');
-    console.log('📦 綠界地圖參數：');
+    console.log('📦 綠界地圖參數（ClientReplyURL 模式）：');
     console.log('MerchantID:', params.MerchantID);
     console.log('MerchantTradeNo:', params.MerchantTradeNo);
     console.log('LogisticsType:', params.LogisticsType);
     console.log('LogisticsSubType:', params.LogisticsSubType);
-    console.log('ServerReplyURL:', params.ServerReplyURL);
+    console.log('ClientReplyURL:', params.ClientReplyURL);
     console.log('Device:', params.Device);
     console.log('========================================');
     
@@ -2090,7 +2089,7 @@ function openECPayMap() {
     document.getElementById('ecpay_MerchantID').value = params.MerchantID;
     document.getElementById('ecpay_MerchantTradeNo').value = params.MerchantTradeNo;
     document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType;
-    document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;
+    document.getElementById('ecpay_ClientReplyURL').value = params.ClientReplyURL; // 🔥 ClientReplyURL
     document.getElementById('ecpay_ExtraData').value = params.ExtraData;
     document.getElementById('ecpay_Device').value = params.Device;
     document.getElementById('ecpay_CheckMacValue').value = checkMacValue;

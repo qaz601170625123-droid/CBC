@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background: #0a0a0a;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
             color: #FFD700;
             display: flex;
             align-items: center;
@@ -15,33 +15,78 @@
             min-height: 100vh;
             margin: 0;
         }
-        .loading {
+        .container {
             text-align: center;
+            padding: 40px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            max-width: 500px;
+        }
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .store-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .store-info h3 {
+            color: #FFD700;
+            margin: 0 0 15px 0;
+            font-size: 20px;
+        }
+        .store-info p {
+            margin: 8px 0;
+            color: #FFF;
+            font-size: 16px;
         }
         .spinner {
             border: 4px solid rgba(255, 215, 0, 0.3);
             border-top: 4px solid #FFD700;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 20px auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .countdown {
+            color: #FFA500;
+            font-size: 14px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
-    <div class="loading">
+    <div class="container">
+        <div class="icon">✅</div>
+        <h2>門市選擇完成</h2>
+        
+        <div class="store-info" id="storeInfo">
+            <h3>📍 已選擇門市</h3>
+            <p id="storeName">載入中...</p>
+            <p id="storeAddress"></p>
+        </div>
+        
         <div class="spinner"></div>
-        <div>門市選擇完成，請稍候...</div>
+        <p class="countdown">視窗將在 <span id="countdown">2</span> 秒後自動關閉...</p>
     </div>
 
     <script>
         console.log('========================================');
-        console.log('📍 綠界回傳頁面');
+        console.log('📍 綠界回傳頁面（ClientReplyURL 模式）');
         console.log('========================================');
         
         // 取得 URL 參數
@@ -49,10 +94,10 @@
         
         // 綠界回傳的門市資訊
         const storeData = {
-            CVSStoreID: urlParams.get('CVSStoreID') || '',      // 門市代碼
-            CVSStoreName: urlParams.get('CVSStoreName') || '',  // 門市名稱
-            CVSAddress: urlParams.get('CVSAddress') || '',      // 門市地址
-            CVSTelephone: urlParams.get('CVSTelephone') || '',  // 門市電話
+            CVSStoreID: urlParams.get('CVSStoreID') || '',
+            CVSStoreName: urlParams.get('CVSStoreName') || '',
+            CVSAddress: urlParams.get('CVSAddress') || '',
+            CVSTelephone: urlParams.get('CVSTelephone') || '',
             MerchantTradeNo: urlParams.get('MerchantTradeNo') || ''
         };
 
@@ -62,33 +107,63 @@
         console.log('門市電話:', storeData.CVSTelephone);
         console.log('========================================');
 
-        // 🔥 關鍵：透過 window.opener 傳送資料回主視窗
+        // 顯示門市資訊
+        if (storeData.CVSStoreID) {
+            document.getElementById('storeName').textContent = `🏪 ${storeData.CVSStoreName}`;
+            document.getElementById('storeAddress').textContent = `📍 ${storeData.CVSAddress}`;
+        }
+
+        // 🔥 方式 1：透過 window.opener 傳送資料回主視窗
         if (window.opener && !window.opener.closed) {
             console.log('✅ 找到主視窗，傳送門市資料...');
             
-            // 呼叫主視窗的函數
-            if (typeof window.opener.receiveStoreData === 'function') {
-                window.opener.receiveStoreData(storeData);
-                console.log('✅ 資料已傳送');
-            } else {
-                console.error('❌ 主視窗沒有 receiveStoreData 函數');
+            try {
+                // 呼叫主視窗的函數
+                if (typeof window.opener.receiveStoreData === 'function') {
+                    window.opener.receiveStoreData(storeData);
+                    console.log('✅ 資料已透過 window.opener 傳送');
+                } else {
+                    console.warn('⚠️ 主視窗沒有 receiveStoreData 函數');
+                }
+            } catch (e) {
+                console.error('❌ 傳送資料失敗:', e);
             }
             
-            // 關閉彈窗
-            setTimeout(() => {
-                console.log('關閉視窗...');
-                window.close();
+            // 倒數計時自動關閉
+            let countdown = 2;
+            const countdownEl = document.getElementById('countdown');
+            const timer = setInterval(() => {
+                countdown--;
+                countdownEl.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    console.log('關閉視窗...');
+                    window.close();
+                }
             }, 1000);
-        } else {
-            console.error('❌ 找不到主視窗');
             
-            // 如果找不到主視窗，儲存到 localStorage 並跳轉
+        } else {
+            console.warn('❌ 找不到主視窗，使用 localStorage 方式');
+            
+            // 🔥 方式 2：如果找不到主視窗，儲存到 localStorage 並跳轉
             if (storeData.CVSStoreID) {
                 localStorage.setItem('ecpay_store_data', JSON.stringify(storeData));
                 console.log('💾 資料已儲存到 localStorage');
                 
-                setTimeout(() => {
-                    window.location.href = 'ecommerce-with-approval.html?store=selected';
+                // 3 秒後跳轉回主頁面
+                let countdown = 3;
+                const countdownEl = document.getElementById('countdown');
+                countdownEl.textContent = countdown;
+                
+                const timer = setInterval(() => {
+                    countdown--;
+                    countdownEl.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        window.location.href = 'ecommerce-with-approval.html?store=selected';
+                    }
                 }, 1000);
             }
         }
