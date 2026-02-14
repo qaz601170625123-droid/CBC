@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>門市選擇完成</title>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #0a0a0a;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 215, 0, 0.3);
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <div>門市選擇完成，請稍候...</div>
+    </div>
+
+    <script>
+        console.log('========================================');
+        console.log('📍 綠界回傳頁面');
+        console.log('========================================');
+        
+        // 取得 URL 參數
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 綠界回傳的門市資訊
+        const storeData = {
+            CVSStoreID: urlParams.get('CVSStoreID') || '',      // 門市代碼
+            CVSStoreName: urlParams.get('CVSStoreName') || '',  // 門市名稱
+            CVSAddress: urlParams.get('CVSAddress') || '',      // 門市地址
+            CVSTelephone: urlParams.get('CVSTelephone') || '',  // 門市電話
+            MerchantTradeNo: urlParams.get('MerchantTradeNo') || ''
+        };
+
+        console.log('門市代碼:', storeData.CVSStoreID);
+        console.log('門市名稱:', storeData.CVSStoreName);
+        console.log('門市地址:', storeData.CVSAddress);
+        console.log('門市電話:', storeData.CVSTelephone);
+        console.log('========================================');
+
+        // 🔥 關鍵：透過 window.opener 傳送資料回主視窗
+        if (window.opener && !window.opener.closed) {
+            console.log('✅ 找到主視窗，傳送門市資料...');
+            
+            // 呼叫主視窗的函數
+            if (typeof window.opener.receiveStoreData === 'function') {
+                window.opener.receiveStoreData(storeData);
+                console.log('✅ 資料已傳送');
+            } else {
+                console.error('❌ 主視窗沒有 receiveStoreData 函數');
+            }
+            
+            // 關閉彈窗
+            setTimeout(() => {
+                console.log('關閉視窗...');
+                window.close();
+            }, 1000);
+        } else {
+            console.error('❌ 找不到主視窗');
+            
+            // 如果找不到主視窗，儲存到 localStorage 並跳轉
+            if (storeData.CVSStoreID) {
+                localStorage.setItem('ecpay_store_data', JSON.stringify(storeData));
+                console.log('💾 資料已儲存到 localStorage');
+                
+                setTimeout(() => {
+                    window.location.href = 'ecommerce-with-approval.html?store=selected';
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

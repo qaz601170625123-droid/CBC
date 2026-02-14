@@ -1614,8 +1614,8 @@
     </style>
 </head>
 <body>
-    <!-- 🆕 隱藏的綠界表單（正式環境） -->
-    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="_blank">
+    <!-- 🆕 隱藏的綠界表單（彈窗模式） -->
+    <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="ecpayWindow">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
         <input type="text" name="MerchantTradeNo" id="ecpay_MerchantTradeNo">
         <input type="text" name="LogisticsType" value="CVS">
@@ -2050,15 +2050,18 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
+    // 🔥 簡化 ServerReplyURL（避免 404 錯誤）
+    const serverReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
+    
     // 準備參數
     const params = {
         MerchantID: ECPAY_CONFIG.MerchantID,
         MerchantTradeNo: merchantTradeNo,
         LogisticsType: 'CVS',
-        LogisticsSubType: 'UNIMARTC2C', // 🔥 修正：7-11 店到店（C2C）
+        LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: ECPAY_CONFIG.ServerReplyURL,
-        ExtraData: '', // 可以傳遞自訂資料
+        ServerReplyURL: serverReplyURL,
+        ExtraData: '',
         Device: getDeviceType()
     };
     
@@ -2086,7 +2089,7 @@ function openECPayMap() {
     // 填入表單
     document.getElementById('ecpay_MerchantID').value = params.MerchantID;
     document.getElementById('ecpay_MerchantTradeNo').value = params.MerchantTradeNo;
-    document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType; // 🔥 新增
+    document.getElementById('ecpay_LogisticsSubType').value = params.LogisticsSubType;
     document.getElementById('ecpay_ServerReplyURL').value = params.ServerReplyURL;
     document.getElementById('ecpay_ExtraData').value = params.ExtraData;
     document.getElementById('ecpay_Device').value = params.Device;
@@ -2095,14 +2098,53 @@ function openECPayMap() {
     // 儲存訂單編號，供回傳時驗證
     localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
     
-    // 提交表單（會開啟新視窗或跳轉）
-    document.getElementById('ecpayMapForm').submit();
+    // 🔥 開啟彈窗（800x600）
+    const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
     
-    showToast('開啟門市選擇地圖...', 'success');
+    if (ecpayWindow) {
+        // 提交表單到彈窗
+        document.getElementById('ecpayMapForm').submit();
+        showToast('開啟門市選擇視窗...', 'success');
+    } else {
+        showToast('請允許彈出視窗！', 'error');
+    }
 }
 
 // ==========================================
-// 🆕 處理綠界回傳的門市資料
+// 🆕 接收彈窗傳來的門市資料
+// ==========================================
+function receiveStoreData(storeData) {
+    console.log('========================================');
+    console.log('📍 收到門市資料：');
+    console.log(storeData);
+    console.log('========================================');
+    
+    if (!storeData || !storeData.CVSStoreID) {
+        showToast('門市資料不完整', 'error');
+        return;
+    }
+    
+    // 更新全域變數
+    selectedStore = {
+        id: storeData.CVSStoreID,
+        name: storeData.CVSStoreName,
+        address: storeData.CVSAddress,
+        phone: storeData.CVSTelephone
+    };
+    
+    // 顯示選擇的門市
+    const storeDisplay = document.getElementById('selectedStore');
+    if (storeDisplay) {
+        storeDisplay.style.display = 'block';
+        document.getElementById('storeName').textContent = selectedStore.name;
+        document.getElementById('storeAddress').textContent = selectedStore.address;
+    }
+    
+    showToast(`✅ 已選擇門市：${selectedStore.name}`, 'success');
+}
+
+// ==========================================
+// 🆕 處理綠界回傳的門市資料（URL 參數方式）
 // ==========================================
 function handleECPayCallback() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -4491,7 +4533,19 @@ async function submitProfileUpdate() {
 // 初始化
 // ==========================================
 window.addEventListener('load', () => {
-    // 🆕 優先檢查是否從綠界地圖回來
+    // 🆕 檢查 localStorage 是否有門市資料（從彈窗回來的）
+    const storedData = localStorage.getItem('ecpay_store_data');
+    if (storedData) {
+        try {
+            const storeData = JSON.parse(storedData);
+            receiveStoreData(storeData);
+            localStorage.removeItem('ecpay_store_data'); // 清除已使用的資料
+        } catch (e) {
+            console.error('解析門市資料錯誤:', e);
+        }
+    }
+    
+    // 🆕 優先檢查是否從綠界地圖回來（URL 參數方式）
     handleECPayCallback();
     
     loadProductsData();
