@@ -724,6 +724,7 @@
             form.method = 'POST';
             form.action = ECPAY_CONFIG.MapURL;
             form.target = '_blank';
+            form.id = 'ecpay-map-form-temp';
             
             Object.keys(params).forEach(key => {
                 const input = document.createElement('input');
@@ -740,12 +741,37 @@
             form.appendChild(checkInput);
             
             document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
             
-            alert('📍 請在新視窗中選擇門市\n\n選擇完成後：\n1. 複製門市代號和名稱\n2. 關閉選店視窗\n3. 回到本頁面手動填入門市資訊');
-            
-            document.getElementById('selected-store').style.display = 'block';
+            try {
+                // 嘗試開啟新視窗
+                const newWindow = window.open('', '_blank');
+                
+                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                    // 彈出視窗被阻擋
+                    alert('⚠️ 彈出視窗被阻擋！\n\n請點選網址列旁的「🚫」圖示\n允許此網站的彈出式視窗\n\n或者：\n您也可以手動前往 7-11 官網查詢門市代號\nhttps://emap.pcsc.com.tw/');
+                    document.getElementById('selected-store').style.display = 'block';
+                } else {
+                    // 成功開啟，提交表單
+                    form.target = newWindow.name;
+                    form.submit();
+                    
+                    alert('📍 請在新視窗中選擇門市\n\n選擇完成後：\n1. 複製門市代號和名稱\n2. 關閉選店視窗\n3. 回到本頁面手動填入門市資訊\n\n💡 小提示：\n如果新視窗是空白的，可能需要等待幾秒\n或直接前往 https://emap.pcsc.com.tw/ 查詢門市');
+                    
+                    document.getElementById('selected-store').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('開啟地圖失敗:', error);
+                alert('❌ 無法開啟選店頁面\n\n替代方案：\n請前往 7-11 官網查詢門市\nhttps://emap.pcsc.com.tw/\n\n查到門市後，在下方手動填入門市代號和名稱即可');
+                document.getElementById('selected-store').style.display = 'block';
+            } finally {
+                // 清理表單
+                setTimeout(() => {
+                    const formElement = document.getElementById('ecpay-map-form-temp');
+                    if (formElement) {
+                        document.body.removeChild(formElement);
+                    }
+                }, 1000);
+            }
         }
         
         // 建立物流訂單
