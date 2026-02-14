@@ -2050,8 +2050,9 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 回傳網址（兩個都要填）
-    const callbackURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
+    // 🔥 修改：ServerReplyURL 使用 Google Apps Script
+    const serverReplyURL = APPS_SCRIPT_URL;  // 使用 Google Apps Script 接收 POST
+    const clientReplyURL = window.location.origin + window.location.pathname.replace('ecommerce-with-approval.html', 'ecpay-callback.html');
     
     // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
     const params = {
@@ -2060,8 +2061,8 @@ function openECPayMap() {
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: callbackURL,  // 🔥 必填（雖然會 405，但綠界要求必填）
-        ClientReplyURL: callbackURL,  // 🔥 真正使用的（GET 方式，前端接收）
+        ServerReplyURL: serverReplyURL,   // 🔥 改用 Google Apps Script 接收 POST
+        ClientReplyURL: clientReplyURL,   // 🔥 前端接收 GET
         ExtraData: '',
         Device: getDeviceType()
     };
