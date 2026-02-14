@@ -2117,38 +2117,8 @@ function openECPayMap() {
 // ==========================================
 // 🆕 接收彈窗傳來的門市資料
 // ==========================================
-function receiveStoreData(storeData) {
-    console.log('========================================');
-    console.log('📍 收到門市資料：');
-    console.log(storeData);
-    console.log('========================================');
-    
-    if (!storeData || !storeData.CVSStoreID) {
-        showToast('門市資料不完整', 'error');
-        return;
-    }
-    
-    // 更新全域變數
-    selectedStore = {
-        id: storeData.CVSStoreID,
-        name: storeData.CVSStoreName,
-        address: storeData.CVSAddress,
-        phone: storeData.CVSTelephone
-    };
-    
-    // 顯示選擇的門市
-    const storeDisplay = document.getElementById('selectedStore');
-    if (storeDisplay) {
-        storeDisplay.style.display = 'block';
-        document.getElementById('storeName').textContent = selectedStore.name;
-        document.getElementById('storeAddress').textContent = selectedStore.address;
-    }
-    
-    showToast(`✅ 已選擇門市：${selectedStore.name}`, 'success');
-}
-
 // ==========================================
-// 🆕 處理綠界回傳的門市資料（URL 參數方式）
+// 🆕 處理綠界回傳的門市資料（彈窗方式）
 // ==========================================
 /**
  * 🆕 接收綠界彈窗傳回的門市資料
@@ -2185,14 +2155,34 @@ function receiveStoreData(storeData) {
 }
 
 /**
+ * 🆕 顯示已選擇的門市資訊
+ */
+function displaySelectedStore() {
+    if (!selectedStore) {
+        // 沒有選擇門市，隱藏門市資訊區塊
+        const infoElement = document.getElementById('selectedStoreInfo');
+        if (infoElement) {
+            infoElement.classList.remove('active');
+        }
+        return;
+    }
+    
+    // 有選擇門市，顯示門市資訊
+    const infoElement = document.getElementById('selectedStoreInfo');
+    if (infoElement) {
+        infoElement.classList.add('active');
+        document.getElementById('storeName').textContent = selectedStore.name || '';
+        document.getElementById('storeAddress').textContent = selectedStore.address || '';
+        document.getElementById('storePhone').textContent = selectedStore.phone || '';
+    }
+}
+
+/**
  * 🆕 清除選擇的門市
  */
 function clearSelectedStore() {
     selectedStore = null;
-    const infoElement = document.getElementById('selectedStoreInfo');
-    if (infoElement) {
-        infoElement.classList.remove('active');
-    }
+    displaySelectedStore();
     showToast('已清除門市選擇', 'success');
 }
 
