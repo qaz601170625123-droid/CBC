@@ -28,6 +28,11 @@
             box-sizing: border-box;
         }
 
+        html {
+            touch-action: manipulation; /* 防止雙擊放大 */
+            -webkit-text-size-adjust: 100%; /* 防止 iOS 自動調整字體大小 */
+        }
+
         :root {
             --primary: #FFD700;
             --secondary: #1a1a1a;
@@ -44,6 +49,8 @@
             background: var(--bg-dark);
             color: var(--text-light);
             min-height: 100vh;
+            touch-action: manipulation; /* 全域防止雙擊放大 */
+            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
         }
 
         /* 頂部導航 */
@@ -4599,6 +4606,16 @@ async function submitProfileUpdate() {
 // ==========================================
 window.addEventListener('load', () => {
     console.log('🚀 頁面載入完成');
+    
+    // 🔥 防止雙擊放大（徹底解決方案）
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (event) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault(); // 阻止雙擊事件
+        }
+        lastTouchEnd = now;
+    }, false);
     
     // 正常初始化
     loadProductsData();
