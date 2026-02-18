@@ -86,11 +86,18 @@
 
     <script>
         console.log('========================================');
-        console.log('📍 綠界回傳頁面（ClientReplyURL 模式）');
+        console.log('📍 綠界回傳頁面載入');
+        console.log('當前網址:', window.location.href);
         console.log('========================================');
         
         // 取得 URL 參數
         const urlParams = new URLSearchParams(window.location.search);
+        
+        console.log('URL 參數數量:', Array.from(urlParams.keys()).length);
+        console.log('所有參數:');
+        for (let [key, value] of urlParams) {
+            console.log(`  ${key} = ${value}`);
+        }
         
         // 綠界回傳的門市資訊
         const storeData = {
@@ -101,6 +108,8 @@
             MerchantTradeNo: urlParams.get('MerchantTradeNo') || ''
         };
 
+        console.log('========================================');
+        console.log('門市資料:');
         console.log('門市代碼:', storeData.CVSStoreID);
         console.log('門市名稱:', storeData.CVSStoreName);
         console.log('門市地址:', storeData.CVSAddress);
@@ -111,19 +120,24 @@
         if (storeData.CVSStoreID) {
             document.getElementById('storeName').textContent = `🏪 ${storeData.CVSStoreName}`;
             document.getElementById('storeAddress').textContent = `📍 ${storeData.CVSAddress}`;
+        } else {
+            console.warn('⚠️ 警告：沒有收到門市資料');
+            document.getElementById('storeName').textContent = '⚠️ 未收到門市資料';
+            document.getElementById('storeAddress').textContent = '請檢查 Console 查看詳細資訊';
         }
 
         // 🔥 方式 1：透過 window.opener 傳送資料回主視窗
         if (window.opener && !window.opener.closed) {
-            console.log('✅ 找到主視窗，傳送門市資料...');
+            console.log('✅ 找到主視窗');
             
             try {
                 // 呼叫主視窗的函數
                 if (typeof window.opener.receiveStoreData === 'function') {
+                    console.log('✅ 準備呼叫 receiveStoreData');
                     window.opener.receiveStoreData(storeData);
                     console.log('✅ 資料已透過 window.opener 傳送');
                 } else {
-                    console.warn('⚠️ 主視窗沒有 receiveStoreData 函數');
+                    console.error('❌ 主視窗沒有 receiveStoreData 函數');
                 }
             } catch (e) {
                 console.error('❌ 傳送資料失敗:', e);
@@ -138,7 +152,7 @@
                 
                 if (countdown <= 0) {
                     clearInterval(timer);
-                    console.log('關閉視窗...');
+                    console.log('準備關閉視窗...');
                     window.close();
                 }
             }, 1000);
@@ -162,9 +176,12 @@
                     
                     if (countdown <= 0) {
                         clearInterval(timer);
+                        console.log('準備跳轉回主頁面...');
                         window.location.href = 'ecommerce-with-approval.html?store=selected';
                     }
                 }, 1000);
+            } else {
+                console.error('❌ 沒有門市資料，無法儲存');
             }
         }
     </script>
