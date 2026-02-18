@@ -1624,6 +1624,125 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* 🆕 自取付款方式區塊 */
+        .pickup-payment-method {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .pickup-payment-method.active {
+            display: block;
+        }
+
+        /* 🆕 匯款資訊卡片 */
+        .bank-info {
+            display: none;
+            margin-top: 15px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .bank-info.active {
+            display: block;
+        }
+
+        .bank-info-card {
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.1) 0%, rgba(0, 150, 136, 0.1) 100%);
+            border: 2px solid #00c853;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.2);
+        }
+
+        .bank-info-card h4 {
+            color: #00c853;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bank-detail {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .bank-detail:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateX(5px);
+        }
+
+        .bank-detail .label {
+            color: #999;
+            min-width: 80px;
+            font-weight: 500;
+        }
+
+        .bank-detail .value {
+            color: #FFD700;
+            font-weight: bold;
+            font-size: 16px;
+            flex: 1;
+            word-break: break-all;
+            letter-spacing: 1px;
+        }
+
+        .bank-notice {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255, 152, 0, 0.1);
+            border-left: 4px solid #ff9800;
+            border-radius: 5px;
+            color: #ff9800;
+            font-size: 14px;
+        }
+
+        /* 🆕 匯款末五碼輸入框（條件顯示）*/
+        #bankLast5Group {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        #bankLast5Group.active {
+            display: block;
+        }
+
+        .form-hint {
+            display: block;
+            color: #999;
+            font-size: 13px;
+            margin-top: 8px;
+            padding-left: 5px;
+        }
+
+        .required {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        /* 🆕 動畫效果 */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1790,11 +1909,11 @@
                 <label class="form-label">取貨方式</label>
                 <div class="radio-group">
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="711" checked onchange="toggleStoreSelector()">
+                        <input type="radio" name="shipping" value="711" checked onchange="toggleShippingMethod()">
                         7-11店到店
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="shipping" value="pickup" onchange="toggleStoreSelector()">
+                        <input type="radio" name="shipping" value="pickup" onchange="toggleShippingMethod()">
                         自取
                     </label>
                 </div>
@@ -1832,11 +1951,50 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- 🆕 自取付款方式選擇 -->
+                <div id="pickupPaymentMethod" class="pickup-payment-method">
+                    <label class="form-label">💰 付款方式</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="paymentMethod" value="cash" checked onchange="toggleBankInfo()">
+                            💵 現場付款
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="paymentMethod" value="transfer" onchange="toggleBankInfo()">
+                            🏦 匯款
+                        </label>
+                    </div>
+                    
+                    <!-- 🆕 匯款資訊顯示區 -->
+                    <div id="bankInfo" class="bank-info">
+                        <div class="bank-info-card">
+                            <h4>💳 匯款帳戶資訊</h4>
+                            <div class="bank-detail">
+                                <span class="label">銀行：</span>
+                                <span class="value" id="bankName">載入中...</span>
+                            </div>
+                            <div class="bank-detail">
+                                <span class="label">帳號：</span>
+                                <span class="value" id="bankAccount">載入中...</span>
+                            </div>
+                            <div class="bank-detail">
+                                <span class="label">戶名：</span>
+                                <span class="value" id="bankHolder">載入中...</span>
+                            </div>
+                            <div class="bank-notice">
+                                ⚠️ 請在匯款後填寫下方的帳號末五碼
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">匯款末五碼</label>
-                <input type="text" class="form-input" id="bankLast5" placeholder="請輸入匯款帳號末五碼" maxlength="5">
+            <!-- 🆕 匯款末五碼（條件顯示）-->
+            <div class="form-group" id="bankLast5Group">
+                <label class="form-label">匯款帳號末五碼 <span class="required">*</span></label>
+                <input type="text" class="form-input" id="bankLast5" placeholder="請輸入您的匯款帳號末五碼" maxlength="5">
+                <small class="form-hint">💡 請輸入您匯款帳號的後五碼，以便核對款項</small>
             </div>
 
             <!-- 訂單摘要 -->
@@ -1963,6 +2121,13 @@ let categories = [];     // 🆕 儲存分類設定（含圖片）
 let currentCategory = 'all';  // 當前選擇的分類
 let cart = [];
 let selectedStore = null;
+
+// 🆕 系統設定（匯款資訊）
+let systemSettings = {
+    bankName: '',
+    bankAccount: '',
+    bankHolder: ''
+};
 
 // 會員相關
 let currentMember = null;
@@ -3981,24 +4146,92 @@ function closeCheckout() {
     document.getElementById('checkoutModal').classList.remove('active');
 }
 
-function toggleStoreSelector() {
+// 🆕 切換取貨方式（7-11 / 自取）
+function toggleShippingMethod() {
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
-    const selector = document.getElementById('storeSelector');
+    const storeSelector = document.getElementById('storeSelector');
+    const pickupPayment = document.getElementById('pickupPaymentMethod');
     
     if (shipping === '711') {
-        selector.classList.add('active');
-    } else {
-        selector.classList.remove('active');
+        // 顯示 7-11 門市選擇
+        storeSelector.classList.add('active');
+        pickupPayment.classList.remove('active');
+        document.getElementById('bankLast5Group').classList.remove('active');
         selectedStore = null;
+    } else {
+        // 顯示自取付款方式
+        storeSelector.classList.remove('active');
+        pickupPayment.classList.add('active');
+        selectedStore = null;
+        
         // 清除選擇的門市資訊
         const infoElement = document.getElementById('selectedStoreInfo');
         if (infoElement) {
             infoElement.classList.remove('active');
         }
+        
+        // 根據付款方式決定是否顯示匯款末五碼
+        toggleBankInfo();
     }
     
     // 🔥 更新結帳摘要（重新計算運費）
     updateCheckoutSummary();
+}
+
+// 🆕 切換匯款資訊顯示
+function toggleBankInfo() {
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    const bankInfo = document.getElementById('bankInfo');
+    const bankLast5Group = document.getElementById('bankLast5Group');
+    
+    if (paymentMethod === 'transfer') {
+        bankInfo.classList.add('active');
+        bankLast5Group.classList.add('active');
+    } else {
+        bankInfo.classList.remove('active');
+        bankLast5Group.classList.remove('active');
+    }
+}
+
+// 🆕 載入系統設定
+async function loadSystemSettings() {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/系統設定?key=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.values && data.values.length > 1) {
+            // 解析設定資料（假設格式：設定項目 | 設定值）
+            data.values.slice(1).forEach(row => {
+                if (row[0] === '匯款銀行') systemSettings.bankName = row[1] || '';
+                if (row[0] === '匯款帳號') systemSettings.bankAccount = row[1] || '';
+                if (row[0] === '匯款戶名') systemSettings.bankHolder = row[1] || '';
+            });
+            
+            console.log('✅ 系統設定載入成功:', systemSettings);
+            updateBankInfo();
+        }
+    } catch (error) {
+        console.error('❌ 載入系統設定失敗:', error);
+        // 使用預設值
+        systemSettings = {
+            bankName: '請聯繫客服',
+            bankAccount: '請聯繫客服',
+            bankHolder: 'CANDY BOSS'
+        };
+        updateBankInfo();
+    }
+}
+
+// 🆕 更新匯款資訊顯示
+function updateBankInfo() {
+    const bankNameEl = document.getElementById('bankName');
+    const bankAccountEl = document.getElementById('bankAccount');
+    const bankHolderEl = document.getElementById('bankHolder');
+    
+    if (bankNameEl) bankNameEl.textContent = systemSettings.bankName;
+    if (bankAccountEl) bankAccountEl.textContent = systemSettings.bankAccount;
+    if (bankHolderEl) bankHolderEl.textContent = systemSettings.bankHolder;
 }
 
 async function submitOrder() {
@@ -4011,21 +4244,44 @@ async function submitOrder() {
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
-    const bankLast5 = document.getElementById('bankLast5').value.trim();
+    let bankLast5 = document.getElementById('bankLast5').value.trim();
+    let paymentMethod = '';
 
-    if (!name || !phone || !bankLast5) {
-        showToast('請填寫完整資料', 'error');
+    // 🆕 基本資料驗證
+    if (!name || !phone) {
+        showToast('請填寫姓名和電話', 'error');
         return;
     }
 
-    if (shipping === '711' && !selectedStore) {
-        showToast('請選擇 7-11 門市', 'error');
-        return;
-    }
-
-    if (bankLast5.length !== 5) {
-        showToast('匯款末五碼必須是 5 位數字', 'error');
-        return;
+    // 🆕 自取付款方式驗證
+    if (shipping === 'pickup') {
+        paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || '';
+        
+        // 如果是匯款，必須填寫末五碼
+        if (paymentMethod === 'transfer') {
+            if (!bankLast5 || bankLast5.length !== 5) {
+                showToast('請輸入匯款帳號末五碼（5碼）', 'error');
+                return;
+            }
+            // 驗證是否為數字
+            if (!/^\d{5}$/.test(bankLast5)) {
+                showToast('匯款末五碼必須是5位數字', 'error');
+                return;
+            }
+        } else {
+            // 現場付款不需要填寫末五碼
+            bankLast5 = '';
+        }
+    } else if (shipping === '711') {
+        // 7-11 驗證
+        if (!selectedStore) {
+            showToast('請選擇 7-11 門市', 'error');
+            return;
+        }
+        if (!bankLast5 || bankLast5.length !== 5) {
+            showToast('請輸入匯款帳號末五碼（5碼）', 'error');
+            return;
+        }
     }
 
     // 🔥 設定提交中標記，防止重複點擊
@@ -4072,6 +4328,7 @@ async function submitOrder() {
         姓名: name,
         電話: phone,
         取貨方式: shipping === '711' ? '7-11店到店' : '自取',
+        付款方式: shipping === '711' ? '貨到付款' : (paymentMethod === 'cash' ? '現場付款' : '匯款'),
         門市名稱: shipping === '711' ? selectedStore.name : '-',
         門市地址: shipping === '711' ? selectedStore.address : '-',
         匯款末五碼: bankLast5,
@@ -4642,6 +4899,7 @@ window.addEventListener('load', () => {
     
     // 正常初始化
     loadProductsData();
+    loadSystemSettings(); // 🆕 載入系統設定（匯款資訊）
     updateCart();
     checkMemberStatus();
     
