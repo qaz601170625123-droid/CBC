@@ -12,6 +12,9 @@
     <!-- Crypto-JS for SHA256 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
+        // ✅ Apps Script 網址（用於接收綠界回傳）
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
+        
         // 強制清除快取
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -2067,13 +2070,11 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 回傳網址：兩個都用 ecpay-callback.html
-    // ServerReplyURL 會 405（正常），綠界會自動改用 ClientReplyURL
-    const baseURL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-    const callbackURL = baseURL + '/ecpay-callback.html';
+    // ✅ 使用 Apps Script 網址（支援 POST，不會 405）
+    const callbackURL = APPS_SCRIPT_URL;
     
     console.log('回傳網址:', callbackURL);
-    console.log('（ServerReplyURL 會 405 是正常的，綠界會自動用 ClientReplyURL）');
+    console.log('✅ 使用 Apps Script，支援 POST，不會有 405 錯誤');
     
     // 準備參數
     const params = {
@@ -2082,8 +2083,8 @@ function openECPayMap() {
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: callbackURL,   // 🔥 會 405（正常）
-        ClientReplyURL: callbackURL,   // 🔥 實際使用（GET）
+        ServerReplyURL: callbackURL,   // ✅ Apps Script 支援 POST
+        ClientReplyURL: callbackURL,   // ✅ Apps Script 也支援 GET
         ExtraData: '',
         Device: getDeviceType()
     };
