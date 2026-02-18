@@ -2067,21 +2067,23 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 回傳網址：使用 ecpay-callback.html
+    // 🔥 回傳網址：兩個都用 ecpay-callback.html
+    // ServerReplyURL 會 405（正常），綠界會自動改用 ClientReplyURL
     const baseURL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
     const callbackURL = baseURL + '/ecpay-callback.html';
     
     console.log('回傳網址:', callbackURL);
+    console.log('（ServerReplyURL 會 405 是正常的，綠界會自動用 ClientReplyURL）');
     
-    // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
+    // 準備參數
     const params = {
         MerchantID: ECPAY_CONFIG.MerchantID,
         MerchantTradeNo: merchantTradeNo,
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: callbackURL,   // 🔥 必填（雖然會 405）
-        ClientReplyURL: callbackURL,   // 🔥 實際使用（GET 方式）
+        ServerReplyURL: callbackURL,   // 🔥 會 405（正常）
+        ClientReplyURL: callbackURL,   // 🔥 實際使用（GET）
         ExtraData: '',
         Device: getDeviceType()
     };
