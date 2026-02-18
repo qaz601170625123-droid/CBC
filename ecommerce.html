@@ -4615,9 +4615,32 @@ function showOrderDetailByData(order) {
                             <div style="color: #FFD700; font-weight: 700; font-size: 14px;">${order.取貨方式}</div>
                         </div>
                         
-                        <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px;">
+                        <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px;" id="payment-code-section">
                             <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
-                            <div style="color: #FFD700; font-weight: 700; font-size: 14px;">${order.匯款末五碼 || '-'}</div>
+                            ${order.匯款末五碼 && order.匯款末五碼 !== '-' ? `
+                                <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${order.匯款末五碼}</div>
+                            ` : order.取貨方式 === '7-11店到店' ? `
+                                <input 
+                                    type="text" 
+                                    id="payment-code-input" 
+                                    placeholder="請輸入5碼"
+                                    maxlength="5"
+                                    style="
+                                        width: 100%;
+                                        padding: 8px;
+                                        border: 2px solid #FFD700;
+                                        border-radius: 5px;
+                                        background: rgba(0, 0, 0, 0.5);
+                                        color: #FFD700;
+                                        font-size: 16px;
+                                        font-weight: 700;
+                                        text-align: center;
+                                        letter-spacing: 3px;
+                                    "
+                                >
+                            ` : `
+                                <div style="color: #FFD700; font-weight: 700; font-size: 14px;">-</div>
+                            `}
                         </div>
                     </div>
                     
@@ -4686,9 +4709,37 @@ function showOrderDetailByData(order) {
                             font-size: 16px;
                             font-weight: 900;
                             display: inline-block;
+                            margin-bottom: 15px;
                         ">
                             ${order.訂單狀態}
                         </div>
+                        
+                        ${order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-') ? `
+                            <div>
+                                <button 
+                                    onclick="submitPaymentCode('${order.訂單編號}')"
+                                    style="
+                                        background: linear-gradient(135deg, #00c800, #00ff00);
+                                        color: #000;
+                                        border: none;
+                                        padding: 15px 40px;
+                                        border-radius: 25px;
+                                        font-size: 18px;
+                                        font-weight: 900;
+                                        cursor: pointer;
+                                        box-shadow: 0 5px 15px rgba(0, 200, 0, 0.3);
+                                        transition: all 0.3s ease;
+                                    "
+                                    onmouseover="this.style.transform='scale(1.05)'"
+                                    onmouseout="this.style.transform='scale(1)'"
+                                >
+                                    💳 確認付款
+                                </button>
+                                <div style="color: #999; font-size: 12px; margin-top: 10px;">
+                                    請先填寫匯款末五碼後再點擊確認
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -4751,6 +4802,109 @@ function startCountdown(orderId, orderTime) {
     // 儲存timer以便清理
     if (!window.orderTimers) window.orderTimers = {};
     window.orderTimers[orderIdHash] = timer;
+}
+
+// ==========================================
+// 🆕 提交匯款末五碼
+// ==========================================
+async function submitPaymentCode(orderId) {
+    const input = document.getElementById('payment-code-input');
+    
+    if (!input) {
+        showToast('找不到輸入欄位', 'error');
+        return;
+    }
+    
+    const paymentCode = input.value.trim();
+    
+    // 驗證
+    if (!paymentCode) {
+        showToast('請輸入匯款末五碼', 'error');
+        input.focus();
+        return;
+    }
+    
+    if (paymentCode.length !== 5) {
+        showToast('請輸入完整的5碼', 'error');
+        input.focus();
+        return;
+    }
+    
+    if (!/^\d{5}$/.test(paymentCode)) {
+        showToast('請輸入5位數字', 'error');
+        input.focus();
+        return;
+    }
+    
+    // 確認對話框
+    if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) {
+        return;
+    }
+    
+    try {
+        // 顯示載入中
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ 處理中...';
+        btn.disabled = true;
+        
+        // 送出到 Google Apps Script
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'updatePaymentCode',
+                orderId: orderId,
+                paymentCode: paymentCode
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('✅ 付款確認成功！', 'success');
+            
+            // 更新顯示
+            const section = document.getElementById('payment-code-section');
+            if (section) {
+                section.innerHTML = `
+                    <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
+                    <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${paymentCode}</div>
+                `;
+            }
+            
+            // 移除按鈕
+            btn.parentElement.innerHTML = `
+                <div style="
+                    background: rgba(0, 255, 0, 0.2);
+                    border: 2px solid #00c800;
+                    padding: 15px;
+                    border-radius: 10px;
+                    color: #00FF00;
+                    font-weight: 700;
+                ">
+                    ✅ 付款已確認，等待商家處理
+                </div>
+            `;
+            
+            // 重新載入訂單列表（如果在訂單查詢頁面）
+            if (window.memberOrders) {
+                setTimeout(() => {
+                    loadMemberOrders();
+                }, 1500);
+            }
+        } else {
+            throw new Error(result.error || '更新失敗');
+        }
+        
+    } catch (error) {
+        console.error('提交付款碼失敗:', error);
+        showToast('❌ 提交失敗，請稍後再試', 'error');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 }
 
 function closeOrderDetail() {
