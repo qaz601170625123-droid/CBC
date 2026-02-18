@@ -2067,9 +2067,10 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // ServerReplyURL：綠界 server 端回傳(POST) → Apps Script 處理
-    const serverReplyURL = APPS_SCRIPT_URL;
-    // ClientReplyURL：選完門市後彈窗顯示的頁面(POST) → Vercel API 接收並回傳 HTML
+    // ServerReplyURL 和 ClientReplyURL 都指向 Vercel API
+    // Vercel API 接收 POST → 回傳 HTML 給彈窗 → 彈窗關閉
+    // GAS 另外用 fetch 通知（記錄訂單用）
+    const serverReplyURL = 'https://cbc-lake.vercel.app/api/ecpay-callback';
     const clientReplyURL = 'https://cbc-lake.vercel.app/api/ecpay-callback';
     
     console.log('ServerReplyURL:', serverReplyURL);
@@ -2246,11 +2247,18 @@ function processStoreData(storeData) {
     console.log('========================================');
 }
 
-// 🔥 保留舊的 receiveStoreData 函數作為備用（如果 window.opener 有效的話）
+// window.opener 直接呼叫（同域時）
 window.receiveStoreData = function(storeData) {
     console.log('✅ receiveStoreData 被呼叫（window.opener 方式）');
     processStoreData(storeData);
 };
+
+// ✅ postMessage 監聽（跨域時，GAS 回傳的彈窗用這個）
+window.addEventListener('message', function(event) {
+    if (!event.data || event.data.type !== 'ecpay_store') return;
+    console.log('✅ 收到 postMessage 門市資料:', event.data.data);
+    processStoreData(event.data.data);
+});
 
 /**
  * 🆕 顯示已選擇的門市資訊
