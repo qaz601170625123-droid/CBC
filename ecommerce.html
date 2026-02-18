@@ -2069,8 +2069,8 @@ function openECPayMap() {
     
     // ServerReplyURL：綠界 server 端回傳(POST) → Apps Script 處理
     const serverReplyURL = APPS_SCRIPT_URL;
-    // ClientReplyURL：選完門市後彈窗顯示的頁面(GET) → 必須是真正的 HTML 頁面
-    const clientReplyURL = 'https://cbc-lake.vercel.app/ecpay-callback.html';
+    // ClientReplyURL：選完門市後彈窗顯示的頁面(POST) → Vercel API 接收並回傳 HTML
+    const clientReplyURL = 'https://cbc-lake.vercel.app/api/ecpay-callback';
     
     console.log('ServerReplyURL:', serverReplyURL);
     console.log('ClientReplyURL:', clientReplyURL);
