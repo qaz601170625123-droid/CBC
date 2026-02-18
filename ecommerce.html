@@ -12,9 +12,6 @@
     <!-- Crypto-JS for SHA256 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
-        // ✅ Apps Script 網址（用於接收綠界回傳）
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
-        
         // 強制清除快取
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -4350,16 +4347,23 @@ async function checkMemberStatus() {
     if (memberData) {
         try {
             currentMember = JSON.parse(memberData);
-            
-            // 從 Google Sheets 取得最新的審核狀態
-            await fetchMemberApprovalStatus();
-            
-            updateMemberUI();
         } catch (e) {
             console.error('會員資料解析錯誤:', e);
             localStorage.removeItem('candyboss_member');
+            currentMember = null;
             showLoginWall();
+            return;
         }
+        
+        // 先立刻顯示 UI（避免畫面卡白），再背景同步審核狀態
+        updateMemberUI();
+        
+        // 背景更新審核狀態（不阻塞 UI）
+        fetchMemberApprovalStatus().then(() => {
+            updateMemberUI();
+        }).catch(e => {
+            console.warn('審核狀態同步失敗（不影響登入）:', e);
+        });
     } else {
         showLoginWall();
     }
@@ -4369,17 +4373,28 @@ async function fetchMemberApprovalStatus() {
     if (!currentMember || !currentMember.lineId) return;
     
     try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=getMember&lineId=${currentMember.lineId}`);
+        // 加上 5 秒 timeout，避免 Apps Script 慢回應讓頁面卡住
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(
+            `${APPS_SCRIPT_URL}?action=getMember&lineId=${encodeURIComponent(currentMember.lineId)}`,
+            { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+        
         const result = await response.json();
         
         if (result.success && result.member) {
             // 更新審核狀態到 localStorage
             currentMember.approvalStatus = result.member.approvalStatus || '待審核';
+            if (result.member.phone) currentMember.phone = result.member.phone;
+            if (result.member.email) currentMember.email = result.member.email;
             localStorage.setItem('candyboss_member', JSON.stringify(currentMember));
         }
     } catch (error) {
-        console.error('取得審核狀態失敗:', error);
-        // 如果取得失敗，預設為待審核
+        console.warn('取得審核狀態失敗（將使用本地快取）:', error.name === 'AbortError' ? 'Timeout' : error.message);
+        // 如果取得失敗，維持 localStorage 裡已有的狀態（不清空）
         currentMember.approvalStatus = currentMember.approvalStatus || '待審核';
     }
 }
