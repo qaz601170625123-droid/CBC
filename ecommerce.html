@@ -1947,7 +1947,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9
 
 // LINE Login 設定
 const LINE_CHANNEL_ID = '2009077580';
-const LINE_REDIRECT_URI = 'https://qaz601170625123-droid.github.io/CBC/callback.html';
+const LINE_REDIRECT_URI = 'https://cbc-lake.vercel.app/callback.html';
 const LINE_STATE = 'random_state_' + Math.random().toString(36).substr(2, 9);
 
 const PRODUCTS_SHEET = '商品列表';
@@ -2067,11 +2067,13 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // ✅ 使用 Apps Script 網址（支援 POST，不會 405）
-    const callbackURL = APPS_SCRIPT_URL;
+    // ServerReplyURL：綠界 server 端回傳(POST) → Apps Script 處理
+    const serverReplyURL = APPS_SCRIPT_URL;
+    // ClientReplyURL：選完門市後彈窗顯示的頁面(GET) → 必須是真正的 HTML 頁面
+    const clientReplyURL = 'https://cbc-lake.vercel.app/ecpay-callback.html';
     
-    console.log('回傳網址:', callbackURL);
-    console.log('✅ 使用 Apps Script，支援 POST，不會有 405 錯誤');
+    console.log('ServerReplyURL:', serverReplyURL);
+    console.log('ClientReplyURL:', clientReplyURL);
     
     // 準備參數
     const params = {
@@ -2080,8 +2082,8 @@ function openECPayMap() {
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: callbackURL,   // ✅ Apps Script 支援 POST
-        ClientReplyURL: callbackURL,   // ✅ Apps Script 也支援 GET
+        ServerReplyURL: serverReplyURL,  // Apps Script 接收 POST（後端通知）
+        ClientReplyURL: clientReplyURL,  // ecpay-callback.html 接收 GET（前端彈窗）
         ExtraData: '',
         Device: getDeviceType()
     };
