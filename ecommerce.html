@@ -1709,24 +1709,6 @@
             font-size: 14px;
         }
 
-        /* 🆕 匯款末五碼輸入框（條件顯示）*/
-        #bankLast5Group {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        #bankLast5Group.active {
-            display: block;
-        }
-
-        .form-hint {
-            display: block;
-            color: #999;
-            font-size: 13px;
-            margin-top: 8px;
-            padding-left: 5px;
-        }
-
         .required {
             color: #ff4444;
             font-weight: bold;
@@ -1988,13 +1970,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- 🆕 匯款末五碼（條件顯示）-->
-            <div class="form-group" id="bankLast5Group">
-                <label class="form-label">匯款帳號末五碼 <span class="required">*</span></label>
-                <input type="text" class="form-input" id="bankLast5" placeholder="請輸入您的匯款帳號末五碼" maxlength="5">
-                <small class="form-hint">💡 請輸入您匯款帳號的後五碼，以便核對款項</small>
             </div>
 
             <!-- 訂單摘要 -->
@@ -4156,7 +4131,6 @@ function toggleShippingMethod() {
         // 顯示 7-11 門市選擇
         storeSelector.classList.add('active');
         pickupPayment.classList.remove('active');
-        document.getElementById('bankLast5Group').classList.remove('active');
         selectedStore = null;
     } else {
         // 顯示自取付款方式
@@ -4170,7 +4144,7 @@ function toggleShippingMethod() {
             infoElement.classList.remove('active');
         }
         
-        // 根據付款方式決定是否顯示匯款末五碼
+        // 根據付款方式決定是否顯示匯款資訊
         toggleBankInfo();
     }
     
@@ -4182,14 +4156,11 @@ function toggleShippingMethod() {
 function toggleBankInfo() {
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
     const bankInfo = document.getElementById('bankInfo');
-    const bankLast5Group = document.getElementById('bankLast5Group');
     
     if (paymentMethod === 'transfer') {
         bankInfo.classList.add('active');
-        bankLast5Group.classList.add('active');
     } else {
         bankInfo.classList.remove('active');
-        bankLast5Group.classList.remove('active');
     }
 }
 
@@ -4244,44 +4215,24 @@ async function submitOrder() {
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const name = document.getElementById('customerName').value.trim();
     const phone = document.getElementById('customerPhone').value.trim();
-    let bankLast5 = document.getElementById('bankLast5').value.trim();
     let paymentMethod = '';
 
-    // 🆕 基本資料驗證
+    // 基本資料驗證
     if (!name || !phone) {
         showToast('請填寫姓名和電話', 'error');
         return;
     }
 
-    // 🆕 自取付款方式驗證
+    // 自取付款方式
     if (shipping === 'pickup') {
         paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || '';
-        
-        // 如果是匯款，必須填寫末五碼
-        if (paymentMethod === 'transfer') {
-            if (!bankLast5 || bankLast5.length !== 5) {
-                showToast('請輸入匯款帳號末五碼（5碼）', 'error');
-                return;
-            }
-            // 驗證是否為數字
-            if (!/^\d{5}$/.test(bankLast5)) {
-                showToast('匯款末五碼必須是5位數字', 'error');
-                return;
-            }
-        } else {
-            // 現場付款不需要填寫末五碼
-            bankLast5 = '';
-        }
     } else if (shipping === '711') {
-        // 7-11 驗證
+        // 7-11 驗證門市
         if (!selectedStore) {
             showToast('請選擇 7-11 門市', 'error');
             return;
         }
-        if (!bankLast5 || bankLast5.length !== 5) {
-            showToast('請輸入匯款帳號末五碼（5碼）', 'error');
-            return;
-        }
+        paymentMethod = 'cod'; // 貨到付款
     }
 
     // 🔥 設定提交中標記，防止重複點擊
@@ -4329,9 +4280,10 @@ async function submitOrder() {
         電話: phone,
         取貨方式: shipping === '711' ? '7-11店到店' : '自取',
         付款方式: shipping === '711' ? '貨到付款' : (paymentMethod === 'cash' ? '現場付款' : '匯款'),
+        付款狀態: '待付款', // 🆕 付款狀態
         門市名稱: shipping === '711' ? selectedStore.name : '-',
         門市地址: shipping === '711' ? selectedStore.address : '-',
-        匯款末五碼: bankLast5,
+        匯款末五碼: '', // 🆕 初始為空，之後在訂單頁面填寫
         商品明細: cart.map(item => {
             const multiplier = item.quantityMultiplier || 1;
             const displayQty = multiplier > 1 ? `${item.quantity}組(共${item.quantity * multiplier}個)` : `${item.quantity}`;
@@ -4368,64 +4320,29 @@ async function submitOrder() {
         
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
         
-        // 🆕 組合訂單確認訊息（包含優惠）
-        let orderMessage = `訂單已建立!\n\n訂單編號:${orderData.訂單編號}\n姓名:${orderData.姓名}\n電話:${orderData.電話}\n取貨方式:${orderData.取貨方式}`;
+        // 🆕 儲存訂單資料到 localStorage，供訂單頁面讀取
+        localStorage.setItem('latest_order_' + orderData.訂單編號, JSON.stringify(orderData));
         
-        orderMessage += `\n\n商品金額:$${orderData.商品金額}`;
-        
-        if (promotionResult.totalDiscount > 0) {
-            orderMessage += `\n優惠折扣:-$${promotionResult.totalDiscount}`;
-        }
-        
-        if (shipping === '711') {
-            if (promotionResult.freeShipping) {
-                orderMessage += `\n運費:免運`;
-            } else {
-                orderMessage += `\n運費:$${shippingFee}`;
-            }
-        }
-        
-        orderMessage += `\n總金額:$${orderData.總金額}`;
-        
-        orderMessage += `\n\n請使用您的電話號碼查詢訂單狀態。`;
-        alert(orderMessage);
-        
+        // 清空購物車
         cart = [];
         updateCart();
-        closeCheckout();
-        toggleCart();
         
-        document.getElementById('customerName').value = '';
-        document.getElementById('customerPhone').value = '';
-        document.getElementById('bankLast5').value = '';
-        selectedStore = null;
-        
-        // 🔥 重置提交狀態
-        window.isSubmittingOrder = false;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        submitBtn.style.cursor = 'pointer';
-        submitBtn.innerHTML = originalBtnText;
-        
-        // 🔥 輕量級更新：只更新已購買商品的庫存（不會重新載入全部資料）
-        setTimeout(() => {
-            updatePurchasedProductsStock(purchasedItems);
-        }, 1000); // 延遲1秒，等後端扣庫存完成
+        // 🆕 跳轉到訂單詳情頁面
+        window.location.href = `order-detail.html?orderId=${orderData.訂單編號}`;
         
     } catch (error) {
         console.log('訂單已送出(no-cors 模式)');
         showToast('訂單已送出!訂單編號:' + orderData.訂單編號);
         
+        // 🆕 儲存訂單資料到 localStorage
+        localStorage.setItem('latest_order_' + orderData.訂單編號, JSON.stringify(orderData));
+        
+        // 清空購物車
         cart = [];
         updateCart();
-        closeCheckout();
-        toggleCart();
         
-        // 🔥 重置提交狀態
-        window.isSubmittingOrder = false;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        submitBtn.style.cursor = 'pointer';
+        // 🆕 跳轉到訂單詳情頁面
+        window.location.href = `order-detail.html?orderId=${orderData.訂單編號}`;
         submitBtn.innerHTML = originalBtnText;
         
         // 🔥 輕量級更新：只更新已購買商品的庫存

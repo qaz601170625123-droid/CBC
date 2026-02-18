@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單詳情 - CANDY BOSS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #FFD700;
+            color: #0a0a0a;
+        }
+
+        .order-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .order-card h1 {
+            color: #FFD700;
+            font-size: 28px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .order-info {
+            display: grid;
+            gap: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .info-label {
+            color: #999;
+            min-width: 120px;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #FFD700;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        /* 倒數計時卡片 */
+        .countdown-card {
+            background: linear-gradient(135deg, rgba(255, 69, 0, 0.2) 0%, rgba(255, 140, 0, 0.2) 100%);
+            border: 2px solid #ff4500;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .countdown-card h3 {
+            color: #ff4500;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .countdown-timer {
+            font-family: 'Orbitron', monospace;
+            font-size: 48px;
+            color: #ff4500;
+            font-weight: 900;
+            margin: 20px 0;
+            text-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
+        }
+
+        .countdown-hint {
+            color: #ffa500;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .countdown-expired {
+            color: #ff4500;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        /* 匯款資訊卡片 */
+        .bank-card {
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.1) 0%, rgba(0, 150, 136, 0.1) 100%);
+            border: 2px solid #00c853;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .bank-card h3 {
+            color: #00c853;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .bank-detail {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .bank-detail .label {
+            color: #999;
+            min-width: 100px;
+            font-weight: 500;
+        }
+
+        .bank-detail .value {
+            color: #FFD700;
+            font-weight: 700;
+            font-size: 18px;
+            flex: 1;
+            letter-spacing: 1px;
+        }
+
+        /* 付款表單 */
+        .payment-form {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .payment-form h3 {
+            color: #FFD700;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .payment-form input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            color: #FFD700;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .payment-form input::placeholder {
+            color: #666;
+            letter-spacing: normal;
+        }
+
+        .payment-form button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border: none;
+            border-radius: 15px;
+            color: #000;
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .payment-form button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .payment-form button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 狀態標籤 */
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .status-pending {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ffa500;
+            border: 2px solid #ffa500;
+        }
+
+        .status-paid {
+            background: rgba(0, 200, 83, 0.2);
+            color: #00c853;
+            border: 2px solid #00c853;
+        }
+
+        .status-cancelled {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 2px solid #f44336;
+        }
+
+        /* 隱藏類別 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 載入動畫 */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #FFD700;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 215, 0, 0.3);
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="ecommerce.html" class="back-btn">
+            <span>←</span>
+            <span>返回購物頁面</span>
+        </a>
+
+        <!-- 載入中 -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>載入訂單資訊中...</p>
+        </div>
+
+        <!-- 訂單資訊 -->
+        <div id="orderCard" class="order-card hidden">
+            <h1>
+                <span>📦</span>
+                <span>訂單詳情</span>
+            </h1>
+            <div class="order-info" id="orderInfo"></div>
+        </div>
+
+        <!-- 付款倒數（僅 7-11 且未付款時顯示）-->
+        <div id="countdownCard" class="countdown-card hidden">
+            <h3>⏰ 付款倒數</h3>
+            <div class="countdown-timer" id="countdownTimer">--:--:--</div>
+            <p class="countdown-hint">請在時限內完成匯款並填寫帳號末五碼</p>
+        </div>
+
+        <!-- 匯款資訊（需要匯款時顯示）-->
+        <div id="bankCard" class="bank-card hidden">
+            <h3>💳 匯款帳戶資訊</h3>
+            <div id="bankDetails"></div>
+        </div>
+
+        <!-- 填寫匯款末五碼 -->
+        <div id="paymentForm" class="payment-form hidden">
+            <h3>✍️ 確認付款</h3>
+            <p style="color: #999; margin-bottom: 15px;">請在完成匯款後，填寫您的匯款帳號末五碼</p>
+            <input type="text" id="bankLast5Input" maxlength="5" placeholder="請輸入匯款帳號末五碼（5位數字）">
+            <button onclick="submitPayment()">確認付款</button>
+        </div>
+    </div>
+
+    <script>
+        // 設定
+        const SHEET_ID = '1v1ecAE2XYAJgCnT3jbUp6Lfz64npIAzdiepzy-PSr_4';
+        const API_KEY = 'AIzaSyD3zhGgpz3SBgp62_1GhTql2CW5vrzI7NA';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
+
+        let orderData = null;
+        let countdownInterval = null;
+        let systemSettings = {
+            bankName: '',
+            bankAccount: '',
+            bankHolder: ''
+        };
+
+        // 取得訂單編號
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId');
+
+        if (!orderId) {
+            alert('找不到訂單編號');
+            window.location.href = 'ecommerce.html';
+        }
+
+        // 載入訂單資料
+        async function loadOrderData() {
+            try {
+                // 從 localStorage 取得剛建立的訂單資料
+                const cachedOrder = localStorage.getItem('latest_order_' + orderId);
+                
+                if (cachedOrder) {
+                    orderData = JSON.parse(cachedOrder);
+                    displayOrderData();
+                    localStorage.removeItem('latest_order_' + orderId); // 用完就刪除
+                } else {
+                    alert('訂單資料已失效，請返回重新查詢');
+                    window.location.href = 'ecommerce.html';
+                }
+            } catch (error) {
+                console.error('載入訂單失敗:', error);
+                alert('載入訂單失敗，請稍後再試');
+            }
+        }
+
+        // 載入系統設定（匯款資訊）
+        async function loadSystemSettings() {
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/系統設定?key=${API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    data.values.slice(1).forEach(row => {
+                        if (row[0] === '匯款銀行') systemSettings.bankName = row[1] || '';
+                        if (row[0] === '匯款帳號') systemSettings.bankAccount = row[1] || '';
+                        if (row[0] === '匯款戶名') systemSettings.bankHolder = row[1] || '';
+                    });
+                }
+            } catch (error) {
+                console.error('載入系統設定失敗:', error);
+            }
+        }
+
+        // 顯示訂單資料
+        function displayOrderData() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('orderCard').classList.remove('hidden');
+
+            const orderInfo = document.getElementById('orderInfo');
+            
+            // 付款狀態標籤
+            let paymentStatusBadge = '';
+            if (orderData.付款狀態 === '已付款') {
+                paymentStatusBadge = '<span class="status-badge status-paid">✅ 已付款</span>';
+            } else if (orderData.訂單狀態 === '取消訂單') {
+                paymentStatusBadge = '<span class="status-badge status-cancelled">❌ 已取消</span>';
+            } else {
+                paymentStatusBadge = '<span class="status-badge status-pending">⏰ 待付款</span>';
+            }
+
+            orderInfo.innerHTML = `
+                <div class="info-row">
+                    <div class="info-label">訂單編號</div>
+                    <div class="info-value">${orderData.訂單編號}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">訂購時間</div>
+                    <div class="info-value">${orderData.訂購時間}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">姓名</div>
+                    <div class="info-value">${orderData.姓名}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">電話</div>
+                    <div class="info-value">${orderData.電話}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">取貨方式</div>
+                    <div class="info-value">${orderData.取貨方式}</div>
+                </div>
+                ${orderData.門市名稱 && orderData.門市名稱 !== '-' ? `
+                <div class="info-row">
+                    <div class="info-label">取貨門市</div>
+                    <div class="info-value">${orderData.門市名稱}<br><small style="color:#999;">${orderData.門市地址}</small></div>
+                </div>
+                ` : ''}
+                <div class="info-row">
+                    <div class="info-label">付款方式</div>
+                    <div class="info-value">${orderData.付款方式}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">付款狀態</div>
+                    <div class="info-value">${paymentStatusBadge}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">商品明細</div>
+                    <div class="info-value">${orderData.商品明細.replace(/,/g, '<br>')}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">商品金額</div>
+                    <div class="info-value">$${orderData.商品金額}</div>
+                </div>
+                ${orderData.運費 > 0 ? `
+                <div class="info-row">
+                    <div class="info-label">運費</div>
+                    <div class="info-value">$${orderData.運費}</div>
+                </div>
+                ` : ''}
+                <div class="info-row" style="border-top: 2px solid #FFD700; padding-top: 15px;">
+                    <div class="info-label" style="font-size: 20px;">總金額</div>
+                    <div class="info-value" style="font-size: 24px;">$${orderData.總金額}</div>
+                </div>
+            `;
+
+            // 顯示倒數計時（僅 7-11 且未付款）
+            if (orderData.取貨方式 === '7-11店到店' && orderData.付款狀態 === '待付款' && orderData.訂單狀態 !== '取消訂單') {
+                document.getElementById('countdownCard').classList.remove('hidden');
+                startCountdown();
+            }
+
+            // 顯示匯款資訊（需要匯款時）
+            if ((orderData.付款方式 === '匯款' || orderData.付款方式 === '貨到付款') && orderData.付款狀態 === '待付款') {
+                document.getElementById('bankCard').classList.remove('hidden');
+                displayBankInfo();
+            }
+
+            // 顯示付款表單（未付款時）
+            if (orderData.付款狀態 === '待付款' && orderData.訂單狀態 !== '取消訂單') {
+                document.getElementById('paymentForm').classList.remove('hidden');
+            }
+        }
+
+        // 顯示匯款資訊
+        function displayBankInfo() {
+            const bankDetails = document.getElementById('bankDetails');
+            bankDetails.innerHTML = `
+                <div class="bank-detail">
+                    <span class="label">銀行：</span>
+                    <span class="value">${systemSettings.bankName || '載入中...'}</span>
+                </div>
+                <div class="bank-detail">
+                    <span class="label">帳號：</span>
+                    <span class="value">${systemSettings.bankAccount || '載入中...'}</span>
+                </div>
+                <div class="bank-detail">
+                    <span class="label">戶名：</span>
+                    <span class="value">${systemSettings.bankHolder || '載入中...'}</span>
+                </div>
+                <div class="bank-detail">
+                    <span class="label">金額：</span>
+                    <span class="value" style="color: #ff4500;">$${orderData.總金額}</span>
+                </div>
+            `;
+        }
+
+        // 開始倒數計時（1小時）
+        function startCountdown() {
+            const orderTime = new Date(orderData.訂購時間);
+            const deadline = new Date(orderTime.getTime() + 60 * 60 * 1000); // 1小時後
+
+            countdownInterval = setInterval(() => {
+                const now = new Date();
+                const remaining = deadline - now;
+
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('countdownTimer').innerHTML = '<span class="countdown-expired">⚠️ 付款時限已過</span>';
+                    document.getElementById('paymentForm').classList.add('hidden');
+                    alert('付款時限已過，訂單將被取消');
+                    setTimeout(() => {
+                        window.location.href = 'ecommerce.html';
+                    }, 3000);
+                    return;
+                }
+
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+                document.getElementById('countdownTimer').textContent = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // 提交付款資訊
+        async function submitPayment() {
+            const bankLast5 = document.getElementById('bankLast5Input').value.trim();
+
+            if (!bankLast5 || bankLast5.length !== 5) {
+                alert('請輸入5位數字的匯款帳號末五碼');
+                return;
+            }
+
+            if (!/^\d{5}$/.test(bankLast5)) {
+                alert('匯款末五碼必須是5位數字');
+                return;
+            }
+
+            if (!confirm('確認要提交付款資訊嗎？')) {
+                return;
+            }
+
+            try {
+                const paymentData = {
+                    action: 'updatePayment',
+                    orderId: orderData.訂單編號,
+                    bankLast5: bankLast5
+                };
+
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paymentData)
+                });
+
+                alert('付款資訊已送出！\n\n我們會盡快確認您的付款。');
+                window.location.reload();
+            } catch (error) {
+                console.error('提交付款失敗:', error);
+                alert('付款資訊已送出！（系統記錄中）');
+                window.location.reload();
+            }
+        }
+
+        // 頁面載入
+        window.addEventListener('load', async () => {
+            await loadSystemSettings();
+            await loadOrderData();
+        });
+    </script>
+</body>
+</html>
