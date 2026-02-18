@@ -560,6 +560,9 @@
             cursor: pointer;
             font-size: 18px;
             font-weight: 700;
+            touch-action: manipulation; /* 防止手機雙擊放大 */
+            user-select: none; /* 防止選取文字 */
+            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
         }
 
         .remove-item {
@@ -824,6 +827,9 @@
             font-size: 24px;
             font-weight: 700;
             cursor: pointer;
+            touch-action: manipulation; /* 防止手機雙擊放大 */
+            user-select: none; /* 防止選取文字 */
+            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
         }
 
         .quantity-display {
