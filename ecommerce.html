@@ -1885,6 +1885,8 @@
             <button class="close-cart" onclick="toggleCart()">×</button>
         </div>
         <div class="cart-items" id="cartItems"></div>
+        <!-- 🆕 購物車優惠提示 -->
+        <div id="cartPromotionHints"></div>
         <div class="cart-footer">
             <div class="cart-total">總計:$<span id="cartTotal">0</span></div>
             <button class="checkout-btn" onclick="openCheckout()">前往結帳</button>
@@ -2866,50 +2868,69 @@ function calculatePromotions(cartItems) {
 function displayPromotionHints(cartItems) {
     if (promotions.length === 0) return '';
     
-    const stats = {
-        totalAmount: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        totalBoxes: 0,
-        totalPacks: 0
-    };
-    
-    cartItems.forEach(item => {
-        const multiplier = item.quantityMultiplier || 1;
-        if (multiplier === 10) {
-            stats.totalBoxes += item.quantity;
-            stats.totalPacks += item.quantity * 10;
-        } else {
-            stats.totalPacks += item.quantity;
-        }
-    });
-    
     const hints = [];
     
     promotions.forEach(promo => {
+        // ✅ 先過濾符合此優惠條件的商品（跟 calculatePromotions 邏輯一致）
+        const eligibleItems = cartItems.filter(item => {
+            if (promo.allowedCategories.length > 0) {
+                const product = products.find(p => p.id === item.productId);
+                if (!product || !promo.allowedCategories.includes(product.category)) return false;
+            }
+            if (promo.allowedSpecs.length > 0) {
+                if (!promo.allowedSpecs.includes(item.specName)) return false;
+            }
+            return true;
+        });
+
+        // 計算符合條件商品的統計
+        const stats = {
+            totalAmount: eligibleItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            totalBoxes: 0,
+            totalPacks: 0
+        };
+        eligibleItems.forEach(item => {
+            const multiplier = item.quantityMultiplier || 1;
+            if (multiplier === 10) {
+                stats.totalBoxes += item.quantity;
+                stats.totalPacks += item.quantity * 10;
+            } else {
+                stats.totalPacks += item.quantity;
+            }
+        });
+
+        // ✅ 組成類別括號文字
+        const categoryLabel = promo.allowedCategories.length > 0
+            ? `（${promo.allowedCategories.join('、')}）`
+            : '';
+
         let hint = '';
-        
         switch (promo.type) {
             case '滿件折扣':
-                // 🆕 根據單位判斷
                 if (promo.unit === '條') {
                     if (stats.totalBoxes < promo.threshold) {
                         const needed = promo.threshold - stats.totalBoxes;
-                        hint = `💡 再購買 ${needed} 條即可享「${promo.name}」`;
+                        hint = `💡 再購買 ${needed} 條即可享「${promo.name}」${categoryLabel}`;
                     }
                 } else if (promo.unit === '包') {
                     if (stats.totalPacks < promo.threshold) {
                         const needed = promo.threshold - stats.totalPacks;
-                        hint = `💡 再購買 ${needed} 包即可享「${promo.name}」`;
+                        hint = `💡 再購買 ${needed} 包即可享「${promo.name}」${categoryLabel}`;
                     }
                 }
                 break;
-                
             case '滿額折扣':
-            case '滿額免運':
-                if (stats.totalAmount < promo.threshold) {
-                    const needed = promo.threshold - stats.totalAmount;
-                    hint = `💡 再加購 $${needed} 即可享「${promo.name}」`;
+            case '滿額免運': {
+                // 免運用全部金額，其他用符合條件金額
+                const checkAmount = promo.type === '滿額免運'
+                    ? cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                    : stats.totalAmount;
+                if (checkAmount < promo.threshold) {
+                    const needed = promo.threshold - checkAmount;
+                    hint = `💡 再加購 $${needed} 即可享「${promo.name}」${categoryLabel}`;
                 }
                 break;
+            }
         }
         
         if (hint) hints.push(hint);
@@ -4081,6 +4102,17 @@ function updateCart() {
 
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     cartTotal.textContent = total;
+
+    // 🆕 購物車優惠提示
+    const cartHintContainer = document.getElementById('cartPromotionHints');
+    if (cartHintContainer) {
+        const hints = displayPromotionHints(cart);
+        if (hints) {
+            cartHintContainer.innerHTML = `<div style="padding:10px 16px 4px; font-size:13px; line-height:1.8; color:#FFD700;">${hints}</div>`;
+        } else {
+            cartHintContainer.innerHTML = '';
+        }
+    }
 }
 
 function updateCartQuantity(index, change) {
