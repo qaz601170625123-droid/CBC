@@ -2067,10 +2067,11 @@ function openECPayMap() {
     // 產生唯一訂單編號
     const merchantTradeNo = generateMerchantTradeNo();
     
-    // 🔥 修改：ServerReplyURL 和 ClientReplyURL 都使用 Google Apps Script
-    // Apps Script 會將資料儲存到 localStorage，然後關閉彈窗
-    const serverReplyURL = APPS_SCRIPT_URL;  // 後端接收（綠界 POST）
-    const clientReplyURL = APPS_SCRIPT_URL;  // 前端顯示（綠界 GET，儲存到 localStorage 後關閉彈窗）
+    // 🔥 回傳網址：使用 ecpay-callback.html
+    const baseURL = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    const callbackURL = baseURL + '/ecpay-callback.html';
+    
+    console.log('回傳網址:', callbackURL);
     
     // 準備參數（ServerReplyURL 和 ClientReplyURL 都要填）
     const params = {
@@ -2079,8 +2080,8 @@ function openECPayMap() {
         LogisticsType: 'CVS',
         LogisticsSubType: 'UNIMARTC2C', // 🔥 7-11 店到店（C2C）
         IsCollection: 'N',
-        ServerReplyURL: serverReplyURL,   // 🔥 後端記錄用
-        ClientReplyURL: clientReplyURL,   // 🔥 前端顯示用（儲存到 localStorage 並關閉彈窗）
+        ServerReplyURL: callbackURL,   // 🔥 必填（雖然會 405）
+        ClientReplyURL: callbackURL,   // 🔥 實際使用（GET 方式）
         ExtraData: '',
         Device: getDeviceType()
     };
@@ -2118,12 +2119,6 @@ function openECPayMap() {
     // 儲存訂單編號，供回傳時驗證
     localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
     console.log('✅ 已儲存訂單編號到 localStorage:', merchantTradeNo);
-    
-    // 🔥 清除舊的門市資料（如果有的話）
-    localStorage.removeItem('ecpay_store_data');
-    
-    // 🔥 開始監聽門市資料
-    startListeningForStoreData();
     
     // 🔥 開啟彈窗（800x600）
     const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
