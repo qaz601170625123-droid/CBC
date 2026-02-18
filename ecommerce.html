@@ -4385,6 +4385,237 @@ function closeOrderSearch() {
     document.getElementById('orderSearchModal').classList.remove('active');
 }
 
+// ==========================================
+// 🆕 顯示訂單詳情
+// ==========================================
+function showOrderDetail(orderIndex) {
+    if (!window.memberOrders || !window.memberOrders[orderIndex]) {
+        showToast('訂單資料載入失敗', 'error');
+        return;
+    }
+    
+    const order = window.memberOrders[orderIndex];
+    
+    // 建立訂單詳情 HTML
+    const detailHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; overflow-y: auto; padding: 20px;">
+            <div style="max-width: 800px; margin: 0 auto;">
+                <!-- 返回按鈕 -->
+                <button onclick="closeOrderDetail()" style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    background: rgba(255, 215, 0, 0.1);
+                    border: 2px solid #FFD700;
+                    color: #FFD700;
+                    padding: 12px 24px;
+                    border-radius: 25px;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">
+                    ← 返回購物頁面
+                </button>
+                
+                <!-- 訂單詳情卡片 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(10px);
+                    border: 2px solid #FFD700;
+                    border-radius: 20px;
+                    padding: 30px;
+                    margin-bottom: 20px;
+                ">
+                    <h1 style="
+                        color: #FFD700;
+                        font-size: 28px;
+                        margin-bottom: 20px;
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                    ">
+                        📦 訂單詳情
+                    </h1>
+                    
+                    <div style="display: grid; gap: 15px;">
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">訂單編號</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.訂單編號}</div>
+                        </div>
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">訂購時間</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.訂購時間}</div>
+                        </div>
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">姓名</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.姓名}</div>
+                        </div>
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">電話</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.電話}</div>
+                        </div>
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">取貨方式</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.取貨方式}</div>
+                        </div>
+                        
+                        ${order.門市名稱 && order.門市名稱 !== '-' ? `
+                            <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                                <div style="color: #999; min-width: 120px; font-weight: 500;">門市名稱</div>
+                                <div style="color: #FFD700; font-weight: 700; flex: 1;">${order.門市名稱}</div>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">付款方式</div>
+                            <div style="color: #FFD700; font-weight: 700; flex: 1;">現場付款</div>
+                        </div>
+                        
+                        <div style="display: flex; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 10px;">
+                            <div style="color: #999; min-width: 120px; font-weight: 500;">訂單狀態</div>
+                            <div style="
+                                background: ${order.訂單狀態 === '已完成' ? '#00FF00' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : '#FFD700'};
+                                color: #000;
+                                padding: 8px 20px;
+                                border-radius: 20px;
+                                font-size: 16px;
+                                font-weight: 900;
+                                display: inline-block;
+                            ">
+                                ${order.訂單狀態}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 商品明細卡片 -->
+                <div style="
+                    background: rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(10px);
+                    border: 2px solid #FFD700;
+                    border-radius: 20px;
+                    padding: 30px;
+                    margin-bottom: 20px;
+                ">
+                    <h2 style="color: #FFD700; font-size: 24px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        🛒 商品明細
+                    </h2>
+                    
+                    <div style="
+                        background: rgba(0, 0, 0, 0.3);
+                        padding: 20px;
+                        border-radius: 10px;
+                        line-height: 1.8;
+                        color: #fff;
+                        font-size: 16px;
+                    ">
+                        ${order.商品明細.split(',').map(item => `<div style="padding: 8px 0; border-bottom: 1px solid rgba(255,215,0,0.2);">• ${item.trim()}</div>`).join('')}
+                    </div>
+                </div>
+                
+                <!-- 金額摘要卡片 -->
+                <div style="
+                    background: rgba(255, 215, 0, 0.1);
+                    border: 2px solid #FFD700;
+                    border-radius: 20px;
+                    padding: 30px;
+                    margin-bottom: 20px;
+                ">
+                    <h2 style="color: #FFD700; font-size: 24px; margin-bottom: 20px;">💰 金額摘要</h2>
+                    
+                    <div style="display: grid; gap: 15px;">
+                        ${order.商品金額 ? `
+                            <div style="display: flex; justify-content: space-between; font-size: 18px;">
+                                <span style="color: #999;">商品金額</span>
+                                <span style="color: #fff; font-weight: 700;">$${order.商品金額}</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${order.運費 && order.運費 > 0 ? `
+                            <div style="display: flex; justify-content: space-between; font-size: 18px;">
+                                <span style="color: #999;">運費</span>
+                                <span style="color: #fff; font-weight: 700;">$${order.運費}</span>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            padding-top: 15px;
+                            border-top: 2px solid #FFD700;
+                            font-size: 24px;
+                            font-weight: 900;
+                        ">
+                            <span style="color: #FFD700;">總金額</span>
+                            <span style="color: #FFD700;">$${order.總金額}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${order.物流編號 && order.物流編號 !== '-' ? `
+                    <!-- 物流追蹤卡片 -->
+                    <div style="
+                        background: rgba(0, 200, 0, 0.1);
+                        border: 2px solid #00c800;
+                        border-radius: 20px;
+                        padding: 30px;
+                        text-align: center;
+                    ">
+                        <h2 style="color: #00c800; font-size: 24px; margin-bottom: 15px;">📦 物流追蹤</h2>
+                        <div style="color: #fff; font-size: 18px; margin-bottom: 20px;">
+                            物流編號：<span style="color: #FFD700; font-weight: 700;">${order.物流編號}</span>
+                        </div>
+                        <a href="https://www.ezship.com.tw/tracking?id=${order.物流編號}" 
+                           style="
+                               display: inline-block;
+                               background: #00c800;
+                               color: #000;
+                               padding: 15px 40px;
+                               border-radius: 25px;
+                               text-decoration: none;
+                               font-weight: 900;
+                               font-size: 18px;
+                           "
+                           target="_blank">
+                            🔍 立即追蹤
+                        </a>
+                    </div>
+                ` : `
+                    <div style="
+                        background: rgba(255, 140, 0, 0.1);
+                        border: 2px solid #ff8c00;
+                        border-radius: 20px;
+                        padding: 30px;
+                        text-align: center;
+                        color: #ff8c00;
+                        font-size: 18px;
+                    ">
+                        ⏳ 訂單處理中，尚未出貨
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+    
+    // 建立並顯示詳情頁面
+    const detailDiv = document.createElement('div');
+    detailDiv.id = 'orderDetailView';
+    detailDiv.innerHTML = detailHTML;
+    document.body.appendChild(detailDiv);
+}
+
+function closeOrderDetail() {
+    const detailView = document.getElementById('orderDetailView');
+    if (detailView) {
+        detailView.remove();
+    }
+}
+
 async function loadMemberOrders() {
     if (!currentMember || !currentMember.lineId) {
         document.getElementById('ordersList').innerHTML = `
@@ -4411,7 +4642,9 @@ async function loadMemberOrders() {
                     border-radius: 10px;
                     padding: 20px;
                     margin-bottom: 15px;
-                ">
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onclick="showOrderDetail(${index})">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:10px;">
                         <div>
                             <div style="font-size:16px; font-weight:700; color:var(--primary);">
@@ -4435,44 +4668,22 @@ async function loadMemberOrders() {
                     
                     <div style="line-height:1.8; font-size:14px;">
                         <div><strong>訂單編號：</strong>${order.訂單編號}</div>
-                        <div><strong>姓名：</strong>${order.姓名}</div>
-                        <div><strong>電話：</strong>${order.電話}</div>
-                        <div><strong>取貨方式：</strong>${order.取貨方式}</div>
-                        ${order.門市名稱 && order.門市名稱 !== '-' ? `<div><strong>門市：</strong>${order.門市名稱}</div>` : ''}
-                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,215,0,0.2);">
-                            <strong>商品明細：</strong><br>
-                            <div style="color:#999; margin-top:5px; padding-left:10px;">
-                                ${order.商品明細}
-                            </div>
+                        <div><strong>總金額：</strong><span style="color:var(--primary); font-size:18px; font-weight:900;">$${order.總金額}</span></div>
+                        <div style="margin-top:10px; color:#999; font-size:12px;">
+                            ${order.商品明細.length > 50 ? order.商品明細.substring(0, 50) + '...' : order.商品明細}
                         </div>
-                        ${order.運費 && order.運費 > 0 ? `
-                            <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,215,0,0.2);">
-                                <div style="display:flex; justify-content:space-between; color:#999; font-size:14px;">
-                                    <span>商品金額：</span>
-                                    <span>$${order.商品金額 || (order.總金額 - order.運費)}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; color:var(--primary); font-size:14px; margin-top:5px;">
-                                    <span>運費：</span>
-                                    <span>$${order.運費}</span>
-                                </div>
-                            </div>
-                        ` : ''}
-                        <div style="margin-top:10px; font-size:18px; font-weight:900; color:var(--primary);">
-                            總金額：$${order.總金額}
-                        </div>
-                        ${order.物流編號 && order.物流編號 !== '-' ? `
-                            <div style="margin-top:15px;">
-                                <strong>物流編號：</strong>${order.物流編號}<br>
-                                <a href="https://www.ezship.com.tw/tracking?id=${order.物流編號}" 
-                                   style="display:inline-block; margin-top:10px; background:var(--primary); color:var(--secondary); padding:8px 20px; border-radius:20px; text-decoration:none; font-weight:700;"
-                                   target="_blank">
-                                    🔍 追蹤物流
-                                </a>
-                            </div>
-                        ` : '<div style="color:#999; margin-top:10px; font-size:12px;">尚未出貨</div>'}
+                    </div>
+                    
+                    <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,215,0,0.2); text-align:center;">
+                        <span style="color:var(--primary); font-size:14px; font-weight:700;">
+                            👉 點擊查看詳情
+                        </span>
                     </div>
                 </div>
             `).join('');
+            
+            // 儲存訂單資料到全域變數
+            window.memberOrders = result.orders;
             
             // 加上總訂單數
             ordersList.innerHTML += `
