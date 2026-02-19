@@ -5060,24 +5060,17 @@ async function cancelExpiredOrder(orderId) {
     try {
         console.log('🔥 自動取消逾時訂單:', orderId);
         
-        const response = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            mode: 'no-cors',
             body: JSON.stringify({
                 action: 'cancelExpiredOrder',
                 orderId: orderId
             })
         });
         
-        const result = await response.json();
+        console.log('✅ 取消請求已送出');
         
-        if (result.success) {
-            console.log('✅ 訂單已自動取消');
-        } else {
-            console.error('❌ 取消訂單失敗:', result.error);
-        }
     } catch (error) {
         console.error('❌ 取消訂單失敗:', error);
     }
