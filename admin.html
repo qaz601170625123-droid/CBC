@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CANDY BOSS 後台管理</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FFD700;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(255,255,255,0.05);
+            --border: rgba(255,215,0,0.3);
+            --text: #fff;
+            --text-muted: #999;
+            --green: #00FF00;
+            --red: #ff4444;
+            --blue: #00bfff;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ===== 登入畫面 ===== */
+        #loginScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-box {
+            background: rgba(255,215,0,0.05);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .login-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .line-login-btn {
+            background: #06C755;
+            color: #fff;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .line-login-btn:hover { background: #05a847; }
+        #loginError {
+            display: none;
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(255,68,68,0.2);
+            border: 1px solid var(--red);
+            border-radius: 8px;
+            color: var(--red);
+            font-size: 14px;
+        }
+
+        /* ===== 主後台畫面 ===== */
+        #adminScreen { display: none; }
+
+        /* 頂部導覽 */
+        .admin-header {
+            background: rgba(0,0,0,0.9);
+            border-bottom: 2px solid var(--primary);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .admin-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .admin-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+        }
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #666;
+            color: #999;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* 分頁標籤 */
+        .tab-bar {
+            display: flex;
+            background: rgba(0,0,0,0.5);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab-btn {
+            flex-shrink: 0;
+            padding: 14px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* 內容區 */
+        .tab-content { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        /* 通用卡片 */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 表單元素 */
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,215,0,0.3);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus { outline: none; border-color: var(--primary); }
+        select.form-input { cursor: pointer; }
+
+        /* 按鈕 */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-primary:hover { background: #FFA500; }
+        .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+        .btn-success { background: transparent; border: 1px solid var(--green); color: var(--green); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* 狀態標籤 */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge-pending { background: #ffa500; color: #000; }
+        .badge-paid { background: var(--blue); color: #000; }
+        .badge-done { background: var(--green); color: #000; }
+        .badge-cancel { background: var(--red); color: #fff; }
+
+        /* 訂單列表 */
+        .order-row {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 10px;
+        }
+        .order-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-id { font-size: 13px; color: var(--text-muted); }
+        .order-info { font-size: 14px; line-height: 1.8; }
+        .order-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+        /* 公告列表 */
+        .announcement-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .announcement-text-preview { flex: 1; font-size: 14px; }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #444;
+            border-radius: 24px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+        /* 庫存表格 */
+        .stock-table { width: 100%; border-collapse: collapse; }
+        .stock-table th {
+            text-align: left;
+            padding: 10px;
+            color: var(--primary);
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+        .stock-table td {
+            padding: 10px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .stock-input-sm {
+            width: 70px;
+            padding: 5px 8px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,215,0,0.4);
+            border-radius: 6px;
+            color: var(--primary);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* 會員列表 */
+        .member-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .member-avatar-sm {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+        }
+        .member-info { flex: 1; }
+        .member-name { font-weight: 700; font-size: 14px; }
+        .member-detail { font-size: 12px; color: var(--text-muted); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0,0,0,0.9);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 14px;
+            transition: transform 0.3s;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { border-color: var(--red); color: var(--red); }
+
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+
+        /* 篩選列 */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .filter-btn.active {
+            background: var(--primary);
+            color: #000;
+            border-color: var(--primary);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 登入畫面 ===== -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="login-logo">🍬 CANDY BOSS</div>
+        <div class="login-subtitle">後台管理系統</div>
+        <button class="line-login-btn" onclick="lineLogin()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+            使用 LINE 登入
+        </button>
+        <div id="loginError">⚠️ 您沒有後台管理權限</div>
+        <div id="loginLoading" style="display:none; margin-top:15px; color:#999; font-size:13px;">⏳ 驗證中...</div>
+    </div>
+</div>
+
+<!-- ===== 後台主畫面 ===== -->
+<div id="adminScreen">
+    <!-- 頂部 -->
+    <div class="admin-header">
+        <div class="admin-logo">⚙️ 後台管理</div>
+        <div class="admin-user">
+            <img id="adminAvatar" class="admin-avatar" src="" alt="">
+            <span id="adminName"></span>
+            <button class="logout-btn" onclick="logout()">登出</button>
+        </div>
+    </div>
+
+    <!-- 分頁標籤 -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('orders')">📦 訂單</button>
+        <button class="tab-btn" onclick="switchTab('announcements')">📢 公告</button>
+        <button class="tab-btn" onclick="switchTab('promotions')">🎁 優惠</button>
+        <button class="tab-btn" onclick="switchTab('stock')">📊 庫存</button>
+        <button class="tab-btn" onclick="switchTab('members')">👥 會員</button>
+    </div>
+
+    <!-- ===== 訂單管理 ===== -->
+    <div id="tab-orders" class="tab-content active">
+        <div class="card">
+            <div class="card-title">
+                📦 訂單管理
+                <button class="btn btn-primary btn-sm" onclick="loadOrders()">🔄 重新載入</button>
+            </div>
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterOrders('all', this)">全部</button>
+                <button class="filter-btn" onclick="filterOrders('待處理', this)">待處理</button>
+                <button class="filter-btn" onclick="filterOrders('已付款待出貨', this)">已付款待出貨</button>
+                <button class="filter-btn" onclick="filterOrders('已完成', this)">已完成</button>
+                <button class="filter-btn" onclick="filterOrders('取消訂單', this)">已取消</button>
+            </div>
+            <div id="ordersList"><div class="loading">⏳ 載入中...</div></div>
+        </div>
+    </div>
+
+    <!-- ===== 公告管理 ===== -->
+    <div id="tab-announcements" class="tab-content">
+        <!-- 新增公告 -->
+        <div class="card">
+            <div class="card-title">➕ 新增公告</div>
+            <div class="form-group">
+                <label class="form-label">公告內容</label>
+                <input type="text" class="form-input" id="newAnnouncementText" placeholder="輸入公告文字...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">連結（選填）</label>
+                <input type="text" class="form-input" id="newAnnouncementLink" placeholder="https://...">
+            </div>
+            <button class="btn btn-primary" onclick="addAnnouncement()">➕ 新增</button>
+        </div>
+
+        <!-- 公告列表 -->
+        <div class="card">
+            <div class="card-title">
+                📋 公告列表
+                <button class="btn btn-primary btn-sm" onclick="loadAnnouncements()">🔄 重新載入</button>
+            </div>
+            <div id="announcementsList"><div class="loading">⏳ 載入中...</div></div>
+        </div>
+    </div>
+
+    <!-- ===== 優惠管理 ===== -->
+    <div id="tab-promotions" class="tab-content">
+        <!-- 新增優惠 -->
+        <div class="card">
+            <div class="card-title">➕ 新增優惠</div>
+            <div class="form-group">
+                <label class="form-label">優惠名稱</label>
+                <input type="text" class="form-input" id="newPromoName" placeholder="例：滿20包優惠">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">優惠類型</label>
+                    <select class="form-input" id="newPromoType">
+                        <option value="滿件折扣">滿件折扣</option>
+                        <option value="滿額折扣">滿額折扣</option>
+                        <option value="滿額免運">滿額免運</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">單位</label>
+                    <select class="form-input" id="newPromoUnit">
+                        <option value="包">包</option>
+                        <option value="條">條</option>
+                        <option value="元">元</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">門檻數量/金額</label>
+                    <input type="number" class="form-input" id="newPromoThreshold" placeholder="例：20">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">折扣金額（每單位）</label>
+                    <input type="number" class="form-input" id="newPromoDiscount" placeholder="例：5">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">說明文字（選填）</label>
+                <input type="text" class="form-input" id="newPromoDesc" placeholder="例：買20包每包折5元">
+            </div>
+            <button class="btn btn-primary" onclick="addPromotion()">➕ 新增優惠</button>
+        </div>
+
+        <!-- 優惠列表 -->
+        <div class="card">
+            <div class="card-title">
+                🎁 優惠列表
+                <button class="btn btn-primary btn-sm" onclick="loadPromotions()">🔄 重新載入</button>
+            </div>
+            <div id="promotionsList"><div class="loading">⏳ 載入中...</div></div>
+        </div>
+    </div>
+
+    <!-- ===== 庫存管理 ===== -->
+    <div id="tab-stock" class="tab-content">
+        <div class="card">
+            <div class="card-title">
+                📊 庫存管理
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary btn-sm" onclick="saveStockChanges()">💾 儲存變更</button>
+                    <button class="btn btn-sm" style="border:1px solid #666;color:#999;" onclick="loadStock()">🔄 重新載入</button>
+                </div>
+            </div>
+            <div style="color:#999; font-size:12px; margin-bottom:12px;">直接修改數量後點「儲存變更」</div>
+            <div id="stockTable"><div class="loading">⏳ 載入中...</div></div>
+        </div>
+    </div>
+
+    <!-- ===== 會員管理 ===== -->
+    <div id="tab-members" class="tab-content">
+        <div class="card">
+            <div class="card-title">
+                👥 會員列表
+                <button class="btn btn-primary btn-sm" onclick="loadMembers()">🔄 重新載入</button>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-input" id="memberSearch" placeholder="🔍 搜尋姓名或電話..." oninput="filterMembers()">
+            </div>
+            <div id="membersList"><div class="loading">⏳ 載入中...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+// 設定
+// ==========================================
+const SHEET_ID = '1v1ecAE2XYAJgCnT3jbUp6Lfz64npIAzdiepzy-PSr_4';
+const API_KEY = 'AIzaSyD3zhGgpz3SBgp62_1GhTql2CW5vrzI7NA';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
+
+const LINE_CHANNEL_ID = '2009077580';
+const LINE_REDIRECT_URI = 'https://cbc-lake.vercel.app/admin-callback.html';
+const LINE_STATE = 'admin_' + Math.random().toString(36).substr(2, 9);
+
+const ADMIN_SHEET = '管理員';  // 白名單工作表
+
+let currentAdmin = null;
+let allOrders = [];
+let allMembers = [];
+let stockData = [];
+let stockChanges = {};
+
+// ==========================================
+// LINE 登入
+// ==========================================
+function lineLogin() {
+    localStorage.setItem('admin_line_state', LINE_STATE);
+    const url = `https://access.line.me/oauth2/v2.1/authorize?` +
+        `response_type=code` +
+        `&client_id=${LINE_CHANNEL_ID}` +
+        `&redirect_uri=${encodeURIComponent(LINE_REDIRECT_URI)}` +
+        `&state=${LINE_STATE}` +
+        `&scope=profile%20openid`;
+    window.location.href = url;
+}
+
+// 從 admin-callback 回來後的處理
+async function handleCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const adminData = params.get('adminData');
+    if (!adminData) return;
+
+    // 清除 URL 參數
+    window.history.replaceState({}, '', '/admin.html');
+
+    try {
+        document.getElementById('loginLoading').style.display = 'block';
+        const profile = JSON.parse(decodeURIComponent(adminData));
+        await verifyAdmin(profile);
+    } catch(e) {
+        showLoginError();
+    }
+}
+
+async function verifyAdmin(profile) {
+    try {
+        // 從 Sheets 讀取管理員白名單
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${ADMIN_SHEET}?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).slice(1);
+        const adminIds = rows.map(r => (r[0] || '').trim()).filter(id => id);
+
+        if (adminIds.includes(profile.userId)) {
+            // 驗證通過
+            currentAdmin = profile;
+            localStorage.setItem('admin_session', JSON.stringify(profile));
+            showAdminScreen();
+        } else {
+            showLoginError();
+        }
+    } catch(e) {
+        showLoginError();
+    }
+}
+
+function showLoginError() {
+    document.getElementById('loginLoading').style.display = 'none';
+    document.getElementById('loginError').style.display = 'block';
+}
+
+function showAdminScreen() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminScreen').style.display = 'block';
+    document.getElementById('adminAvatar').src = currentAdmin.pictureUrl || '';
+    document.getElementById('adminName').textContent = currentAdmin.displayName || '';
+    loadOrders();
+    loadAnnouncements();
+    loadPromotions();
+    loadStock();
+    loadMembers();
+}
+
+function logout() {
+    localStorage.removeItem('admin_session');
+    currentAdmin = null;
+    document.getElementById('adminScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginError').style.display = 'none';
+}
+
+// ==========================================
+// 分頁切換
+// ==========================================
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ==========================================
+// 訂單管理
+// ==========================================
+async function loadOrders() {
+    document.getElementById('ordersList').innerHTML = '<div class="loading">⏳ 載入訂單中...</div>';
+    try {
+        const url = `${APPS_SCRIPT_URL}?action=getAllOrders`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success && data.orders) {
+            allOrders = data.orders;
+            renderOrders(allOrders);
+        } else {
+            document.getElementById('ordersList').innerHTML = '<div class="loading">找不到訂單資料</div>';
+        }
+    } catch(e) {
+        document.getElementById('ordersList').innerHTML = '<div class="loading" style="color:var(--red)">❌ 載入失敗</div>';
+    }
+}
+
+function filterOrders(status, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filtered = status === 'all' ? allOrders : allOrders.filter(o => o.訂單狀態 === status);
+    renderOrders(filtered);
+}
+
+function renderOrders(orders) {
+    const el = document.getElementById('ordersList');
+    if (!orders.length) { el.innerHTML = '<div class="loading">沒有訂單</div>'; return; }
+    el.innerHTML = orders.map(order => {
+        const statusClass = order.訂單狀態 === '已完成' ? 'badge-done' :
+            order.訂單狀態 === '已付款待出貨' ? 'badge-paid' :
+            order.訂單狀態 === '取消訂單' ? 'badge-cancel' : 'badge-pending';
+        return `
+        <div class="order-row">
+            <div class="order-row-header">
+                <div>
+                    <div style="font-weight:700; font-size:14px;">${order.訂單編號}</div>
+                    <div class="order-id">${order.訂購時間}</div>
+                </div>
+                <span class="badge ${statusClass}">${order.訂單狀態}</span>
+            </div>
+            <div class="order-info">
+                <div>👤 ${order.姓名} ／ 📞 ${order.電話}</div>
+                <div>🚚 ${order.取貨方式}${order.門市名稱 && order.門市名稱 !== '-' ? '：' + order.門市名稱 : ''}</div>
+                <div>🛒 ${order.商品明細}</div>
+                <div>💰 總金額：<strong style="color:var(--primary)">$${order.總金額}</strong>${order.匯款末五碼 && order.匯款末五碼 !== '-' ? ' ／ 末五碼：' + order.匯款末五碼 : ''}</div>
+            </div>
+            <div class="order-actions">
+                ${order.訂單狀態 === '已付款待出貨' ? `<button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order.訂單編號}', '已完成')">✅ 標記已出貨</button>` : ''}
+                ${order.訂單狀態 === '待處理' ? `<button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order.訂單編號}', '已完成')">✅ 標記完成</button>` : ''}
+                ${order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '已完成' ? `<button class="btn btn-danger btn-sm" onclick="updateOrderStatus('${order.訂單編號}', '取消訂單')">❌ 取消訂單</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+    if (!confirm(`確定將訂單 ${orderId} 狀態改為「${newStatus}」？`)) return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'updateOrderStatus', orderId, newStatus })
+        });
+        showToast(`✅ 已更新為「${newStatus}」`);
+        setTimeout(() => loadOrders(), 800);
+    } catch(e) {
+        showToast('❌ 更新失敗', 'error');
+    }
+}
+
+// ==========================================
+// 公告管理
+// ==========================================
+let announcementsData = [];
+
+async function loadAnnouncements() {
+    document.getElementById('announcementsList').innerHTML = '<div class="loading">⏳ 載入中...</div>';
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/公告設定?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).slice(1);
+        announcementsData = rows.map((row, i) => ({
+            rowIndex: i + 2,
+            text: row[0] || '',
+            enabled: (row[1] || '').trim() === '是',
+            link: row[2] || ''
+        })).filter(r => r.text);
+        renderAnnouncements();
+    } catch(e) {
+        document.getElementById('announcementsList').innerHTML = '<div class="loading" style="color:var(--red)">❌ 載入失敗</div>';
+    }
+}
+
+function renderAnnouncements() {
+    const el = document.getElementById('announcementsList');
+    if (!announcementsData.length) { el.innerHTML = '<div class="loading">尚無公告</div>'; return; }
+    el.innerHTML = announcementsData.map(a => `
+        <div class="announcement-row">
+            <label class="toggle-switch">
+                <input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAnnouncement(${a.rowIndex}, this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+            <div class="announcement-text-preview">
+                <div>${a.text}</div>
+                ${a.link ? `<div style="font-size:11px;color:var(--text-muted)">${a.link}</div>` : ''}
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.rowIndex})">🗑</button>
+        </div>
+    `).join('');
+}
+
+async function toggleAnnouncement(rowIndex, enabled) {
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'updateAnnouncementStatus', rowIndex, enabled: enabled ? '是' : '否' })
+        });
+        showToast(enabled ? '✅ 公告已啟用' : '公告已停用');
+    } catch(e) { showToast('❌ 更新失敗', 'error'); }
+}
+
+async function addAnnouncement() {
+    const text = document.getElementById('newAnnouncementText').value.trim();
+    const link = document.getElementById('newAnnouncementLink').value.trim();
+    if (!text) { showToast('請輸入公告內容', 'error'); return; }
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'addAnnouncement', text, link })
+        });
+        document.getElementById('newAnnouncementText').value = '';
+        document.getElementById('newAnnouncementLink').value = '';
+        showToast('✅ 公告已新增');
+        setTimeout(() => loadAnnouncements(), 800);
+    } catch(e) { showToast('❌ 新增失敗', 'error'); }
+}
+
+async function deleteAnnouncement(rowIndex) {
+    if (!confirm('確定刪除這則公告？')) return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'deleteAnnouncement', rowIndex })
+        });
+        showToast('✅ 已刪除');
+        setTimeout(() => loadAnnouncements(), 800);
+    } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
+// ==========================================
+// 優惠管理
+// ==========================================
+let promotionsData = [];
+
+async function loadPromotions() {
+    document.getElementById('promotionsList').innerHTML = '<div class="loading">⏳ 載入中...</div>';
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/優惠設定?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).slice(1);
+        promotionsData = rows.map((row, i) => ({
+            rowIndex: i + 2,
+            name: row[0] || '',
+            type: row[1] || '',
+            unit: row[2] || '',
+            threshold: row[3] || '',
+            discount: row[4] || '',
+            enabled: (row[5] || '').trim() === '是',
+            desc: row[6] || ''
+        })).filter(r => r.name);
+        renderPromotions();
+    } catch(e) {
+        document.getElementById('promotionsList').innerHTML = '<div class="loading" style="color:var(--red)">❌ 載入失敗</div>';
+    }
+}
+
+function renderPromotions() {
+    const el = document.getElementById('promotionsList');
+    if (!promotionsData.length) { el.innerHTML = '<div class="loading">尚無優惠</div>'; return; }
+    el.innerHTML = promotionsData.map(p => `
+        <div class="announcement-row" style="flex-wrap:wrap; gap:8px;">
+            <label class="toggle-switch">
+                <input type="checkbox" ${p.enabled ? 'checked' : ''} onchange="togglePromotion(${p.rowIndex}, this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+            <div class="announcement-text-preview">
+                <div style="font-weight:700;">${p.name}</div>
+                <div style="font-size:12px;color:var(--text-muted)">
+                    ${p.type} ／ 門檻：${p.threshold}${p.unit} ／ 折扣：$${p.discount}
+                </div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deletePromotion(${p.rowIndex})">🗑</button>
+        </div>
+    `).join('');
+}
+
+async function togglePromotion(rowIndex, enabled) {
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'updatePromotionStatus', rowIndex, enabled: enabled ? '是' : '否' })
+        });
+        showToast(enabled ? '✅ 優惠已啟用' : '優惠已停用');
+    } catch(e) { showToast('❌ 更新失敗', 'error'); }
+}
+
+async function addPromotion() {
+    const name = document.getElementById('newPromoName').value.trim();
+    const type = document.getElementById('newPromoType').value;
+    const unit = document.getElementById('newPromoUnit').value;
+    const threshold = document.getElementById('newPromoThreshold').value;
+    const discount = document.getElementById('newPromoDiscount').value;
+    const desc = document.getElementById('newPromoDesc').value.trim();
+    if (!name || !threshold) { showToast('請填寫優惠名稱和門檻', 'error'); return; }
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'addPromotion', name, type, unit, threshold, discount, desc })
+        });
+        showToast('✅ 優惠已新增');
+        setTimeout(() => loadPromotions(), 800);
+    } catch(e) { showToast('❌ 新增失敗', 'error'); }
+}
+
+async function deletePromotion(rowIndex) {
+    if (!confirm('確定刪除這個優惠？')) return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'deletePromotion', rowIndex })
+        });
+        showToast('✅ 已刪除');
+        setTimeout(() => loadPromotions(), 800);
+    } catch(e) { showToast('❌ 刪除失敗', 'error'); }
+}
+
+// ==========================================
+// 庫存管理
+// ==========================================
+async function loadStock() {
+    document.getElementById('stockTable').innerHTML = '<div class="loading">⏳ 載入中...</div>';
+    stockChanges = {};
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/商品規格表?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).slice(1);
+        stockData = rows.map((row, i) => ({
+            rowIndex: i + 2,
+            productId: row[0] || '',
+            productName: row[1] || '',
+            specName: row[2] || '',
+            price: row[3] || '',
+            stock: parseInt(row[4]) || 0
+        })).filter(r => r.productId && r.productName);
+        renderStock();
+    } catch(e) {
+        document.getElementById('stockTable').innerHTML = '<div class="loading" style="color:var(--red)">❌ 載入失敗</div>';
+    }
+}
+
+function renderStock() {
+    const el = document.getElementById('stockTable');
+    if (!stockData.length) { el.innerHTML = '<div class="loading">無庫存資料</div>'; return; }
+    el.innerHTML = `
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th>商品名稱</th>
+                    <th>規格</th>
+                    <th>售價</th>
+                    <th>現有庫存</th>
+                    <th>新數量</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${stockData.map(s => `
+                <tr>
+                    <td>${s.productName}</td>
+                    <td style="color:var(--text-muted)">${s.specName}</td>
+                    <td>$${s.price}</td>
+                    <td><strong>${s.stock}</strong></td>
+                    <td>
+                        <input type="number" min="0" class="stock-input-sm"
+                            placeholder="${s.stock}"
+                            data-row="${s.rowIndex}"
+                            oninput="recordStockChange(this)">
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function recordStockChange(input) {
+    const row = input.dataset.row;
+    const val = parseInt(input.value);
+    if (!isNaN(val) && input.value !== '') {
+        stockChanges[row] = val;
+        input.style.borderColor = '#FFD700';
+    } else {
+        delete stockChanges[row];
+        input.style.borderColor = 'rgba(255,215,0,0.4)';
+    }
+}
+
+async function saveStockChanges() {
+    const keys = Object.keys(stockChanges);
+    if (!keys.length) { showToast('沒有要變更的庫存', 'error'); return; }
+    const updates = keys.map(row => ({ row: parseInt(row), newStock: stockChanges[row] }));
+    const preview = updates.map(u => {
+        const item = stockData.find(s => s.rowIndex === u.row);
+        return item ? `${item.productName} ${item.specName}：${item.stock} → ${u.newStock}` : '';
+    }).filter(Boolean).join('\n');
+    if (!confirm(`確認更新以下庫存？\n\n${preview}`)) return;
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ action: 'updateStock', updates })
+        });
+        showToast(`✅ 已更新 ${keys.length} 筆庫存`);
+        stockChanges = {};
+        setTimeout(() => loadStock(), 800);
+    } catch(e) { showToast('❌ 儲存失敗', 'error'); }
+}
+
+// ==========================================
+// 會員管理
+// ==========================================
+async function loadMembers() {
+    document.getElementById('membersList').innerHTML = '<div class="loading">⏳ 載入中...</div>';
+    try {
+        const url = `${APPS_SCRIPT_URL}?action=getAllMembers`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success && data.members) {
+            allMembers = data.members;
+            renderMembers(allMembers);
+        } else {
+            document.getElementById('membersList').innerHTML = '<div class="loading">找不到會員資料</div>';
+        }
+    } catch(e) {
+        document.getElementById('membersList').innerHTML = '<div class="loading" style="color:var(--red)">❌ 載入失敗</div>';
+    }
+}
+
+function filterMembers() {
+    const q = document.getElementById('memberSearch').value.trim().toLowerCase();
+    if (!q) { renderMembers(allMembers); return; }
+    renderMembers(allMembers.filter(m =>
+        (m.displayName || '').toLowerCase().includes(q) ||
+        (m.phone || '').includes(q)
+    ));
+}
+
+function renderMembers(members) {
+    const el = document.getElementById('membersList');
+    if (!members.length) { el.innerHTML = '<div class="loading">找不到會員</div>'; return; }
+    el.innerHTML = members.map(m => `
+        <div class="member-row">
+            <img class="member-avatar-sm" src="${m.pictureUrl || ''}" onerror="this.src=''" alt="">
+            <div class="member-info">
+                <div class="member-name">${m.displayName || '-'}</div>
+                <div class="member-detail">
+                    📞 ${m.phone || '未填'} ／ 📧 ${m.email || '未填'}
+                </div>
+                <div class="member-detail" style="color:var(--text-muted); font-size:11px;">
+                    ${m.lineId || ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ==========================================
+// 工具函數
+// ==========================================
+function showToast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (type === 'error' ? ' error' : '');
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ==========================================
+// 初始化
+// ==========================================
+window.addEventListener('load', () => {
+    // 先檢查是否從 callback 回來
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('adminData')) {
+        handleCallback();
+        return;
+    }
+
+    // 檢查本地 session
+    const session = localStorage.getItem('admin_session');
+    if (session) {
+        try {
+            currentAdmin = JSON.parse(session);
+            // 重新驗證白名單
+            verifyAdmin(currentAdmin);
+        } catch(e) {
+            localStorage.removeItem('admin_session');
+        }
+    }
+});
+</script>
+</body>
+</html>
