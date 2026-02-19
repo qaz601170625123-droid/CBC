@@ -1,8 +1,4 @@
-// /api/line-token.js
-// 將 LINE 的 authorization code 換成 access token 和用戶 profile
-
 export default async function handler(req, res) {
-  // 只接受 POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -13,8 +9,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing code or redirectUri' });
   }
 
+  // Debug：確認環境變數有沒有讀到
+  const channelId = process.env.LINE_CHANNEL_ID;
+  const channelSecret = process.env.LINE_CHANNEL_SECRET;
+
+  if (!channelId || !channelSecret) {
+    return res.status(500).json({ 
+      error: 'Missing env vars',
+      hasChannelId: !!channelId,
+      hasChannelSecret: !!channelSecret
+    });
+  }
+
   try {
-    // Step 1: 用 code 換 access token
     const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -22,19 +29,20 @@ export default async function handler(req, res) {
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: redirectUri,
-        client_id: process.env.LINE_CHANNEL_ID,
-        client_secret: process.env.LINE_CHANNEL_SECRET
+        client_id: channelId,
+        client_secret: channelSecret
       })
     });
 
     const tokenData = await tokenRes.json();
 
     if (!tokenData.access_token) {
-      console.error('Token 換取失敗:', tokenData);
-      return res.status(400).json({ error: 'Token exchange failed', detail: tokenData });
+      return res.status(400).json({ 
+        error: 'Token exchange failed', 
+        detail: tokenData
+      });
     }
 
-    // Step 2: 用 access token 取得用戶 profile
     const profileRes = await fetch('https://api.line.me/v2/profile', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
@@ -45,7 +53,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Failed to get profile' });
     }
 
-    // 回傳 profile（userId, displayName, pictureUrl）
     return res.status(200).json({
       success: true,
       profile: {
@@ -56,7 +63,6 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('line-token error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error', message: err.message });
   }
 }
