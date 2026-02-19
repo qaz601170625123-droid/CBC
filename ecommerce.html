@@ -1806,6 +1806,7 @@
                 <button class="nav-btn" onclick="logout()">登出</button>
             </div>
             <button class="nav-btn" onclick="openOrderSearch()">📦 查詢訂單</button>
+                <button class="nav-btn" onclick="openStockManager()">📥 補貨管理</button>
         </div>
     </nav>
 
@@ -2056,6 +2057,62 @@
         </div>
     </div>
 
+    <!-- 補貨管理彈窗 -->
+    <div class="modal" id="stockManagerModal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <div class="modal-title">📥 補貨管理</div>
+                <button class="close-modal" onclick="closeStockManager()">×</button>
+            </div>
+
+            <!-- 搜尋 -->
+            <div style="margin-bottom:12px;">
+                <input type="text" id="stockSearchInput" placeholder="🔍 搜尋商品名稱..."
+                    oninput="filterStockList()"
+                    style="width:100%;padding:10px;border:2px solid #FFD700;border-radius:8px;
+                           background:rgba(0,0,0,0.5);color:#FFD700;font-size:14px;box-sizing:border-box;">
+            </div>
+
+            <!-- 模式切換 -->
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
+                <button id="modeSetBtn" onclick="setStockMode('set')" style="
+                    flex:1;padding:8px;border-radius:8px;border:2px solid #FFD700;
+                    background:#FFD700;color:#000;font-weight:700;cursor:pointer;font-size:13px;">
+                    ✏️ 設定庫存
+                </button>
+                <button id="modeAddBtn" onclick="setStockMode('add')" style="
+                    flex:1;padding:8px;border-radius:8px;border:2px solid #FFD700;
+                    background:transparent;color:#FFD700;font-weight:700;cursor:pointer;font-size:13px;">
+                    ➕ 增加庫存
+                </button>
+            </div>
+
+            <div id="stockModeLabel" style="text-align:center;color:#999;font-size:12px;margin-bottom:10px;">
+                目前模式：<span id="stockModeText" style="color:#FFD700;font-weight:700;">設定新庫存數量</span>
+            </div>
+
+            <!-- 商品列表 -->
+            <div id="stockList" style="max-height:420px;overflow-y:auto;">
+                <div style="text-align:center;padding:40px;color:#999;">⏳ 載入中...</div>
+            </div>
+
+            <!-- 底部按鈕 -->
+            <div style="margin-top:14px;display:flex;gap:8px;">
+                <button onclick="applyStockChanges()" style="
+                    flex:1;padding:12px;background:linear-gradient(135deg,#FFD700,#FFA500);
+                    color:#000;border:none;border-radius:8px;font-weight:900;
+                    font-size:15px;cursor:pointer;">
+                    💾 確認儲存
+                </button>
+                <button onclick="closeStockManager()" style="
+                    padding:12px 20px;background:transparent;border:2px solid #666;
+                    color:#999;border-radius:8px;font-weight:700;cursor:pointer;">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 會員資料查看彈窗 -->
     <div class="modal" id="memberProfileModal">
         <div class="modal-content">
@@ -2245,9 +2302,7 @@ function generateMerchantTradeNo() {
  * 偵測裝置類型
  */
 function getDeviceType() {
-    const ua = navigator.userAgent;
-    if (/mobile/i.test(ua)) return '0'; // 手機版
-    return '1'; // PC版
+    return '0'; // 固定手機版地圖
 }
 
 // ==========================================
@@ -3835,6 +3890,9 @@ window.addEventListener('popstate', function(event) {
     } else if (profileUpdateModal && profileUpdateModal.classList.contains('active')) {
         closeProfileUpdateModal();
         isModalOpen = false;
+    } else if (document.getElementById('stockManagerModal') && document.getElementById('stockManagerModal').classList.contains('active')) {
+        closeStockManager();
+        isModalOpen = false;
     } else {
         // 如果沒有彈窗開啟，阻止返回（停留在主頁）
         history.pushState(null, '', location.href);
@@ -4560,6 +4618,185 @@ async function openOrderSearch() {
     
     // 查詢訂單
     await loadMemberOrders();
+}
+
+// ==========================================
+// 📥 補貨管理
+// ==========================================
+let stockMode = 'set'; // 'set' = 設定庫存, 'add' = 增加庫存
+let stockChanges = {}; // { 'productId|specName': delta }
+let allSpecsData = []; // 全部規格資料快取
+
+function setStockMode(mode) {
+    stockMode = mode;
+    const setBtn = document.getElementById('modeSetBtn');
+    const addBtn = document.getElementById('modeAddBtn');
+    const modeText = document.getElementById('stockModeText');
+    if (mode === 'set') {
+        setBtn.style.background = '#FFD700'; setBtn.style.color = '#000';
+        addBtn.style.background = 'transparent'; addBtn.style.color = '#FFD700';
+        modeText.textContent = '設定新庫存數量';
+    } else {
+        addBtn.style.background = '#FFD700'; addBtn.style.color = '#000';
+        setBtn.style.background = 'transparent'; setBtn.style.color = '#FFD700';
+        modeText.textContent = '增加庫存數量（疊加到現有庫存）';
+    }
+    // 清空輸入
+    stockChanges = {};
+    document.querySelectorAll('.stock-input').forEach(el => el.value = '');
+}
+
+async function openStockManager() {
+    document.getElementById('stockManagerModal').classList.add('active');
+    history.pushState({ modal: 'stockManager' }, '');
+    isModalOpen = true;
+    stockChanges = {};
+    stockMode = 'set';
+    setStockMode('set');
+    await loadStockList();
+}
+
+function closeStockManager() {
+    document.getElementById('stockManagerModal').classList.remove('active');
+    isModalOpen = false;
+}
+
+async function loadStockList() {
+    const listEl = document.getElementById('stockList');
+    listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">⏳ 載入商品庫存中...</div>';
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SPECS_SHEET}?key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const rows = (data.values || []).slice(1); // 跳過標題列
+        allSpecsData = rows.map(row => ({
+            productId: row[0] || '',
+            productName: row[1] || '',
+            specName: row[2] || '',
+            price: row[3] || '',
+            stock: parseInt(row[4]) || 0,
+            rowIndex: rows.indexOf(row) + 2 // 1-based, +1 for header
+        })).filter(r => r.productId && r.productName);
+        renderStockList(allSpecsData);
+    } catch (e) {
+        listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff4444;">❌ 載入失敗，請重試</div>';
+    }
+}
+
+function renderStockList(specs) {
+    const listEl = document.getElementById('stockList');
+    if (!specs.length) {
+        listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">找不到商品</div>';
+        return;
+    }
+    // 依商品名稱分組
+    const grouped = {};
+    specs.forEach(s => {
+        if (!grouped[s.productName]) grouped[s.productName] = [];
+        grouped[s.productName].push(s);
+    });
+    listEl.innerHTML = Object.entries(grouped).map(([name, items]) => `
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.2);
+            border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="color:#FFD700;font-weight:700;font-size:14px;margin-bottom:10px;">
+                📦 ${name}
+            </div>
+            ${items.map(spec => `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:80px;">
+                        <span style="color:#ccc;font-size:13px;">${spec.specName}</span>
+                    </div>
+                    <div style="color:#999;font-size:12px;white-space:nowrap;">
+                        現有：<span style="color:#fff;font-weight:700;">${spec.stock}</span>
+                    </div>
+                    <input
+                        type="number" min="0"
+                        class="stock-input"
+                        data-id="${spec.productId}"
+                        data-spec="${spec.specName}"
+                        data-current="${spec.stock}"
+                        data-row="${spec.rowIndex}"
+                        placeholder="輸入數量"
+                        oninput="recordStockChange(this)"
+                        style="width:90px;padding:6px 8px;border:2px solid rgba(255,215,0,0.4);
+                            border-radius:6px;background:rgba(0,0,0,0.5);color:#FFD700;
+                            font-size:14px;font-weight:700;text-align:center;"
+                    >
+                    <div class="stock-preview-${spec.productId}_${spec.specName.replace(/[^a-zA-Z0-9]/g,'')}"
+                        style="font-size:12px;color:#00FF00;min-width:60px;"></div>
+                </div>
+            `).join('')}
+        </div>
+    `).join('');
+}
+
+function recordStockChange(input) {
+    const id = input.dataset.id;
+    const spec = input.dataset.spec;
+    const current = parseInt(input.dataset.current) || 0;
+    const val = parseInt(input.value);
+    const key = id + '|' + spec;
+    const previewClass = 'stock-preview-' + id + '_' + spec.replace(/[^a-zA-Z0-9]/g, '');
+    const previewEl = document.querySelector('.' + previewClass);
+
+    if (isNaN(val) || input.value === '') {
+        delete stockChanges[key];
+        if (previewEl) previewEl.textContent = '';
+        input.style.borderColor = 'rgba(255,215,0,0.4)';
+        return;
+    }
+    stockChanges[key] = { row: parseInt(input.dataset.row), val, current, id, spec };
+    input.style.borderColor = '#FFD700';
+    if (previewEl) {
+        const newStock = stockMode === 'set' ? val : current + val;
+        previewEl.textContent = '→ ' + newStock;
+    }
+}
+
+function filterStockList() {
+    const q = document.getElementById('stockSearchInput').value.trim().toLowerCase();
+    if (!q) { renderStockList(allSpecsData); return; }
+    renderStockList(allSpecsData.filter(s => s.productName.toLowerCase().includes(q) || s.specName.toLowerCase().includes(q)));
+}
+
+async function applyStockChanges() {
+    const keys = Object.keys(stockChanges);
+    if (!keys.length) { showToast('請先輸入要調整的庫存數量', 'error'); return; }
+
+    const confirmMsg = keys.map(k => {
+        const c = stockChanges[k];
+        const newStock = stockMode === 'set' ? c.val : c.current + c.val;
+        return `${c.spec}：${c.current} → ${newStock}`;
+    }).join('\n');
+
+    if (!confirm(`確認更新以下庫存？\n\n${confirmMsg}`)) return;
+
+    // 傳送到 GAS
+    const updates = keys.map(k => {
+        const c = stockChanges[k];
+        return {
+            row: c.row,
+            newStock: stockMode === 'set' ? c.val : c.current + c.val
+        };
+    });
+
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({
+                action: 'updateStock',
+                updates: updates
+            })
+        });
+        showToast(`✅ 已更新 ${keys.length} 筆庫存`, 'success');
+        stockChanges = {};
+        closeStockManager();
+        // 重新載入商品庫存
+        setTimeout(() => loadProductsData(), 800);
+    } catch (e) {
+        showToast('❌ 更新失敗，請重試', 'error');
+    }
 }
 
 function closeOrderSearch() {
