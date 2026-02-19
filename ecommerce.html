@@ -4443,7 +4443,7 @@ async function submitOrder() {
     const orderData = {
         action: 'createOrder',
         訂單編號: 'ORD' + Date.now(),
-        訂購時間: new Date().toLocaleString('zh-TW'),
+        訂購時間: new Date().toISOString(),
         姓名: name,
         電話: phone,
         取貨方式: shipping === '711' ? '7-11店到店' : '自取',
