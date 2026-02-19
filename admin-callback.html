@@ -15,6 +15,8 @@
             min-height: 100vh;
             flex-direction: column;
             gap: 16px;
+            padding: 20px;
+            text-align: center;
         }
         .spinner {
             width: 48px;
@@ -25,43 +27,51 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        #msg { font-size: 14px; max-width: 400px; word-break: break-all; }
     </style>
 </head>
 <body>
-    <div class="spinner"></div>
-    <div>驗證身份中...</div>
+    <div class="spinner" id="spinner"></div>
+    <div id="msg">驗證身份中...</div>
 
 <script>
-const LINE_CHANNEL_ID = '2009077580';
 const REDIRECT_URI = 'https://cbc-lake.vercel.app/admin-callback.html';
 
 async function handleCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    const state = params.get('state');
 
     if (!code) {
-        window.location.href = '/admin.html';
+        document.getElementById('msg').innerHTML = '❌ 沒有收到 code，請重新登入<br><br><a href="/admin.html" style="color:#FFD700;">返回</a>';
+        document.getElementById('spinner').style.display = 'none';
         return;
     }
 
     try {
-        // 透過 Vercel API 換取 token 和 profile
         const res = await fetch('/api/line-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code, redirectUri: REDIRECT_URI })
         });
-        const data = await res.json();
+
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch(e) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('msg').innerHTML = '❌ API 回傳非 JSON：<br><small style="color:#999">' + text.substring(0, 300) + '</small><br><br><a href="/admin.html" style="color:#FFD700;">返回</a>';
+            return;
+        }
 
         if (data.profile) {
             const encoded = encodeURIComponent(JSON.stringify(data.profile));
-            window.location.href = `/admin.html?adminData=${encoded}`;
+            window.location.href = '/admin.html?adminData=' + encoded;
         } else {
-            window.location.href = '/admin.html';
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('msg').innerHTML = '❌ 登入失敗：<br><small style="color:#999">' + JSON.stringify(data) + '</small><br><br><a href="/admin.html" style="color:#FFD700;">返回</a>';
         }
     } catch(e) {
-        window.location.href = '/admin.html';
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('msg').innerHTML = '❌ 錯誤：' + e.message + '<br><br><a href="/admin.html" style="color:#FFD700;">返回</a>';
     }
 }
 
