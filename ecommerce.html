@@ -3815,7 +3815,12 @@ window.addEventListener('popstate', function(event) {
     const profileUpdateModal = document.getElementById('profileUpdateModal');
     
     // 依序檢查並關閉開啟的彈窗
-    if (specModal && specModal.classList.contains('active')) {
+    const orderDetailView = document.getElementById('orderDetailView');
+    if (orderDetailView) {
+        // 優先關閉訂單詳情全螢幕頁
+        closeOrderDetail();
+        isModalOpen = false;
+    } else if (specModal && specModal.classList.contains('active')) {
         closeSpecModal();
         isModalOpen = false;
     } else if (cartSidebar && cartSidebar.classList.contains('active')) {
@@ -4183,6 +4188,9 @@ function openCheckout() {
         showToast('購物車是空的', 'error');
         return;
     }
+    // 如果訂單詳情頁還開著，先關掉
+    const existingDetail = document.getElementById('orderDetailView');
+    if (existingDetail) existingDetail.remove();
     
     // 更新結帳頁面的訂單摘要
     updateCheckoutSummary();
@@ -4443,7 +4451,7 @@ async function submitOrder() {
     const orderData = {
         action: 'createOrder',
         訂單編號: 'ORD' + Date.now(),
-        訂購時間: new Date().toLocaleString('zh-TW'),
+        訂購時間: new Date().toISOString(),
         姓名: name,
         電話: phone,
         取貨方式: shipping === '711' ? '7-11店到店' : '自取',
@@ -4488,17 +4496,14 @@ async function submitOrder() {
         
         showToast('✅ 訂單已送出！', 'success');
         
-        // 清空購物車和所有暫存
+        // 清空購物車
         cart = [];
         updateCart();
-        window.isSubmittingOrder = false;  // 清除提交鎖定
-        selectedStore = null;              // 清除門市選擇
-        window._pendingOrderDetail = null; // 清除暫存訂單
         
         // 關閉結帳模態框
         closeCheckout();
         
-        // 直接在當前頁面顯示訂單詳情
+        // 🆕 直接在當前頁面顯示訂單詳情（使用新訂單資料）
         setTimeout(() => {
             showNewOrderDetail(orderData);
         }, 500);
@@ -4507,17 +4512,14 @@ async function submitOrder() {
         console.log('訂單已送出(no-cors 模式)');
         showToast('✅ 訂單已送出！', 'success');
         
-        // 清空購物車和所有暫存
+        // 清空購物車
         cart = [];
         updateCart();
-        window.isSubmittingOrder = false;  // 清除提交鎖定
-        selectedStore = null;              // 清除門市選擇
-        window._pendingOrderDetail = null; // 清除暫存訂單
         
         // 關閉結帳模態框
         closeCheckout();
         
-        // 直接在當前頁面顯示訂單詳情
+        // 🆕 直接在當前頁面顯示訂單詳情
         setTimeout(() => {
             showNewOrderDetail(orderData);
         }, 500);
@@ -4567,9 +4569,15 @@ function closeOrderSearch() {
 // ==========================================
 // 🆕 顯示新訂單詳情（訂單送出後）→ 統一走查詢訂單 modal
 // ==========================================
-async function showNewOrderDetail(orderData) {
-    // 把這筆訂單資料暫存，modal 開啟後直接顯示詳情
-    window._pendingOrderDetail = {
+function showNewOrderDetail(orderData) {
+    // 先清除舊的詳情頁（避免疊加）
+    const existingDetail = document.getElementById('orderDetailView');
+    if (existingDetail) existingDetail.remove();
+    // 加入 history，讓手機返回鍵可以關掉
+    history.pushState({ modal: 'orderDetail' }, '');
+    isModalOpen = true;
+    // 直接顯示全螢幕訂單詳情
+    const order = {
         訂單編號: orderData.訂單編號,
         訂購時間: orderData.訂購時間,
         姓名: orderData.姓名,
@@ -4584,26 +4592,7 @@ async function showNewOrderDetail(orderData) {
         物流編號: '-',
         匯款末五碼: orderData.匯款末五碼 || '-'
     };
-    
-    // 開啟查詢訂單 modal
-    document.getElementById('orderSearchModal').classList.add('active');
-    history.pushState({ modal: 'orderSearch' }, '');
-    isModalOpen = true;
-    
-    document.getElementById('ordersList').innerHTML = `
-        <div style="text-align:center; padding:40px; color:#999;">
-            <div style="font-size:40px; margin-bottom:20px;">⏳</div>
-            <div>載入中...</div>
-        </div>
-    `;
-    
-    await loadMemberOrders();
-    
-    // 載入完後自動展開剛下的訂單
-    if (window._pendingOrderDetail) {
-        showOrderDetailByData(window._pendingOrderDetail);
-        window._pendingOrderDetail = null;
-    }
+    showOrderDetailByData(order);
 }
 
 // ==========================================
@@ -4626,20 +4615,18 @@ function showOrderDetailByData(order) {
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    // 已填末五碼 = 已付款，不判斷逾時
-    const hasPaid = order.匯款末五碼 && order.匯款末五碼 !== '-';
-    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
+    if (order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-')) {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
-            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1分鐘
+            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1小時
             const remaining = deadline - now;
             
             if (remaining <= 0) {
                 isExpired = true;
                 shouldShowPaymentButton = false;
                 
-                // 自動取消訂單（呼叫 GAS）
+                // 🔥 自動取消訂單（呼叫 GAS）
                 if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消') {
                     cancelExpiredOrder(order.訂單編號);
                 }
@@ -4653,7 +4640,7 @@ function showOrderDetailByData(order) {
     let countdownHTML = '';
     const orderIdHash = order.訂單編號.replace(/[^a-zA-Z0-9]/g, ''); // 移除特殊字元
     
-    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
+    if (order.取貨方式 === '7-11店到店') {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
@@ -5014,10 +5001,8 @@ function startCountdown(orderId, orderTime) {
             if (remaining <= 0) {
                 clearInterval(timer);
                 
-                // 已有末五碼（已付款）就不取消
-                const paidInput = document.getElementById('payment-code-section');
-                const alreadyPaid = paidInput && paidInput.textContent.includes('✅');
-                if (!alreadyPaid) cancelExpiredOrder(orderId);
+                // 🔥 自動取消訂單
+                cancelExpiredOrder(orderId);
                 
                 // 更新顯示
                 countdownEl.parentElement.parentElement.innerHTML = `
@@ -5086,25 +5071,15 @@ function startCountdown(orderId, orderTime) {
 async function cancelExpiredOrder(orderId) {
     try {
         console.log('🔥 自動取消逾時訂單:', orderId);
-        
-        const response = await fetch(APPS_SCRIPT_URL, {
+        await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            mode: 'no-cors',
             body: JSON.stringify({
                 action: 'cancelExpiredOrder',
                 orderId: orderId
             })
         });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ 訂單已自動取消');
-        } else {
-            console.error('❌ 取消訂單失敗:', result.error);
-        }
+        console.log('✅ 取消請求已送出');
     } catch (error) {
         console.error('❌ 取消訂單失敗:', error);
     }
@@ -5115,51 +5090,25 @@ async function cancelExpiredOrder(orderId) {
 // ==========================================
 async function submitPaymentCode(orderId) {
     const input = document.getElementById('payment-code-input');
-    
-    if (!input) {
-        showToast('找不到輸入欄位', 'error');
-        return;
-    }
+    if (!input) { showToast('找不到輸入欄位', 'error'); return; }
     
     const paymentCode = input.value.trim();
+    if (!paymentCode) { showToast('請輸入匯款末五碼', 'error'); input.focus(); return; }
+    if (paymentCode.length !== 5) { showToast('請輸入完整的5碼', 'error'); input.focus(); return; }
+    if (!/^\d{5}$/.test(paymentCode)) { showToast('請輸入5位數字', 'error'); input.focus(); return; }
+    if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
     
-    // 驗證
-    if (!paymentCode) {
-        showToast('請輸入匯款末五碼', 'error');
-        input.focus();
-        return;
-    }
-    
-    if (paymentCode.length !== 5) {
-        showToast('請輸入完整的5碼', 'error');
-        input.focus();
-        return;
-    }
-    
-    if (!/^\d{5}$/.test(paymentCode)) {
-        showToast('請輸入5位數字', 'error');
-        input.focus();
-        return;
-    }
-    
-    // 確認對話框
-    if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) {
-        return;
-    }
+    // btn 在 try 外，catch 才能用
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ 處理中...';
+    btn.disabled = true;
     
     try {
-        // 顯示載入中
-        const btn = event.target;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ 處理中...';
-        btn.disabled = true;
-        
-        // 送出到 Google Apps Script
-        const response = await fetch(APPS_SCRIPT_URL, {
+        // no-cors 模式送出，不等回傳
+        await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            mode: 'no-cors',
             body: JSON.stringify({
                 action: 'updatePaymentCode',
                 orderId: orderId,
@@ -5167,39 +5116,41 @@ async function submitPaymentCode(orderId) {
             })
         });
         
-        const result = await response.json();
-        
-        if (result.success) {
-            showToast('✅ 付款確認成功！', 'success');
-            
-            // 更新顯示
-            const section = document.getElementById('payment-code-section');
-            if (section) {
-                section.innerHTML = `
-                    <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
-                    <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${paymentCode}</div>
-                `;
-            }
-            
-            // 移除按鈕
-            btn.parentElement.innerHTML = `
-                <div style="
-                    background: rgba(0, 255, 0, 0.2);
-                    border: 2px solid #00c800;
-                    padding: 15px;
-                    border-radius: 10px;
-                    color: #00FF00;
-                    font-weight: 700;
-                ">
-                    ✅ 付款已確認，等待商家處理
-                </div>
-            `;
-            
-            // 1.5秒後關閉詳情、回到訂單列表（會自動重新載入）
-            setTimeout(() => {
-                closeOrderDetail();
-            }, 1500);
+        // 停止倒數計時器
+        const orderIdHash = orderId.replace(/[^a-zA-Z0-9]/g, '');
+        if (window.orderTimers && window.orderTimers[orderIdHash]) {
+            clearInterval(window.orderTimers[orderIdHash]);
+            delete window.orderTimers[orderIdHash];
         }
+        
+        // 隱藏倒數區塊
+        const countdownEl = document.getElementById('countdown-' + orderIdHash);
+        if (countdownEl) {
+            let box = countdownEl.parentElement;
+            while (box && box !== document.body) {
+                if (box.style && box.style.border) { box.style.display = 'none'; break; }
+                box = box.parentElement;
+            }
+        }
+        
+        // 更新末五碼顯示
+        const section = document.getElementById('payment-code-section');
+        if (section) {
+            section.innerHTML = `
+                <div style="color:#999;font-size:12px;margin-bottom:5px;">匯款末五碼</div>
+                <div style="color:#00FF00;font-weight:700;font-size:14px;">✅ ${paymentCode}</div>
+            `;
+        }
+        
+        // 把送出按鈕換成成功訊息，保持在原頁面
+        btn.parentElement.innerHTML = `
+            <div style="background:rgba(0,255,0,0.2);border:2px solid #00c800;padding:20px;
+                border-radius:15px;color:#00FF00;font-weight:700;text-align:center;font-size:16px;">
+                ✅ 付款已確認，等待商家處理
+            </div>
+        `;
+        
+        showToast('✅ 付款確認成功！', 'success');
         
     } catch (error) {
         console.error('提交付款碼失敗:', error);
@@ -5210,23 +5161,12 @@ async function submitPaymentCode(orderId) {
 }
 
 function closeOrderDetail() {
-    // 清除所有計時器
     if (window.orderTimers) {
         Object.values(window.orderTimers).forEach(timer => clearInterval(timer));
         window.orderTimers = {};
     }
-    
-    // 移除詳情頁面
     const detailView = document.getElementById('orderDetailView');
-    if (detailView) {
-        detailView.remove();
-    }
-    
-    // 如果查詢訂單 modal 是開著的，重新載入列表（反映最新狀態）
-    const modal = document.getElementById('orderSearchModal');
-    if (modal && modal.classList.contains('active')) {
-        loadMemberOrders();
-    }
+    if (detailView) detailView.remove();
 }
 
 async function loadMemberOrders() {
