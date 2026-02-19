@@ -5005,7 +5005,12 @@ function startCountdown(orderId, orderTime) {
             if (remaining <= 0) {
                 clearInterval(timer);
                 
-                // 🔥 自動取消訂單
+                // 已付款（payment-code-section 顯示 ✅）就不取消也不顯示逾期
+                const paidSection = document.getElementById('payment-code-section');
+                const alreadyPaid = paidSection && paidSection.textContent.includes('✅');
+                if (alreadyPaid) return;
+                
+                // 自動取消訂單
                 cancelExpiredOrder(orderId);
                 
                 // 更新顯示
