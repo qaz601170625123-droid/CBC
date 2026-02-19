@@ -4615,8 +4615,8 @@ function showOrderDetailByData(order) {
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    // 已填末五碼 = 已付款，不做任何逾時判斷
-    const hasPaid = order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '';
+    // 已填末五碼 或 已付款待出貨 = 已付款，不做任何逾時判斷
+    const hasPaid = (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '') || order.訂單狀態 === '已付款待出貨';
     
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
@@ -4630,7 +4630,7 @@ function showOrderDetailByData(order) {
                 shouldShowPaymentButton = false;
                 
                 // 自動取消訂單（呼叫 GAS）
-                if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消') {
+                if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消' && order.訂單狀態 !== '已付款待出貨') {
                     cancelExpiredOrder(order.訂單編號);
                 }
             }
@@ -4916,7 +4916,7 @@ function showOrderDetailByData(order) {
                     <!-- 訂單狀態 -->
                     <div style="text-align: center;">
                         <div style="
-                            background: ${order.訂單狀態 === '已完成' ? '#00FF00' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' || order.訂單狀態 === '已取消' ? '#ff4444' : '#FFD700'};
+                            background: ${order.訂單狀態 === '已完成' ? '#00FF00' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' || order.訂單狀態 === '已取消' ? '#ff4444' : order.訂單狀態 === '已付款待出貨' ? '#00bfff' : '#FFD700'};
                             color: #000;
                             padding: 10px 30px;
                             border-radius: 20px;
@@ -5217,7 +5217,7 @@ async function loadMemberOrders() {
                             </div>
                         </div>
                         <div style="
-                            background: ${order.訂單狀態 === '已完成' ? 'var(--accent-green)' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : 'var(--primary)'};
+                            background: ${order.訂單狀態 === '已完成' ? 'var(--accent-green)' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : order.訂單狀態 === '已付款待出貨' ? '#00bfff' : 'var(--primary)'};
                             color: var(--secondary);
                             padding: 5px 15px;
                             border-radius: 15px;
