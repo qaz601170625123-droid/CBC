@@ -4615,18 +4615,21 @@ function showOrderDetailByData(order) {
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    if (order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-')) {
+    // 已填末五碼 = 已付款，不做任何逾時判斷
+    const hasPaid = order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '';
+    
+    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
-            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1小時
+            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1分鐘
             const remaining = deadline - now;
             
             if (remaining <= 0) {
                 isExpired = true;
                 shouldShowPaymentButton = false;
                 
-                // 🔥 自動取消訂單（呼叫 GAS）
+                // 自動取消訂單（呼叫 GAS）
                 if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消') {
                     cancelExpiredOrder(order.訂單編號);
                 }
@@ -4640,7 +4643,8 @@ function showOrderDetailByData(order) {
     let countdownHTML = '';
     const orderIdHash = order.訂單編號.replace(/[^a-zA-Z0-9]/g, ''); // 移除特殊字元
     
-    if (order.取貨方式 === '7-11店到店') {
+    // 已付款的訂單不顯示倒數或逾期
+    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
@@ -4981,7 +4985,7 @@ function showOrderDetailByData(order) {
     
     // 啟動倒數計時
     if (order.取貨方式 === '7-11店到店') {
-        startCountdown(order.訂單編號, order.訂購時間);
+        if (!hasPaid) startCountdown(order.訂單編號, order.訂購時間);
     }
 }
 
