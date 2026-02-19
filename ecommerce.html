@@ -4599,6 +4599,31 @@ function showOrderDetail(orderIndex) {
 // 統一的訂單詳情顯示函數
 function showOrderDetailByData(order) {
     
+    // 🔥 檢查是否逾時並自動取消訂單
+    let isExpired = false;
+    let shouldShowPaymentButton = true;
+    
+    if (order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-')) {
+        try {
+            const orderTime = new Date(order.訂購時間);
+            const now = new Date();
+            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1小時
+            const remaining = deadline - now;
+            
+            if (remaining <= 0) {
+                isExpired = true;
+                shouldShowPaymentButton = false;
+                
+                // 🔥 自動取消訂單（呼叫 GAS）
+                if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消') {
+                    cancelExpiredOrder(order.訂單編號);
+                }
+            }
+        } catch (e) {
+            console.error('檢查逾時錯誤:', e);
+        }
+    }
+    
     // 計算剩餘時間（如果是7-11店到店）
     let countdownHTML = '';
     const orderIdHash = order.訂單編號.replace(/[^a-zA-Z0-9]/g, ''); // 移除特殊字元
@@ -4641,15 +4666,20 @@ function showOrderDetailByData(order) {
             } else {
                 countdownHTML = `
                     <div style="
-                        background: rgba(255, 0, 0, 0.2);
+                        background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(150, 0, 0, 0.3));
                         border: 2px solid #ff0000;
                         border-radius: 15px;
-                        padding: 20px;
+                        padding: 30px;
                         margin-bottom: 20px;
                         text-align: center;
-                        color: #ff4444;
                     ">
-                        ⚠️ 付款時間已逾期
+                        <div style="font-size: 60px; margin-bottom: 15px;">⚠️</div>
+                        <h2 style="color: #ff4444; font-size: 24px; margin-bottom: 10px; font-weight: 900;">付款時間已逾期</h2>
+                        <div style="color: #ff8c00; font-size: 16px; line-height: 1.6; margin-top: 15px;">
+                            此訂單已超過付款時限<br>
+                            訂單已自動取消<br>
+                            <strong style="color: #FFD700;">請重新下單</strong>
+                        </div>
                     </div>
                 `;
             }
@@ -4870,7 +4900,7 @@ function showOrderDetailByData(order) {
                     <!-- 訂單狀態 -->
                     <div style="text-align: center;">
                         <div style="
-                            background: ${order.訂單狀態 === '已完成' ? '#00FF00' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : '#FFD700'};
+                            background: ${order.訂單狀態 === '已完成' ? '#00FF00' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' || order.訂單狀態 === '已取消' ? '#ff4444' : '#FFD700'};
                             color: #000;
                             padding: 10px 30px;
                             border-radius: 20px;
@@ -4882,7 +4912,7 @@ function showOrderDetailByData(order) {
                             ${order.訂單狀態}
                         </div>
                         
-                        ${order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-') ? `
+                        ${order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-') && shouldShowPaymentButton && !isExpired ? `
                             <div>
                                 <button 
                                     onclick="submitPaymentCode('${order.訂單編號}')"
@@ -4905,6 +4935,23 @@ function showOrderDetailByData(order) {
                                 </button>
                                 <div style="color: #999; font-size: 12px; margin-top: 10px;">
                                     請先填寫匯款末五碼後再點擊確認
+                                </div>
+                            </div>
+                        ` : isExpired ? `
+                            <div style="
+                                background: rgba(255, 0, 0, 0.2);
+                                border: 2px solid #ff4444;
+                                padding: 20px;
+                                border-radius: 15px;
+                                margin-top: 15px;
+                            ">
+                                <div style="color: #ff4444; font-size: 18px; font-weight: 700; margin-bottom: 10px;">
+                                    ❌ 付款時限已過
+                                </div>
+                                <div style="color: #ff8c00; font-size: 14px; line-height: 1.6;">
+                                    此訂單已超過1小時付款時限<br>
+                                    系統已自動取消訂單<br>
+                                    <strong style="color: #FFD700;">請返回首頁重新下單</strong>
                                 </div>
                             </div>
                         ` : ''}
@@ -4941,19 +4988,53 @@ function startCountdown(orderId, orderTime) {
             
             if (remaining <= 0) {
                 clearInterval(timer);
+                
+                // 🔥 自動取消訂單
+                cancelExpiredOrder(orderId);
+                
+                // 更新顯示
                 countdownEl.parentElement.parentElement.innerHTML = `
                     <div style="
-                        background: rgba(255, 0, 0, 0.2);
+                        background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(150, 0, 0, 0.3));
                         border: 2px solid #ff0000;
                         border-radius: 15px;
-                        padding: 20px;
+                        padding: 30px;
                         margin-bottom: 20px;
                         text-align: center;
-                        color: #ff4444;
                     ">
-                        ⚠️ 付款時間已逾期
+                        <div style="font-size: 60px; margin-bottom: 15px;">⚠️</div>
+                        <h2 style="color: #ff4444; font-size: 24px; margin-bottom: 10px; font-weight: 900;">付款時間已逾期</h2>
+                        <div style="color: #ff8c00; font-size: 16px; line-height: 1.6; margin-top: 15px;">
+                            此訂單已超過付款時限<br>
+                            訂單已自動取消<br>
+                            <strong style="color: #FFD700;">請重新下單</strong>
+                        </div>
                     </div>
                 `;
+                
+                // 隱藏付款按鈕（如果有）
+                const paymentSection = document.querySelector('[onclick*="submitPaymentCode"]');
+                if (paymentSection && paymentSection.parentElement) {
+                    paymentSection.parentElement.innerHTML = `
+                        <div style="
+                            background: rgba(255, 0, 0, 0.2);
+                            border: 2px solid #ff4444;
+                            padding: 20px;
+                            border-radius: 15px;
+                            margin-top: 15px;
+                        ">
+                            <div style="color: #ff4444; font-size: 18px; font-weight: 700; margin-bottom: 10px;">
+                                ❌ 付款時限已過
+                            </div>
+                            <div style="color: #ff8c00; font-size: 14px; line-height: 1.6;">
+                                此訂單已超過1小時付款時限<br>
+                                系統已自動取消訂單<br>
+                                <strong style="color: #FFD700;">請返回首頁重新下單</strong>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 return;
             }
             
@@ -4970,6 +5051,36 @@ function startCountdown(orderId, orderTime) {
     // 儲存timer以便清理
     if (!window.orderTimers) window.orderTimers = {};
     window.orderTimers[orderIdHash] = timer;
+}
+
+// ==========================================
+// 🔥 自動取消逾時訂單
+// ==========================================
+async function cancelExpiredOrder(orderId) {
+    try {
+        console.log('🔥 自動取消逾時訂單:', orderId);
+        
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'cancelExpiredOrder',
+                orderId: orderId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log('✅ 訂單已自動取消');
+        } else {
+            console.error('❌ 取消訂單失敗:', result.error);
+        }
+    } catch (error) {
+        console.error('❌ 取消訂單失敗:', error);
+    }
 }
 
 // ==========================================
