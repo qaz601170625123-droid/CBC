@@ -4632,7 +4632,7 @@ function showOrderDetailByData(order) {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
-            const deadline = new Date(orderTime.getTime() + 60 * 60 * 1000); // 下單後1小時
+            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1分鐘
             const remaining = deadline - now;
             
             if (remaining > 0) {
@@ -4983,7 +4983,7 @@ function startCountdown(orderId, orderTime) {
         try {
             const orderDate = new Date(orderTime);
             const now = new Date();
-            const deadline = new Date(orderDate.getTime() + 60 * 60 * 1000);
+            const deadline = new Date(orderDate.getTime() + 1 * 60 * 1000); // 下單後1分鐘
             const remaining = deadline - now;
             
             if (remaining <= 0) {
