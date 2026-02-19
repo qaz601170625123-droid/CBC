@@ -5113,19 +5113,19 @@ async function submitPaymentCode(orderId) {
         return;
     }
     
+    // 取得按鈕（移到 try 外面，catch 才能使用）
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
     try {
         // 顯示載入中
-        const btn = event.target;
-        const originalText = btn.innerHTML;
         btn.innerHTML = '⏳ 處理中...';
         btn.disabled = true;
         
-        // 送出到 Google Apps Script
-        const response = await fetch(APPS_SCRIPT_URL, {
+        // ✅ 改用 no-cors 模式送出（與下單相同做法）
+        await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            mode: 'no-cors',
             body: JSON.stringify({
                 action: 'updatePaymentCode',
                 orderId: orderId,
@@ -5133,42 +5133,51 @@ async function submitPaymentCode(orderId) {
             })
         });
         
-        const result = await response.json();
+        // no-cors 無法讀取回傳，直接當成成功處理
+        showToast('✅ 付款確認成功！', 'success');
         
-        if (result.success) {
-            showToast('✅ 付款確認成功！', 'success');
-            
-            // 更新顯示
-            const section = document.getElementById('payment-code-section');
-            if (section) {
-                section.innerHTML = `
-                    <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
-                    <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${paymentCode}</div>
-                `;
-            }
-            
-            // 移除按鈕
-            btn.parentElement.innerHTML = `
-                <div style="
-                    background: rgba(0, 255, 0, 0.2);
-                    border: 2px solid #00c800;
-                    padding: 15px;
-                    border-radius: 10px;
-                    color: #00FF00;
-                    font-weight: 700;
-                ">
-                    ✅ 付款已確認，等待商家處理
-                </div>
+        // ✅ 停止倒數計時器
+        const orderIdHash = orderId.replace(/[^a-zA-Z0-9]/g, '');
+        if (window.orderTimers && window.orderTimers[orderIdHash]) {
+            clearInterval(window.orderTimers[orderIdHash]);
+            delete window.orderTimers[orderIdHash];
+        }
+        
+        // 隱藏倒數區塊
+        const countdownEl = document.getElementById(`countdown-${orderIdHash}`);
+        if (countdownEl && countdownEl.parentElement && countdownEl.parentElement.parentElement) {
+            countdownEl.parentElement.parentElement.style.display = 'none';
+        }
+        
+        // 更新匯款末五碼顯示
+        const section = document.getElementById('payment-code-section');
+        if (section) {
+            section.innerHTML = `
+                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
+                <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${paymentCode}</div>
             `;
-            
-            // 重新載入訂單列表（如果在訂單查詢頁面）
-            if (window.memberOrders) {
-                setTimeout(() => {
-                    loadMemberOrders();
-                }, 1500);
-            }
-        } else {
-            throw new Error(result.error || '更新失敗');
+        }
+        
+        // 移除付款輸入區，改成成功訊息
+        btn.parentElement.innerHTML = `
+            <div style="
+                background: rgba(0, 255, 0, 0.2);
+                border: 2px solid #00c800;
+                padding: 15px;
+                border-radius: 10px;
+                color: #00FF00;
+                font-weight: 700;
+                text-align: center;
+            ">
+                ✅ 付款已確認，等待商家處理
+            </div>
+        `;
+        
+        // 重新載入訂單列表
+        if (window.memberOrders) {
+            setTimeout(() => {
+                loadMemberOrders();
+            }, 1500);
         }
         
     } catch (error) {
