@@ -747,6 +747,13 @@
             line-height: 1.2;
             text-align: center;
         }
+        .spec-original-price {
+            font-size: 16px;
+            font-weight: 400;
+            color: #888;
+            text-decoration: line-through;
+            margin-left: 8px;
+        }
         
         .spec-info-stock {
             font-size: 13px;
@@ -2768,7 +2775,7 @@ function renderSpecPrice(spec) {
     if (!el) return;
     if (spec.originalPrice && spec.originalPrice > spec.price) {
         const pct = Math.round((1 - spec.price / spec.originalPrice) * 100);
-        el.innerHTML = `$${spec.price}<span class="spec-original-price">$${spec.originalPrice}</span><span class="spec-price-badge">-${pct}%</span>`;
+        el.innerHTML = `$${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span>`;
     } else {
         el.textContent = `$${spec.price}`;
     }
