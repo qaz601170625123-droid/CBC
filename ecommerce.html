@@ -2761,6 +2761,19 @@ async function loadPromotions() {
  * @param {Array} cartItems - 購物車商品
  * @returns {Object} 優惠詳情
  */
+
+// 顯示價格（含原價劃線）
+function renderSpecPrice(spec) {
+    const el = document.getElementById('specInfoPrice');
+    if (!el) return;
+    if (spec.originalPrice && spec.originalPrice > spec.price) {
+        const pct = Math.round((1 - spec.price / spec.originalPrice) * 100);
+        el.innerHTML = `$${spec.price}<span class="spec-original-price">$${spec.originalPrice}</span><span class="spec-price-badge">-${pct}%</span>`;
+    } else {
+        el.textContent = `$${spec.price}`;
+    }
+}
+
 function calculatePromotions(cartItems) {
     const result = {
         appliedPromotions: [],  // 已套用的優惠
@@ -3789,7 +3802,7 @@ function selectQuantitySpec(index) {
     });
     
     // 更新價格和庫存顯示
-    document.getElementById('specInfoPrice').textContent = `$${spec.price}`;
+    renderSpecPrice(spec);
     
     const stockDisplay = document.getElementById('specInfoStock');
     const multiplier = spec.quantityMultiplier || 1;
@@ -3948,7 +3961,7 @@ function selectSpec(index) {
     // 小圖已移除
     
     // 更新價格和庫存顯示
-    document.getElementById('specInfoPrice').textContent = `$${spec.price}`;
+    renderSpecPrice(spec);
     
     const stockDisplay = document.getElementById('specInfoStock');
     const multiplier = spec.quantityMultiplier || 1;
