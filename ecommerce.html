@@ -1810,6 +1810,110 @@
             font-weight: bold;
         }
 
+
+        /* ==========================================
+           🆕 商品圖片輪播樣式
+        ========================================== */
+        .product-carousel {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: #111;
+            user-select: none;
+        }
+
+        .carousel-track-wrap {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+        }
+
+        .carousel-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .carousel-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1.5px solid rgba(255, 215, 0, 0.5);
+            color: var(--primary);
+            font-size: 26px;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            z-index: 10;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        .carousel-btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+            border-color: var(--primary);
+        }
+        .carousel-prev { left: 8px; }
+        .carousel-next { right: 8px; }
+
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 7px;
+            padding: 8px 0 6px;
+            background: rgba(0,0,0,0.4);
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .carousel-dot.active {
+            background: var(--primary);
+            transform: scale(1.35);
+        }
+
+        /* 圖片張數角標 */
+        .carousel-counter {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
         /* 🆕 動畫效果 */
         @keyframes slideDown {
             from {
@@ -1948,6 +2052,15 @@
             <div class="modal-header">
                 <div class="modal-title" id="specModalTitle">選擇規格</div>
                 <button class="close-modal" onclick="closeSpecModal()">×</button>
+            </div>
+            <!-- 🆕 多圖輪播 -->
+            <div class="product-carousel" id="productCarousel" style="display:none;">
+                <div class="carousel-track-wrap">
+                    <div class="carousel-track" id="carouselTrack"></div>
+                </div>
+                <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="carouselMove(-1)">&#8249;</button>
+                <button class="carousel-btn carousel-next" id="carouselNext" onclick="carouselMove(1)">&#8250;</button>
+                <div class="carousel-dots" id="carouselDots"></div>
             </div>
             <div class="spec-header-container">
                 <div class="spec-info-display" style="width:100%">
@@ -3139,7 +3252,8 @@ function stopAutoRefresh() {
 // ==========================================
 // 🆕 載入分類照片設定（從「分類照片設定」工作表）
 // ==========================================
-let categoryImages = {};  // 儲存分類照片設定
+let categoryImages = {};        // 儲存分類照片設定（B欄，最外層卡片圖）
+let categoryCarouselImages = {}; // 🆕 儲存分類輪播圖（C欄起，點進去的多張圖）
 
 async function loadCategoryImages() {
     try {
@@ -3150,18 +3264,32 @@ async function loadCategoryImages() {
         if (response.ok) {
             const data = await response.json();
             if (data.values && data.values.length > 1) {
-                // 從工作表讀取分類照片設定
                 categoryImages = {};
+                categoryCarouselImages = {};
                 data.values.slice(1).forEach(row => {
-                    const categoryName = row[0] || '';      // A欄：分類名稱
-                    const imageUrl = row[1] || '';          // B欄：圖片網址
+                    const categoryName = row[0] || '';   // A欄：分類名稱
+                    const cardImage = row[1] || '';      // B欄：最外層卡片圖
                     
-                    if (categoryName && imageUrl) {
-                        categoryImages[categoryName] = imageUrl;
+                    if (!categoryName) return;
+                    
+                    if (cardImage) {
+                        categoryImages[categoryName] = cardImage;
+                    }
+                    
+                    // 🆕 C欄起（index 2）：輪播圖片，可有多欄
+                    const carouselImgs = [];
+                    for (let i = 2; i < row.length; i++) {
+                        if (row[i] && row[i].trim()) {
+                            carouselImgs.push(row[i].trim());
+                        }
+                    }
+                    if (carouselImgs.length > 0) {
+                        categoryCarouselImages[categoryName] = carouselImgs;
                     }
                 });
                 
                 console.log('✅ 已載入分類照片設定：', categoryImages);
+                console.log('✅ 已載入輪播圖設定：', categoryCarouselImages);
             }
         }
     } catch (error) {
@@ -3376,6 +3504,10 @@ function openCustomBlockModal(blockName) {
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
+    // 🆕 初始化輪播圖
+    window._currentModalCategoryName = blockName;
+    initCarousel(blockName);
+    
     // 計算統計
     let totalStock = 0, minPrice = Infinity, maxPrice = 0;
     currentCategoryProducts.forEach(product => {
@@ -3432,6 +3564,10 @@ function openFeaturedCategoryModal() {
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
+    
+    // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
+    window._currentModalCategoryName = '主打商品';
+    initCarousel('主打商品');
     
     // 渲染主打商品選項
     renderFeaturedFlavorOptions();
@@ -3640,6 +3776,10 @@ function openCategoryModal(categoryName) {
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
+    // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
+    window._currentModalCategoryName = categoryName;
+    initCarousel(categoryName);
+    
     // 渲染該類別下的所有口味選項
     renderFlavorOptions(categoryName);
     
@@ -3736,16 +3876,20 @@ function selectFlavor(index) {
         el.classList.toggle('selected', i === index);
     });
     
-    // 更新圖片
-    const imageContainer = null; // 小圖已移除
-    let imageUrl = product.image || '';
-    if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-        imageUrl = 'https://' + imageUrl;
+    // 🆕 點選口味時：若該商品有自己的圖片，切換輪播到該圖片
+    // 尋找對應的分類名稱（currentCategoryName 是在 openCategoryModal 時存的）
+    // 這裡我們用商品圖片作為第一張，其餘維持分類輪播
+    if (window._currentModalCategoryName) {
+        const baseImages = categoryCarouselImages[window._currentModalCategoryName] || [];
+        // 若商品本身有圖且不同於分類輪播，加到最前面
+        let productImg = product.image || '';
+        if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
+        if (productImg && (!baseImages.length || baseImages[0] !== productImg)) {
+            // 以商品圖為第一張，其後接分類輪播圖
+            const merged = [productImg, ...baseImages.filter(u => u !== productImg)];
+            initCarouselFromUrls(merged);
+        }
     }
-    if (!imageUrl) {
-        imageUrl = '';
-    }
-    // 小圖已移除
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
     renderQuantitySpecOptions(specs);
@@ -3933,6 +4077,107 @@ function openSpecModal(productId) {
     selectedSpec = null;
     updateQuantityDisplay();
     updateAddToCartButton();
+}
+
+
+// ==========================================
+// 🆕 商品圖片輪播功能
+// ==========================================
+let _carouselImgs = [];
+let _carouselIdx = 0;
+let _carouselTouchX = 0;
+
+/**
+ * 以分類名稱初始化輪播（從 categoryCarouselImages 取 C 欄起的圖）
+ */
+function initCarousel(categoryName) {
+    const imgs = categoryCarouselImages[categoryName] || [];
+    initCarouselFromUrls(imgs);
+}
+
+/**
+ * 以圖片網址陣列初始化輪播
+ */
+function initCarouselFromUrls(rawUrls) {
+    const carousel  = document.getElementById('productCarousel');
+    const track     = document.getElementById('carouselTrack');
+    const dots      = document.getElementById('carouselDots');
+    const prev      = document.getElementById('carouselPrev');
+    const next      = document.getElementById('carouselNext');
+
+    // 修正 URL（確保有 https://）
+    _carouselImgs = rawUrls.map(u => {
+        u = (u || '').trim();
+        if (!u) return '';
+        if (!u.startsWith('http://') && !u.startsWith('https://')) return 'https://' + u;
+        return u;
+    }).filter(u => u);
+
+    if (_carouselImgs.length === 0) {
+        carousel.style.display = 'none';
+        return;
+    }
+
+    carousel.style.display = 'block';
+    _carouselIdx = 0;
+
+    // 渲染幻燈片
+    track.innerHTML = _carouselImgs.map((url, i) => `
+        <div class="carousel-slide">
+            <img src="${url}" alt="商品圖 ${i + 1}" onerror="this.style.opacity='0.15'">
+        </div>
+    `).join('');
+
+    // 渲染圓點
+    dots.innerHTML = _carouselImgs.map((_, i) => `
+        <div class="carousel-dot${i === 0 ? ' active' : ''}" onclick="carouselGoTo(${i})"></div>
+    `).join('');
+
+    // 顯示 / 隱藏箭頭與圓點
+    const multi = _carouselImgs.length > 1;
+    prev.style.display  = multi ? 'flex' : 'none';
+    next.style.display  = multi ? 'flex' : 'none';
+    dots.style.display  = multi ? 'flex' : 'none';
+
+    // 更新角標
+    let counter = carousel.querySelector('.carousel-counter');
+    if (!counter) {
+        counter = document.createElement('div');
+        counter.className = 'carousel-counter';
+        carousel.appendChild(counter);
+    }
+    counter.style.display = multi ? 'block' : 'none';
+    counter.textContent = `1 / ${_carouselImgs.length}`;
+
+    // 觸控滑動
+    const wrap = carousel.querySelector('.carousel-track-wrap');
+    wrap.ontouchstart = e => { _carouselTouchX = e.touches[0].clientX; };
+    wrap.ontouchend   = e => {
+        const diff = _carouselTouchX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 35) carouselMove(diff > 0 ? 1 : -1);
+    };
+
+    _carouselRender();
+}
+
+function carouselMove(dir) {
+    if (!_carouselImgs.length) return;
+    _carouselIdx = (_carouselIdx + dir + _carouselImgs.length) % _carouselImgs.length;
+    _carouselRender();
+}
+
+function carouselGoTo(i) {
+    _carouselIdx = i;
+    _carouselRender();
+}
+
+function _carouselRender() {
+    const track = document.getElementById('carouselTrack');
+    const dots  = document.querySelectorAll('.carousel-dot');
+    const counter = document.querySelector('.carousel-counter');
+    if (track)   track.style.transform = `translateX(-${_carouselIdx * 100}%)`;
+    dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
+    if (counter) counter.textContent = `${_carouselIdx + 1} / ${_carouselImgs.length}`;
 }
 
 function closeSpecModal() {
