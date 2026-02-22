@@ -2544,14 +2544,17 @@ async function loadProductsData() {
         if (specsData.values && specsData.values.length > 1) {
             specsData.values.slice(1).forEach(row => {
                 const productId = row[0];
+                const _salePrice = parseInt(row[3]) || 0;
+                const _normalPrice = parseInt(row[5]) || 0;
                 const spec = {
                     productId: row[0] || '',
                     productName: row[1] || '',
                     specName: row[2] || '',
-                    price: parseInt(row[3]) || 0,
+                    price: _salePrice > 0 ? _salePrice : _normalPrice,  // D有特價用特價，否則用F原價
+                    originalPrice: _salePrice > 0 ? _normalPrice : 0,   // 有特價才顯示劃線原價
                     stock: parseInt(row[4]) || 0,
-                    image: row[5] || '',
-                    quantityMultiplier: parseInt(row[6]) || 1  // 數量倍數（G欄），預設為1
+                    image: row[6] || '',                        // G欄：圖片
+                    quantityMultiplier: parseInt(row[7]) || 1   // H欄：倍數
                 };
                 
                 if (!productSpecs[productId]) {
@@ -3030,14 +3033,17 @@ async function refreshAllStock() {
             
             specsData.values.slice(1).forEach(row => {
                 const productId = row[0];
+                const _salePrice2 = parseInt(row[3]) || 0;
+                const _normalPrice2 = parseInt(row[5]) || 0;
                 const spec = {
                     productId: row[0] || '',
                     productName: row[1] || '',
                     specName: row[2] || '',
-                    price: parseInt(row[3]) || 0,
+                    price: _salePrice2 > 0 ? _salePrice2 : _normalPrice2,
+                    originalPrice: _salePrice2 > 0 ? _normalPrice2 : 0,
                     stock: parseInt(row[4]) || 0,
-                    image: row[5] || '',
-                    quantityMultiplier: parseInt(row[6]) || 1
+                    image: row[6] || '',
+                    quantityMultiplier: parseInt(row[7]) || 1
                 };
                 
                 if (!productSpecs[productId]) {
