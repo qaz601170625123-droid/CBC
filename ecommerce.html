@@ -1320,8 +1320,20 @@
             }
             
             .featured-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            
+            .featured-grid .product-image {
+                height: 140px;
+            }
+            
+            .featured-grid .product-name {
+                font-size: 14px;
+            }
+            
+            .featured-grid .product-price {
+                font-size: 16px;
             }
         }
 
