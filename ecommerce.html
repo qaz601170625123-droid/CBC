@@ -1047,9 +1047,9 @@
         /* Toast 提示 */
         .toast {
             position: fixed;
-            bottom: 30px;
+            bottom: -80px;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
+            transform: translateX(-50%);
             background: var(--accent-green);
             color: var(--secondary);
             padding: 12px 20px;
@@ -1057,7 +1057,7 @@
             font-weight: 700;
             z-index: 99999;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: bottom 0.3s ease, opacity 0.3s ease;
             white-space: nowrap;
             max-width: 90vw;
             text-align: center;
@@ -1066,7 +1066,7 @@
 
         .toast.show {
             opacity: 1;
-            transform: translateX(-50%) translateY(0);
+            bottom: 30px;
         }
 
         .toast.error {
@@ -4688,6 +4688,7 @@ async function openOrderSearch() {
 
 function closeOrderSearch() {
     document.getElementById('orderSearchModal').classList.remove('active');
+    isModalOpen = false;
 }
 
 // ==========================================
@@ -4727,6 +4728,9 @@ function showOrderDetail(orderIndex) {
         showToast('訂單資料載入失敗', 'error');
         return;
     }
+    
+    // 先關閉查詢訂單 modal
+    document.getElementById('orderSearchModal').classList.remove('active');
     
     const order = window.memberOrders[orderIndex];
     showOrderDetailByData(order);
@@ -5137,6 +5141,7 @@ function closeOrderDetail() {
     }
     const detailView = document.getElementById('orderDetailView');
     if (detailView) detailView.remove();
+    isModalOpen = false;
 }
 
 async function loadMemberOrders() {
