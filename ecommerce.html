@@ -4772,8 +4772,11 @@ function showOrderDetailByData(order) {
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    // 已填末五碼 或 已付款待出貨 = 已付款，不做任何逾時判斷
-    const hasPaid = (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '') || order.訂單狀態 === '已付款待出貨';
+    // 已填末五碼/LINE名稱 或 已付款待出貨 = 已付款
+    // LINE Pay: 'LINE:名稱' 才算已付款，'LINE:' 空字串 = 未付款
+    const linePayFilled = order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '';
+    const transferFilled = order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:');
+    const hasPaid = linePayFilled || transferFilled || order.訂單狀態 === '已付款待出貨';
     
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
@@ -4900,7 +4903,7 @@ function showOrderDetailByData(order) {
                                     <span style="color:#999;font-size:14px;">付款金額</span>
                                     <span style="color:#00FF00;font-weight:900;font-size:20px;">$${order.總金額}</span>
                                 </div>
-                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼.startsWith('LINE:') ? `
+                                ${order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '' ? `
                                 <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(0,255,0,0.2);border-radius:8px;border:1px solid #06C755;">
                                     <span style="color:#999;font-size:14px;">您的 LINE 名稱</span>
                                     <span style="color:#00FF00;font-weight:900;font-size:18px;">${order.匯款末五碼.replace('LINE:','')}</span>
@@ -5005,7 +5008,7 @@ function showOrderDetailByData(order) {
                         <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px;" id="payment-code-section">
                             ${order.付款方式 === 'LINE Pay' ? `
                                 <div style="color:#999;font-size:12px;margin-bottom:5px;">LINE 顯示名稱</div>
-                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼.startsWith('LINE:') ? `
+                                ${order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '' ? `
                                     <div style="color:#00FF00;font-weight:700;font-size:14px;">✅ ${order.匯款末五碼.replace('LINE:','')}</div>
                                 ` : `
                                     <input type="text" id="payment-code-input" placeholder="請輸入 LINE 顯示名稱"
@@ -5013,7 +5016,7 @@ function showOrderDetailByData(order) {
                                 `}
                             ` : `
                                 <div style="color:#999;font-size:12px;margin-bottom:5px;">匯款末五碼</div>
-                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' ? `
+                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' && !order.匯款末五碼.startsWith('LINE:') ? `
                                     <div style="color:#00FF00;font-weight:700;font-size:14px;">✅ ${order.匯款末五碼}</div>
                                 ` : order.取貨方式 === '7-11店到店' ? `
                                     <input type="text" id="payment-code-input" placeholder="請輸入5碼" maxlength="5"
