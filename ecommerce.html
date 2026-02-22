@@ -676,13 +676,14 @@
             background: var(--bg-dark);
             border: 2px solid var(--primary);
             border-radius: 15px;
-            padding: 10px;
+            padding: 0 10px 10px 10px;
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         .modal-header {
@@ -690,6 +691,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
+            padding-top: 10px;
         }
 
         .modal-title {
@@ -705,12 +707,17 @@
             font-size: 24px;
             cursor: pointer;
         }
+        
+        /* specModal 的 header 在照片下方，不需要額外 padding-top */
+        #specModal .modal-header {
+            padding-top: 8px;
+        }
 
         /* 規格選擇模態框 */
         .spec-header-container {
             display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 8px;
+            margin-bottom: 8px;
             flex-shrink: 0;
         }
         
@@ -733,15 +740,15 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 6px;
-            padding: 8px;
-            background: rgba(255, 215, 0, 0.1);
-            border: 2px solid var(--primary);
+            gap: 3px;
+            padding: 6px 8px;
+            background: rgba(255, 215, 0, 0.08);
+            border: 1.5px solid var(--primary);
             border-radius: 8px;
         }
         
         .spec-info-price {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--primary);
             line-height: 1.2;
@@ -780,7 +787,7 @@
         }
         
         .spec-info-stock {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: var(--accent-green);
             text-align: center;
@@ -884,7 +891,7 @@
         }
 
         .quantity-selector {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -900,28 +907,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .quantity-btn {
             background: var(--primary);
             color: var(--secondary);
             border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            font-size: 24px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
-            touch-action: manipulation; /* 防止手機雙擊放大 */
-            user-select: none; /* 防止選取文字 */
-            -webkit-tap-highlight-color: transparent; /* 移除點擊高亮 */
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .quantity-display {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
-            min-width: 50px;
+            min-width: 36px;
             text-align: center;
         }
 
@@ -930,9 +937,9 @@
             background: var(--primary);
             color: var(--secondary);
             border: none;
-            padding: 15px;
+            padding: 11px;
             border-radius: 10px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             cursor: pointer;
             flex-shrink: 0;
@@ -1815,11 +1822,14 @@
            🆕 商品圖片輪播樣式
         ========================================== */
         .product-carousel {
-            width: 100%;
-            border-radius: 12px;
+            width: calc(100% + 20px);
+            margin-left: -10px;
+            margin-right: -10px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            border-radius: 13px 13px 0 0;
             overflow: hidden;
-            margin-bottom: 12px;
-            background: #111;
+            background: #000;
             user-select: none;
         }
 
@@ -1828,6 +1838,7 @@
             position: relative;
             width: 100%;
             overflow: hidden;
+            border-radius: 13px 13px 0 0;
         }
 
         .carousel-track {
