@@ -1815,7 +1815,6 @@
            🆕 商品圖片輪播樣式
         ========================================== */
         .product-carousel {
-            position: relative;
             width: 100%;
             border-radius: 12px;
             overflow: hidden;
@@ -1824,70 +1823,85 @@
             user-select: none;
         }
 
+        /* 圖片滑動區域：用 grid 疊層，不用絕對定位 */
         .carousel-track-wrap {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            overflow: hidden;
             position: relative;
+            width: 100%;
+            overflow: hidden;
         }
 
         .carousel-track {
             display: flex;
             width: 100%;
-            height: 100%;
             transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
         }
 
         .carousel-slide {
-            width: 100%;
-            min-width: 100%;
-            max-width: 100%;
-            height: 100%;
             flex: 0 0 100%;
-            overflow: hidden;
+            width: 100%;
+            min-width: 0;
         }
 
         .carousel-slide img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            max-height: 60vw;
             display: block;
+            object-fit: contain;
+            background: #111;
         }
 
+        /* 左右箭頭：疊在 track-wrap 上 */
         .carousel-btn {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.55);
             border: 1.5px solid rgba(255, 215, 0, 0.5);
             color: var(--primary);
             font-size: 26px;
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1;
             z-index: 10;
             transition: all 0.2s ease;
             padding: 0;
+            touch-action: manipulation;
         }
-        .carousel-btn:hover {
+        .carousel-btn:hover, .carousel-btn:active {
             background: rgba(255, 215, 0, 0.3);
             border-color: var(--primary);
         }
         .carousel-prev { left: 8px; }
         .carousel-next { right: 8px; }
 
+        /* 角標：疊在圖片右上 */
+        .carousel-counter {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 圓點：放在 track-wrap 外面，不疊在圖片上 */
         .carousel-dots {
             display: flex;
             justify-content: center;
             gap: 7px;
-            padding: 8px 0 6px;
-            background: rgba(0,0,0,0.4);
+            padding: 7px 0 5px;
+            background: rgba(0,0,0,0.5);
         }
 
         .carousel-dot {
@@ -1902,21 +1916,6 @@
         .carousel-dot.active {
             background: var(--primary);
             transform: scale(1.35);
-        }
-
-        /* 圖片張數角標 */
-        .carousel-counter {
-            position: absolute;
-            top: 8px;
-            right: 10px;
-            background: rgba(0,0,0,0.6);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 12px;
-            z-index: 10;
-            pointer-events: none;
         }
 
         /* 🆕 動畫效果 */
@@ -2060,11 +2059,11 @@
             </div>
             <!-- 🆕 多圖輪播 -->
             <div class="product-carousel" id="productCarousel" style="display:none;">
-                <div class="carousel-track-wrap">
+                <div class="carousel-track-wrap" id="carouselWrap">
                     <div class="carousel-track" id="carouselTrack"></div>
+                    <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="carouselMove(-1)">&#8249;</button>
+                    <button class="carousel-btn carousel-next" id="carouselNext" onclick="carouselMove(1)">&#8250;</button>
                 </div>
-                <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="carouselMove(-1)">&#8249;</button>
-                <button class="carousel-btn carousel-next" id="carouselNext" onclick="carouselMove(1)">&#8250;</button>
                 <div class="carousel-dots" id="carouselDots"></div>
             </div>
             <div class="spec-header-container">
@@ -4178,12 +4177,13 @@ function initCarouselFromUrls(rawUrls) {
     next.style.display  = multi ? 'flex' : 'none';
     dots.style.display  = multi ? 'flex' : 'none';
 
-    // 更新角標
+    // 更新角標（加在 wrap 裡，這樣 absolute 定位相對於 wrap）
+    const wrap2 = carousel.querySelector('.carousel-track-wrap');
     let counter = carousel.querySelector('.carousel-counter');
     if (!counter) {
         counter = document.createElement('div');
         counter.className = 'carousel-counter';
-        carousel.appendChild(counter);
+        (wrap2 || carousel).appendChild(counter);
     }
     counter.style.display = multi ? 'block' : 'none';
     counter.textContent = `1 / ${_carouselImgs.length}`;
