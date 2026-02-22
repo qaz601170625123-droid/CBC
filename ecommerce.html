@@ -1826,27 +1826,32 @@
 
         .carousel-track-wrap {
             width: 100%;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 4 / 3;
             overflow: hidden;
+            position: relative;
         }
 
         .carousel-track {
             display: flex;
+            width: 100%;
             height: 100%;
             transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
         }
 
         .carousel-slide {
+            width: 100%;
             min-width: 100%;
+            max-width: 100%;
             height: 100%;
-            flex-shrink: 0;
+            flex: 0 0 100%;
+            overflow: hidden;
         }
 
         .carousel-slide img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
             display: block;
         }
 
@@ -3876,19 +3881,28 @@ function selectFlavor(index) {
         el.classList.toggle('selected', i === index);
     });
     
-    // 🆕 點選口味時：若該商品有自己的圖片，切換輪播到該圖片
-    // 尋找對應的分類名稱（currentCategoryName 是在 openCategoryModal 時存的）
-    // 這裡我們用商品圖片作為第一張，其餘維持分類輪播
-    if (window._currentModalCategoryName) {
-        const baseImages = categoryCarouselImages[window._currentModalCategoryName] || [];
-        // 若商品本身有圖且不同於分類輪播，加到最前面
+    // 🆕 點選口味時：重新組合輪播（商品圖優先 + 分類輪播圖接後）
+    {
+        const categoryName = window._currentModalCategoryName || '';
+        const carouselBase = categoryCarouselImages[categoryName] || [];
+        const seen = new Set();
+        const merged = [];
+
+        // 1. 先加這個口味的商品圖
         let productImg = product.image || '';
         if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
-        if (productImg && (!baseImages.length || baseImages[0] !== productImg)) {
-            // 以商品圖為第一張，其後接分類輪播圖
-            const merged = [productImg, ...baseImages.filter(u => u !== productImg)];
-            initCarouselFromUrls(merged);
+        if (productImg && !seen.has(productImg)) { seen.add(productImg); merged.push(productImg); }
+
+        // 2. 再加 C 欄起的分類輪播圖
+        carouselBase.forEach(u => { if (!seen.has(u)) { seen.add(u); merged.push(u); } });
+
+        // 3. 若完全沒圖，fallback 到 B 欄卡片圖
+        if (merged.length === 0) {
+            const coverImg = categoryImages[categoryName] || '';
+            if (coverImg) merged.push(coverImg);
         }
+
+        if (merged.length > 0) initCarouselFromUrls(merged);
     }
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
@@ -4091,7 +4105,32 @@ let _carouselTouchX = 0;
  * 以分類名稱初始化輪播（從 categoryCarouselImages 取 C 欄起的圖）
  */
 function initCarousel(categoryName) {
-    const imgs = categoryCarouselImages[categoryName] || [];
+    // 優先用 C 欄起的輪播圖（使用者手動設定）
+    let imgs = categoryCarouselImages[categoryName] || [];
+
+    // ── Fallback：若 C 欄沒填，就收集該分類所有商品的圖片 ──
+    if (imgs.length === 0) {
+        const seen = new Set();
+        const fallbackImgs = [];
+
+        // 先加 B 欄（卡片封面圖）
+        const coverImg = categoryImages[categoryName] || '';
+        if (coverImg && !seen.has(coverImg)) {
+            seen.add(coverImg);
+            fallbackImgs.push(coverImg);
+        }
+
+        // 再加每個商品自己的圖片
+        currentCategoryProducts.forEach(p => {
+            if (p.image && !seen.has(p.image)) {
+                seen.add(p.image);
+                fallbackImgs.push(p.image);
+            }
+        });
+
+        imgs = fallbackImgs;
+    }
+
     initCarouselFromUrls(imgs);
 }
 
@@ -4175,7 +4214,15 @@ function _carouselRender() {
     const track = document.getElementById('carouselTrack');
     const dots  = document.querySelectorAll('.carousel-dot');
     const counter = document.querySelector('.carousel-counter');
-    if (track)   track.style.transform = `translateX(-${_carouselIdx * 100}%)`;
+    if (track) {
+        // 用像素偏移確保精確（不依賴百分比繼承問題）
+        const slideWidth = track.parentElement ? track.parentElement.offsetWidth : 0;
+        if (slideWidth > 0) {
+            track.style.transform = `translateX(-${_carouselIdx * slideWidth}px)`;
+        } else {
+            track.style.transform = `translateX(-${_carouselIdx * 100}%)`;
+        }
+    }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
     if (counter) counter.textContent = `${_carouselIdx + 1} / ${_carouselImgs.length}`;
 }
