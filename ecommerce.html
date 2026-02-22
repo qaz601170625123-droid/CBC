@@ -680,7 +680,7 @@
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
-            overflow-y: hidden;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
@@ -2291,10 +2291,8 @@ function generateMerchantTradeNo() {
  * 偵測裝置類型
  */
 function getDeviceType() {
-    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isMobileScreen = window.innerWidth <= 768;
-    const isMobile = isMobileUA || isMobileScreen;
-    return isMobile ? '0' : '1'; // 0=手機版, 1=網頁版
+    return '0'; // 永遠使用手機版
+}
 }
 
 // ==========================================
@@ -4698,9 +4696,6 @@ function showNewOrderDetail(orderData) {
     // 先清除舊的詳情頁（避免疊加）
     const existingDetail = document.getElementById('orderDetailView');
     if (existingDetail) existingDetail.remove();
-    // 加入 history，讓手機返回鍵可以關掉
-    history.pushState({ modal: 'orderDetail' }, '');
-    isModalOpen = true;
     // 直接顯示全螢幕訂單詳情
     const order = {
         訂單編號: orderData.訂單編號,
@@ -4937,6 +4932,10 @@ function showOrderDetailByData(order) {
     detailDiv.id = 'orderDetailView';
     detailDiv.innerHTML = detailHTML;
     document.body.appendChild(detailDiv);
+    
+    // 加入 history，讓返回鍵可以關掉詳情頁而不是跳回首頁
+    history.pushState({ modal: 'orderDetail' }, '');
+    isModalOpen = true;
     
     // 啟動倒數計時
     if (order.取貨方式 === '7-11店到店') {
