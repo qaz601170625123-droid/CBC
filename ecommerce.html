@@ -4771,7 +4771,7 @@ function showOrderDetailByData(order) {
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    // 已填末五碼 或 已付款待出貨 = 已付款，不做任何逾時判斷
+    // 已填末五碼/LINE名稱 或 已付款待出貨 = 已付款，不做任何逾時判斷
     const hasPaid = (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '') || order.訂單狀態 === '已付款待出貨';
     
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
@@ -4884,8 +4884,47 @@ function showOrderDetailByData(order) {
                 
                 ${countdownHTML}
                 
-                <!-- 🆕 匯款帳號資訊（只有7-11店到店顯示） -->
+                <!-- 付款資訊（只有7-11店到店顯示） -->
                 ${order.取貨方式 === '7-11店到店' ? `
+                    ${order.付款方式 === 'LINE Pay' ? `
+                    <div style="
+                        background: linear-gradient(135deg, rgba(6, 199, 85, 0.2), rgba(0, 255, 100, 0.15));
+                        border: 2px solid #06C755;
+                        border-radius: 15px;
+                        padding: 25px;
+                        margin-bottom: 20px;
+                    ">
+                        <h2 style="color: #06C755; font-size: 20px; margin-bottom: 20px; text-align: center;">
+                            💚 LINE Pay 資訊
+                        </h2>
+                        <div style="background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="display: grid; gap: 12px;">
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(6, 199, 85, 0.1); border-radius: 8px;">
+                                    <span style="color: #999; font-size: 14px;">LINE Pay 帳號</span>
+                                    <span style="color: #06C755; font-weight: 700; font-size: 16px;">${systemSettings.linePayAccount || '請聯繫客服'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(6, 199, 85, 0.1); border-radius: 8px;">
+                                    <span style="color: #999; font-size: 14px;">付款金額</span>
+                                    <span style="color: #00FF00; font-weight: 900; font-size: 20px;">$${order.總金額}</span>
+                                </div>
+                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼.startsWith('LINE:') ? `
+                                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(0, 255, 0, 0.2); border-radius: 8px; border: 1px solid #06C755;">
+                                        <span style="color: #999; font-size: 14px;">您的 LINE 名稱</span>
+                                        <span style="color: #00FF00; font-weight: 900; font-size: 18px;">${order.匯款末五碼.replace('LINE:', '')}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div style="background: rgba(255, 140, 0, 0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #ff8c00;">
+                            <div style="color: #ff8c00; font-size: 14px; line-height: 1.6;">
+                                <strong>⚠️ 重要提醒：</strong><br>
+                                • 請於時間內完成 LINE Pay 付款<br>
+                                • 付款完成後請填寫您的 LINE 顯示名稱<br>
+                                • 超過時間未付款訂單將自動取消
+                            </div>
+                        </div>
+                    </div>
+                    ` : `
                     <div style="
                         background: linear-gradient(135deg, rgba(0, 200, 0, 0.2), rgba(0, 255, 0, 0.2));
                         border: 2px solid #00c800;
@@ -4937,6 +4976,7 @@ function showOrderDetailByData(order) {
                             </div>
                         </div>
                     </div>
+                    `}
                 ` : ''}
                 
                 <!-- 主要訂單卡片 - 合併所有資訊 -->
@@ -5245,23 +5285,23 @@ async function cancelExpiredOrder(orderId) {
 }
 
 // ==========================================
-// 🆕 提交匯款末五碼
+// 🆕 提交匯款末五碼 / LINE Pay 名稱
 // ==========================================
 async function submitPaymentCode(orderId) {
     const input = document.getElementById('payment-code-input');
     if (!input) { showToast('找不到輸入欄位', 'error'); return; }
     
     const paymentCode = input.value.trim();
-    if (!paymentCode) { showToast('請輸入資料', 'error'); input.focus(); return; }
-    
     const isLinePay = input.placeholder.includes('LINE');
     let finalCode = paymentCode;
     
     if (!isLinePay) {
+        if (!paymentCode) { showToast('請輸入匯款末五碼', 'error'); input.focus(); return; }
         if (paymentCode.length !== 5) { showToast('請輸入完整的5碼', 'error'); input.focus(); return; }
         if (!/^\d{5}$/.test(paymentCode)) { showToast('請輸入5位數字', 'error'); input.focus(); return; }
         if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
     } else {
+        if (!paymentCode) { showToast('請輸入 LINE 顯示名稱', 'error'); input.focus(); return; }
         finalCode = 'LINE:' + paymentCode;
         if (!confirm(`確認 LINE 顯示名稱為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
     }
@@ -5301,7 +5341,7 @@ async function submitPaymentCode(orderId) {
             }
         }
         
-        // 更新顯示
+        // 更新付款欄位顯示
         const section = document.getElementById('payment-code-section');
         if (section) {
             const label = isLinePay ? 'LINE 顯示名稱' : '匯款末五碼';
