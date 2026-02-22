@@ -4787,7 +4787,7 @@ function showOrderDetailByData(order) {
                 const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
                 
                 countdownHTML = `
-                    <div style="
+                    <div id="countdown-container-${orderIdHash}" style="
                         background: linear-gradient(135deg, rgba(255, 69, 0, 0.2), rgba(255, 140, 0, 0.2));
                         border: 1.5px solid #ff4500;
                         border-radius: 10px;
@@ -4969,46 +4969,21 @@ function startCountdown(orderId, orderTime) {
                 // 自動取消訂單
                 cancelExpiredOrder(orderId);
                 
-                // 更新顯示
-                countdownEl.parentElement.parentElement.innerHTML = `
-                    <div style="
-                        background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(150, 0, 0, 0.3));
-                        border: 2px solid #ff0000;
-                        border-radius: 15px;
-                        padding: 30px;
-                        margin-bottom: 20px;
-                        text-align: center;
-                    ">
-                        <div style="font-size: 60px; margin-bottom: 15px;">⚠️</div>
-                        <h2 style="color: #ff4444; font-size: 24px; margin-bottom: 10px; font-weight: 900;">付款時間已逾期</h2>
-                        <div style="color: #ff8c00; font-size: 16px; line-height: 1.6; margin-top: 15px;">
-                            此訂單已超過付款時限<br>
-                            訂單已自動取消<br>
-                            <strong style="color: #FFD700;">請重新下單</strong>
-                        </div>
-                    </div>
-                `;
+                // 更新倒數顯示為逾期訊息
+                const countdownContainer = document.getElementById(`countdown-container-${orderIdHash}`);
+                if (countdownContainer) {
+                    countdownContainer.innerHTML = `
+                        <span style="color:#ff4444;font-size:13px;font-weight:700;width:100%;text-align:center;">❌ 付款時限已過，訂單已取消</span>
+                    `;
+                    countdownContainer.style.background = 'rgba(255,0,0,0.15)';
+                    countdownContainer.style.border = '1.5px solid #ff4444';
+                }
                 
-                // 隱藏付款按鈕（如果有）
-                const paymentSection = document.querySelector('[onclick*="submitPaymentCode"]');
-                if (paymentSection && paymentSection.parentElement) {
-                    paymentSection.parentElement.innerHTML = `
-                        <div style="
-                            background: rgba(255, 0, 0, 0.2);
-                            border: 2px solid #ff4444;
-                            padding: 20px;
-                            border-radius: 15px;
-                            margin-top: 15px;
-                        ">
-                            <div style="color: #ff4444; font-size: 18px; font-weight: 700; margin-bottom: 10px;">
-                                ❌ 付款時限已過
-                            </div>
-                            <div style="color: #ff8c00; font-size: 14px; line-height: 1.6;">
-                                此訂單已超過1小時付款時限<br>
-                                系統已自動取消訂單<br>
-                                <strong style="color: #FFD700;">請返回首頁重新下單</strong>
-                            </div>
-                        </div>
+                // 隱藏付款輸入區
+                const paymentSection = document.getElementById('payment-code-section');
+                if (paymentSection) {
+                    paymentSection.innerHTML = `
+                        <div style="color:#ff4444;font-weight:700;font-size:13px;text-align:center;">❌ 付款時限已過，訂單已自動取消</div>
                     `;
                 }
                 
