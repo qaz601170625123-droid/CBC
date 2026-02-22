@@ -453,7 +453,7 @@
         .product-image img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .product-name {
@@ -789,7 +789,7 @@
         .spec-image img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .spec-options {
@@ -2340,7 +2340,9 @@ function generateMerchantTradeNo() {
  * 偵測裝置類型
  */
 function getDeviceType() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobileScreen = window.innerWidth <= 768;
+    const isMobile = isMobileUA || isMobileScreen;
     return isMobile ? '0' : '1'; // 0=手機版, 1=網頁版
 }
 
