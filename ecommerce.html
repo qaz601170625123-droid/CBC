@@ -5009,15 +5009,28 @@ function showNewOrderDetail(orderData) {
 // 🆕 顯示訂單詳情
 // ==========================================
 function showOrderDetail(orderIndex) {
-    if (!window.memberOrders || !window.memberOrders[orderIndex]) {
-        showToast('訂單資料載入失敗', 'error');
+    // 🔥 防呆：確保 memberOrders 存在且 index 有效
+    if (!window.memberOrders) {
+        showToast('訂單資料尚未載入，請稍候再試', 'error');
+        return;
+    }
+    
+    let order = window.memberOrders[orderIndex];
+    
+    // index 取不到時，嘗試從點擊元素的 data-order-index 取
+    if (!order && typeof event !== 'undefined' && event && event.currentTarget) {
+        const idx = parseInt(event.currentTarget.dataset.orderIndex);
+        if (!isNaN(idx)) order = window.memberOrders[idx];
+    }
+    
+    if (!order) {
+        showToast('找不到訂單資料，請重新開啟訂單列表', 'error');
         return;
     }
     
     // 先關閉查詢訂單 modal
     document.getElementById('orderSearchModal').classList.remove('active');
     
-    const order = window.memberOrders[orderIndex];
     showOrderDetailByData(order);
 }
 
@@ -5169,7 +5182,7 @@ function showOrderDetailByData(order) {
                         ` : `
                             <div style="color:#aaa;font-size:14px;margin-bottom:8px;">💚 請輸入 LINE 顯示名稱後確認付款</div>
                             <div style="display:flex;gap:8px;align-items:center;">
-                                <input type="text" id="payment-code-input" placeholder="LINE 顯示名稱"
+                                <input type="text" id="payment-code-input" placeholder="LINE 顯示名稱" data-payment-type="linepay"
                                     style="flex:1;padding:10px;border:1.5px solid #06C755;border-radius:8px;background:rgba(0,0,0,0.5);color:#06C755;font-size:15px;font-weight:700;">
                                 <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#06C755,#00ff88);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
@@ -5180,7 +5193,7 @@ function showOrderDetailByData(order) {
                         ` : `
                             <div style="color:#aaa;font-size:14px;margin-bottom:8px;">💳 請輸入匯款末五碼後確認付款</div>
                             <div style="display:flex;gap:8px;align-items:center;">
-                                <input type="text" id="payment-code-input" placeholder="末五碼" maxlength="5"
+                                <input type="text" id="payment-code-input" placeholder="末五碼" maxlength="5" data-payment-type="transfer"
                                     style="flex:1;padding:10px;border:1.5px solid #FFD700;border-radius:8px;background:rgba(0,0,0,0.5);color:#FFD700;font-size:18px;font-weight:700;text-align:center;letter-spacing:3px;">
                                 <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#00c800,#00ff00);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
@@ -5302,7 +5315,8 @@ async function submitPaymentCode(orderId) {
     if (!input) { showToast('找不到輸入欄位', 'error'); return; }
     
     const paymentCode = input.value.trim();
-    const isLinePay = input.placeholder.includes('LINE');
+    // 🔥 改用 data-payment-type 判斷，比 placeholder 更可靠
+    const isLinePay = input.dataset.paymentType === 'linepay';
     let finalCode = paymentCode;
     
     if (!isLinePay) {
@@ -5412,7 +5426,7 @@ async function loadMemberOrders() {
             
             // 顯示訂單列表 + 總筆數，一次寫入避免 innerHTML+= 破壞事件
             ordersList.innerHTML = result.orders.map((order, index) => `
-                <div class="order-card" style="
+                <div class="order-card" data-order-index="${index}" style="
                     background: rgba(255, 255, 255, 0.05);
                     border: 1.5px solid rgba(255, 215, 0, 0.4);
                     border-radius: 14px;
@@ -5420,7 +5434,7 @@ async function loadMemberOrders() {
                     margin-bottom: 16px;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                " onclick="showOrderDetail(${index})">
+                ">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:12px;">
                         <div>
                             <div style="font-size:20px; font-weight:900; color:var(--primary);">
@@ -5461,6 +5475,14 @@ async function loadMemberOrders() {
                     共 ${result.orders.length} 筆訂單
                 </div>
             `;
+            // 🔥 用事件委派綁定點擊（避免特殊字元破壞 onclick 字串）
+            ordersList.onclick = function(e) {
+                const card = e.target.closest('.order-card');
+                if (!card) return;
+                const idx = parseInt(card.dataset.orderIndex);
+                if (!isNaN(idx)) showOrderDetail(idx);
+            };
+            
         } else {
             // 沒有訂單
             ordersList.innerHTML = `
