@@ -5214,8 +5214,39 @@ async function loadMemberOrders() {
 }
 
 // ==========================================
-// 提示訊息
+// 🔥 背景自動掃描逾時訂單（不需開詳情頁就會自動取消）
 // ==========================================
+async function autoCheckExpiredOrders() {
+    if (!currentMember || !currentMember.lineId) return;
+    try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getOrdersByLine&lineId=${encodeURIComponent(currentMember.lineId)}`);
+        const result = await response.json();
+        if (!result.success || !result.orders) return;
+
+        const now = new Date();
+        result.orders.forEach(order => {
+            // 只處理 7-11、待處理、未付款的訂單
+            if (order.取貨方式 !== '7-11店到店') return;
+            if (['取消訂單','訂單取消','已取消','已付款待出貨','已完成'].includes(order.訂單狀態)) return;
+
+            // 未填匯款碼 = 未付款
+            const hasPaid = (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '');
+            if (hasPaid) return;
+
+            const orderTime = new Date(order.訂購時間);
+            if (isNaN(orderTime)) return;
+            const deadline = new Date(orderTime.getTime() + 60 * 1000); // 1分鐘
+            if (now >= deadline) {
+                console.log('🔥 背景掃描：發現逾時訂單，自動取消', order.訂單編號);
+                cancelExpiredOrder(order.訂單編號);
+            }
+        });
+    } catch (e) {
+        // 背景掃描失敗不影響使用
+    }
+}
+
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -5528,13 +5559,18 @@ window.addEventListener('load', () => {
     
     // 正常初始化
     loadProductsData();
-    loadSystemSettings(); // 🆕 載入系統設定（匯款資訊）
+    loadSystemSettings();
     updateCart();
     checkMemberStatus();
     
-    // 🔥 啟動自動刷新庫存功能（每30秒刷新一次）
-    // 可以調整秒數：15秒更快但耗流量、60秒更慢但省流量
+    // 🔥 啟動自動刷新庫存功能
     startAutoRefresh(30);
+
+    // 🔥 背景掃描逾時訂單（登入後30秒開始，之後每60秒掃一次）
+    setTimeout(() => {
+        autoCheckExpiredOrders();
+        setInterval(autoCheckExpiredOrders, 60 * 1000);
+    }, 30000);
 });
 
 // 當用戶離開頁面時，停止自動刷新以節省資源
