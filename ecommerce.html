@@ -2025,10 +2025,6 @@
                             <span class="store-detail-value" id="storeAddress"></span>
                         </div>
                         
-                        <div class="store-detail">
-                            <span class="store-detail-label">門市電話：</span>
-                            <span class="store-detail-value" id="storePhone"></span>
-                        </div>
                         
                         <button type="button" class="change-store-btn" onclick="openECPayMap()">
                             重新選擇門市
@@ -2519,7 +2515,6 @@ function displaySelectedStore() {
         infoElement.classList.add('active');
         document.getElementById('storeName').textContent = selectedStore.name || '';
         document.getElementById('storeAddress').textContent = selectedStore.address || '';
-        document.getElementById('storePhone').textContent = selectedStore.phone || '';
         console.log('✅ 門市資訊已顯示在頁面上');
         // 顯示付款方式選擇
         showStorePaymentMethod();
@@ -4811,24 +4806,7 @@ function showOrderDetailByData(order) {
                     </div>
                 `;
             } else {
-                countdownHTML = `
-                    <div style="
-                        background: linear-gradient(135deg, rgba(255, 0, 0, 0.3), rgba(150, 0, 0, 0.3));
-                        border: 2px solid #ff0000;
-                        border-radius: 15px;
-                        padding: 30px;
-                        margin-bottom: 20px;
-                        text-align: center;
-                    ">
-                        <div style="font-size: 60px; margin-bottom: 15px;">⚠️</div>
-                        <h2 style="color: #ff4444; font-size: 24px; margin-bottom: 10px; font-weight: 900;">付款時間已逾期</h2>
-                        <div style="color: #ff8c00; font-size: 16px; line-height: 1.6; margin-top: 15px;">
-                            此訂單已超過付款時限<br>
-                            訂單已自動取消<br>
-                            <strong style="color: #FFD700;">請重新下單</strong>
-                        </div>
-                    </div>
-                `;
+                countdownHTML = '';  // 不顯示上方逾期區塊，只顯示下方紅色橫幅
             }
         } catch (e) {
             console.error('倒數計時錯誤:', e);
