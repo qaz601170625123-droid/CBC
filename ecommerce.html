@@ -3304,7 +3304,7 @@ function displayFeaturedProducts() {
         
         let imageUrl = categoryImages['主打商品'] || featuredProducts[0]?.image || '';
         if (imageUrl && !imageUrl.startsWith('http')) imageUrl = 'https://' + imageUrl;
-        if (!imageUrl) imageUrl = 'https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品';
+        if (!imageUrl) imageUrl = '';
         
         const card = document.createElement('div');
         card.className = 'product-card';
@@ -3314,7 +3314,7 @@ function displayFeaturedProducts() {
             <div class="featured-badge">⭐ 主打推薦</div>
 
             <div class="product-image">
-                <img src="${imageUrl}" alt="主打商品" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品'">
+                <img src="${imageUrl}" alt="主打商品" onerror="this.style.display='none'">
             </div>
             <div class="product-name">主打商品</div>
             <div class="product-price">$${minPrice}${minPrice !== maxPrice ? ` - $${maxPrice}` : ''}</div>
@@ -3342,7 +3342,7 @@ function displayFeaturedProducts() {
         // 圖片優先用「分類照片設定」，否則用第一個商品的圖片
         let imageUrl = categoryImages[blockName] || blockProducts[0]?.image || '';
         if (imageUrl && !imageUrl.startsWith('http')) imageUrl = 'https://' + imageUrl;
-        if (!imageUrl) imageUrl = `https://via.placeholder.com/300x300/1a1a2e/FFD700?text=${encodeURIComponent(blockName)}`;
+        if (!imageUrl) imageUrl = '';
         
         const priceText = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
         
@@ -3354,7 +3354,7 @@ function displayFeaturedProducts() {
             <div class="custom-block-badge">🎯 精選</div>
 
             <div class="product-image">
-                <img src="${imageUrl}" alt="${blockName}" onerror="this.src='https://via.placeholder.com/300x300/1a1a2e/FFD700?text=${encodeURIComponent(blockName)}'">
+                <img src="${imageUrl}" alt="${blockName}" onerror="this.style.display='none'">
             </div>
             <div class="product-name">${blockName}</div>
             <div class="product-price">${priceText}</div>
@@ -3478,7 +3478,7 @@ function renderFeaturedFlavorOptions() {
         imageUrl = 'https://' + imageUrl;
     }
     if (!imageUrl) {
-        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品`;
+        imageUrl = '';
     }
     // 小圖已移除
     
@@ -3585,13 +3585,13 @@ function displayProducts() {
             imageUrl = 'https://' + imageUrl;
         }
         if (!imageUrl) {
-            imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(category.name)}`;
+            imageUrl = '';
         }
         
         return `
             <div class="product-card" onclick="openCategoryModal('${category.name}')">
                 <div class="product-image">
-                    <img src="${imageUrl}" alt="${category.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(category.name)}'">
+                    <img src="${imageUrl}" alt="${category.name}" onerror="this.style.display='none'">
                 </div>
                 <div class="product-name">${category.name}</div>
                 <div class="product-price">$${category.minPrice}${category.minPrice !== category.maxPrice ? ` - $${category.maxPrice}` : ''}</div>
@@ -3685,7 +3685,7 @@ function renderFlavorOptions(categoryName) {
         imageUrl = 'https://' + imageUrl;
     }
     if (!imageUrl) {
-        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(categoryName)}`;
+        imageUrl = '';
     }
     // 小圖已移除
     
@@ -3749,7 +3749,7 @@ function selectFlavor(index) {
         imageUrl = 'https://' + imageUrl;
     }
     if (!imageUrl) {
-        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}`;
+        imageUrl = '';
     }
     // 小圖已移除
     
@@ -3997,7 +3997,7 @@ function selectSpec(index) {
         imageUrl = 'https://' + imageUrl;
     }
     if (!imageUrl) {
-        imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}`;
+        imageUrl = '';
     }
     
     // 小圖已移除
