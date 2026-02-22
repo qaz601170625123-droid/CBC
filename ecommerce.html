@@ -2291,7 +2291,9 @@ function generateMerchantTradeNo() {
  * 偵測裝置類型
  */
 function getDeviceType() {
-    return '0'; // 永遠使用手機版
+    // 讓綠界根據真實裝置自動判斷
+    const ua = navigator.userAgent;
+    return /Mobi|Android|iPhone|iPad/i.test(ua) ? '0' : '1';
 }
 
 // ==========================================
@@ -2361,12 +2363,17 @@ function openECPayMap() {
     localStorage.setItem('ecpay_merchant_trade_no', merchantTradeNo);
     console.log('✅ 已儲存訂單編號到 localStorage:', merchantTradeNo);
     
-    // 🔥 開啟彈窗（800x600）
-    const ecpayWindow = window.open('', 'ecpayWindow', 'width=800,height=600,scrollbars=yes');
+    // 手機直接開新分頁，電腦開大彈窗
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    let ecpayWindow;
+    if (isMobile) {
+        ecpayWindow = window.open('', 'ecpayWindow');
+    } else {
+        ecpayWindow = window.open('', 'ecpayWindow', 'width=900,height=700,scrollbars=yes');
+    }
     
     if (ecpayWindow) {
         console.log('✅ 彈窗已開啟');
-        // 提交表單到彈窗
         document.getElementById('ecpayMapForm').submit();
         showToast('開啟門市選擇視窗...', 'success');
     } else {
@@ -4562,7 +4569,8 @@ async function submitOrder() {
         付款狀態: '待付款', // 🆕 付款狀態
         門市名稱: shipping === '711' ? selectedStore.name : '-',
         門市地址: shipping === '711' ? selectedStore.address : '-',
-        匯款末五碼: paymentMethod === 'linepay' ? ('LINE:' + (window._linePayName || '')) : '',
+        匯款末五碼: '',  // LINE Pay 待確認，名字存在備註
+        備註: paymentMethod === 'linepay' ? ('LINE Pay 名稱：' + (window._linePayName || '')) : '',
         商品明細: cart.map(item => {
             const multiplier = item.quantityMultiplier || 1;
             const displayQty = multiplier > 1 ? `${item.quantity}組(共${item.quantity * multiplier}個)` : `${item.quantity}`;
@@ -4742,11 +4750,11 @@ function showOrderDetailByData(order) {
     
     // 已填末五碼/LINE名稱 或 已付款待出貨 = 已付款
     // 優先用 GAS 回傳的 order.付款方式，若為空（舊訂單）則用 匯款末五碼 開頭 LINE: 來判斷
-    const isLinePayOrder = order.付款方式 === 'LINE Pay' || 
-                           (!order.付款方式 && order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:'));
-    const linePayFilled = isLinePayOrder && order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '';
+    const isLinePayOrder = order.付款方式 === 'LINE Pay';
+    // LINE Pay：只有訂單狀態變「已付款待出貨」才算已付款（由你手動確認）
+    // 匯款：填了末五碼才算已付款
     const transferFilled = !isLinePayOrder && order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:');
-    const hasPaid = linePayFilled || transferFilled || order.訂單狀態 === '已付款待出貨';
+    const hasPaid = (isLinePayOrder && order.訂單狀態 === '已付款待出貨') || transferFilled || order.訂單狀態 === '已付款待出貨';
     
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
@@ -4961,9 +4969,9 @@ function startCountdown(orderId, orderTime) {
             if (remaining <= 0) {
                 clearInterval(timer);
                 
-                // 已付款（payment-code-section 顯示 ✅）就不取消也不顯示逾期
+                // 已付款就不取消
                 const paidSection = document.getElementById('payment-code-section');
-                const alreadyPaid = paidSection && paidSection.textContent.includes('✅');
+                const alreadyPaid = paidSection && (paidSection.textContent.includes('✅') || paidSection.textContent.includes('已付款'));
                 if (alreadyPaid) return;
                 
                 // 自動取消訂單
