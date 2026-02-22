@@ -4408,13 +4408,8 @@ function toggleStorePayment() {
     const method = document.querySelector('input[name="storePayment"]:checked')?.value;
     const bankInfo = document.getElementById('storeBankInfo');
     const linePayInfo = document.getElementById('storeLinePayInfo');
-    if (method === 'linepay') {
-        bankInfo.style.display = 'none';
-        linePayInfo.style.display = 'block';
-    } else {
-        bankInfo.style.display = 'block';
-        linePayInfo.style.display = 'none';
-    }
+    if (bankInfo) bankInfo.style.display = (method === 'linepay') ? 'none' : 'block';
+    if (linePayInfo) linePayInfo.style.display = (method === 'linepay') ? 'block' : 'none';
 }
 
 // 更新 7-11 匯款資訊
@@ -4433,7 +4428,7 @@ function updateStoreBankInfo() {
 function toggleBankInfo() {
     const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
     const bankInfo = document.getElementById('bankInfo');
-    
+    if (!bankInfo) return;
     if (paymentMethod === 'transfer') {
         bankInfo.classList.add('active');
     } else {
