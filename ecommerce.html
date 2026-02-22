@@ -4556,6 +4556,7 @@ async function submitOrder() {
         付款方式: shipping === '711' ? (paymentMethod === 'linepay' ? 'LINE Pay' : '匯款') : (paymentMethod === 'cash' ? '現場付款' : '匯款'),
         付款狀態: '待付款', // 🆕 付款狀態
         門市名稱: shipping === '711' ? selectedStore.name : '-',
+        門市代碼: shipping === '711' ? (selectedStore.id || '') : '-',
         門市地址: shipping === '711' ? selectedStore.address : '-',
         匯款末五碼: paymentMethod === 'linepay' ? ('LINE:' + (window._linePayName || '')) : '',
         商品明細: cart.map(item => {
