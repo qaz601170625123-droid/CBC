@@ -4965,8 +4965,11 @@ async function openOrderSearch() {
         return;
     }
     
-    // 顯示模態框
-    document.getElementById('orderSearchModal').classList.add('active');
+    // 顯示模態框（重置任何 style.display 覆蓋）
+    const osm = document.getElementById('orderSearchModal');
+    osm.style.display = '';
+    osm.classList.add('active');
+    window._orderDetailFromSearch = false;
     
     // 🔥 添加歷史記錄
     history.pushState({ modal: 'orderSearch' }, '');
@@ -4986,8 +4989,11 @@ async function openOrderSearch() {
 
 
 function closeOrderSearch() {
-    document.getElementById('orderSearchModal').classList.remove('active');
+    const osm = document.getElementById('orderSearchModal');
+    osm.classList.remove('active');
+    osm.style.display = '';
     isModalOpen = false;
+    window._orderDetailFromSearch = false;
 }
 
 // ==========================================
@@ -5039,8 +5045,10 @@ function showOrderDetail(orderIndex) {
         return;
     }
     
-    // 先關閉查詢訂單 modal
-    document.getElementById('orderSearchModal').classList.remove('active');
+    // 🔥 不關閉 orderSearchModal，只是暫時隱藏（返回時還能回去）
+    document.getElementById('orderSearchModal').style.display = 'none';
+    // 標記是從 orderSearch 進來的
+    window._orderDetailFromSearch = true;
     
     showOrderDetailByData(order);
 }
@@ -5138,7 +5146,7 @@ function showOrderDetailByData(order) {
 
                 <!-- 頂部：返回 + 狀態 -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <button onclick="closeOrderDetail()" style="background:rgba(255,215,0,0.1);border:1.5px solid #FFD700;color:#FFD700;padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 返回</button>
+                    <button onclick="closeOrderDetail()" style="background:rgba(255,215,0,0.1);border:1.5px solid #FFD700;color:#FFD700;padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 訂單列表</button>
                     <div style="background:${statusColor};color:#000;padding:7px 18px;border-radius:20px;font-size:15px;font-weight:900;">${order.訂單狀態}</div>
                 </div>
 
@@ -5412,6 +5420,17 @@ function closeOrderDetail() {
     const detailView = document.getElementById('orderDetailView');
     if (detailView) detailView.remove();
     isModalOpen = false;
+    
+    // 🔥 若是從查詢訂單進來的，返回時重新顯示訂單列表
+    if (window._orderDetailFromSearch) {
+        window._orderDetailFromSearch = false;
+        const orderSearchModal = document.getElementById('orderSearchModal');
+        orderSearchModal.style.display = '';   // 恢復 display
+        orderSearchModal.classList.add('active');
+        isModalOpen = true;
+        // 補一筆 history state，讓再按返回可以關掉 orderSearch
+        history.pushState({ modal: 'orderSearch' }, '');
+    }
 }
 
 async function loadMemberOrders() {
