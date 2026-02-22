@@ -1914,8 +1914,7 @@
                 <button class="close-modal" onclick="closeSpecModal()">×</button>
             </div>
             <div class="spec-header-container">
-                <div class="spec-image" id="specModalImage"></div>
-                <div class="spec-info-display">
+                <div class="spec-info-display" style="width:100%">
                     <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
                     <div class="spec-info-stock" id="specInfoStock"></div>
                 </div>
@@ -3398,7 +3397,7 @@ function openFeaturedCategoryModal() {
 
 function renderFeaturedFlavorOptions() {
     const optionsContainer = document.getElementById('specOptions');
-    const imageContainer = document.getElementById('specModalImage');
+    const imageContainer = null; // 小圖已移除
     const priceDisplay = document.getElementById('specInfoPrice');
     const stockDisplay = document.getElementById('specInfoStock');
     
@@ -3426,7 +3425,7 @@ function renderFeaturedFlavorOptions() {
     if (!imageUrl) {
         imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品`;
     }
-    imageContainer.innerHTML = `<img src="${imageUrl}" alt="主打商品" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品'">`;
+    // 小圖已移除
     
     // 更新價格和庫存
     priceDisplay.textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
@@ -3604,7 +3603,7 @@ function openCategoryModal(categoryName) {
 
 function renderFlavorOptions(categoryName) {
     const optionsContainer = document.getElementById('specOptions');
-    const imageContainer = document.getElementById('specModalImage');
+    const imageContainer = null; // 小圖已移除
     const priceDisplay = document.getElementById('specInfoPrice');
     const stockDisplay = document.getElementById('specInfoStock');
     
@@ -3632,7 +3631,7 @@ function renderFlavorOptions(categoryName) {
     if (!imageUrl) {
         imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(categoryName)}`;
     }
-    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${categoryName}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(categoryName)}'">`;
+    // 小圖已移除
     
     // 更新價格和庫存
     priceDisplay.textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
@@ -3687,7 +3686,7 @@ function selectFlavor(index) {
     });
     
     // 更新圖片
-    const imageContainer = document.getElementById('specModalImage');
+    const imageContainer = null; // 小圖已移除
     let imageUrl = product.image || '';
     if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
         imageUrl = 'https://' + imageUrl;
@@ -3695,7 +3694,7 @@ function selectFlavor(index) {
     if (!imageUrl) {
         imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}`;
     }
-    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(product.name)}'">`;
+    // 小圖已移除
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
     renderQuantitySpecOptions(specs);
@@ -3933,7 +3932,7 @@ function selectSpec(index) {
     });
     
     // 更新圖片
-    const imageContainer = document.getElementById('specModalImage');
+    const imageContainer = null; // 小圖已移除
     let imageUrl = spec.image || currentProduct.image || '';
     
     // 自動補上 https://
@@ -3944,7 +3943,7 @@ function selectSpec(index) {
         imageUrl = `https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}`;
     }
     
-    imageContainer.innerHTML = `<img src="${imageUrl}" alt="${spec.specName}" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=${encodeURIComponent(currentProduct.name)}'">`;
+    // 小圖已移除
     
     // 更新價格和庫存顯示
     document.getElementById('specInfoPrice').textContent = `$${spec.price}`;
