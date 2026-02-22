@@ -4742,11 +4742,9 @@ function showOrderDetailByData(order) {
     
     // 已填末五碼/LINE名稱 或 已付款待出貨 = 已付款
     // 優先用 GAS 回傳的 order.付款方式，若為空（舊訂單）則用 匯款末五碼 開頭 LINE: 來判斷
-    const isLinePayOrder = order.付款方式 === 'LINE Pay' || 
-                           (!order.付款方式 && order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:'));
-    const linePayFilled = isLinePayOrder && order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '';
+    const isLinePayOrder = order.付款方式 === 'LINE Pay';
     const transferFilled = !isLinePayOrder && order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:');
-    const hasPaid = linePayFilled || transferFilled || order.訂單狀態 === '已付款待出貨';
+    const hasPaid = (isLinePayOrder && order.訂單狀態 === '已付款待出貨') || transferFilled || (!isLinePayOrder && order.訂單狀態 === '已付款待出貨');
     
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
         try {
@@ -5229,8 +5227,11 @@ async function autoCheckExpiredOrders() {
             if (order.取貨方式 !== '7-11店到店') return;
             if (['取消訂單','訂單取消','已取消','已付款待出貨','已完成'].includes(order.訂單狀態)) return;
 
-            // 未填匯款碼 = 未付款
-            const hasPaid = (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '');
+            // 未付款判斷：LINE Pay 看訂單狀態，匯款看末五碼
+            const isLinePay = order.付款方式 === 'LINE Pay';
+            const hasPaid = isLinePay
+                ? order.訂單狀態 === '已付款待出貨'
+                : (order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:'));
             if (hasPaid) return;
 
             const orderTime = new Date(order.訂購時間);
