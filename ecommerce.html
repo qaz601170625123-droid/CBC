@@ -5160,7 +5160,10 @@ async function loadMemberOrders() {
         const ordersList = document.getElementById('ordersList');
         
         if (result.success && result.orders && result.orders.length > 0) {
-            // 顯示訂單列表
+            // 🔥 先儲存訂單資料，再渲染 HTML（避免 onclick 時資料還沒準備好）
+            window.memberOrders = result.orders;
+            
+            // 顯示訂單列表 + 總筆數，一次寫入避免 innerHTML+= 破壞事件
             ordersList.innerHTML = result.orders.map((order, index) => `
                 <div class="order-card" style="
                     background: rgba(255, 255, 255, 0.05);
@@ -5206,13 +5209,7 @@ async function loadMemberOrders() {
                         </span>
                     </div>
                 </div>
-            `).join('');
-            
-            // 儲存訂單資料到全域變數
-            window.memberOrders = result.orders;
-            
-            // 加上總訂單數
-            ordersList.innerHTML += `
+            `).join('') + `
                 <div style="text-align:center; padding:20px; color:#999; font-size:14px;">
                     共 ${result.orders.length} 筆訂單
                 </div>
