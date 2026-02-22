@@ -4876,15 +4876,15 @@ function showOrderDetailByData(order) {
                             <div style="display:grid;gap:12px;">
                                 <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
                                     <span style="color:#999;font-size:14px;">銀行名稱</span>
-                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">台新銀行（812）</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">${systemSettings.bankName || '請聯繫客服'}</span>
                                 </div>
                                 <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
                                     <span style="color:#999;font-size:14px;">帳號</span>
-                                    <span style="color:#FFD700;font-weight:700;font-size:16px;letter-spacing:2px;">2028-01-0002558-8</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:16px;letter-spacing:2px;">${systemSettings.bankAccount || '請聯繫客服'}</span>
                                 </div>
                                 <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
-                                    <span style="color:#999;font-size:14px;">戶名</span>
-                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">周冠廷</span>
+                                    <span style="color:#999;font-size:14px;">注意事項</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">${systemSettings.bankHolder || '請聯繫客服'}</span>
                                 </div>
                                 <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
                                     <span style="color:#999;font-size:14px;">匯款金額</span>
