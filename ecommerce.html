@@ -5056,6 +5056,22 @@ function showOrderDetail(orderIndex) {
 
 // 統一的訂單詳情顯示函數
 function showOrderDetailByData(order) {
+    // 🔥 防呆：確保 order 是有效物件
+    if (!order || typeof order !== 'object') {
+        showToast('訂單資料格式錯誤', 'error');
+        // 恢復 orderSearch modal
+        const osm = document.getElementById('orderSearchModal');
+        if (osm) { osm.style.display = ''; osm.classList.add('active'); }
+        return;
+    }
+    // 確保關鍵欄位有值（避免 .replace 在 undefined 上爆炸）
+    order.訂單編號 = order.訂單編號 || ('ORD' + Date.now());
+    order.訂購時間 = order.訂購時間 || new Date().toISOString();
+    order.商品明細 = order.商品明細 || '';
+    order.匯款末五碼 = order.匯款末五碼 || '-';
+    order.付款方式 = order.付款方式 || '';
+    order.取貨方式 = order.取貨方式 || '';
+    order.訂單狀態 = order.訂單狀態 || '待處理';
     
     // 🔥 檢查是否逾時並自動取消訂單
     let isExpired = false;
@@ -5090,7 +5106,7 @@ function showOrderDetailByData(order) {
     
     // 計算剩餘時間（如果是7-11店到店）
     let countdownHTML = '';
-    const orderIdHash = order.訂單編號.replace(/[^a-zA-Z0-9]/g, ''); // 移除特殊字元
+    const orderIdHash = (order.訂單編號 || '').replace(/[^a-zA-Z0-9]/g, '') || 'order'; // 移除特殊字元
     
     // 已付款的訂單不顯示倒數或逾期
     if (order.取貨方式 === '7-11店到店' && !hasPaid) {
@@ -5204,7 +5220,7 @@ function showOrderDetailByData(order) {
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <input type="text" id="payment-code-input" placeholder="LINE 顯示名稱" data-payment-type="linepay"
                                     style="flex:1;padding:10px;border:1.5px solid #06C755;border-radius:8px;background:rgba(0,0,0,0.5);color:#06C755;font-size:15px;font-weight:700;">
-                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#06C755,#00ff88);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
+                                <button onclick="submitPaymentCode()" style="background:linear-gradient(135deg,#06C755,#00ff88);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
                         `}
                     ` : `
@@ -5215,7 +5231,7 @@ function showOrderDetailByData(order) {
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <input type="text" id="payment-code-input" placeholder="末五碼" maxlength="5" data-payment-type="transfer"
                                     style="flex:1;padding:10px;border:1.5px solid #FFD700;border-radius:8px;background:rgba(0,0,0,0.5);color:#FFD700;font-size:18px;font-weight:700;text-align:center;letter-spacing:3px;">
-                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#00c800,#00ff00);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
+                                <button onclick="submitPaymentCode()" style="background:linear-gradient(135deg,#00c800,#00ff00);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
                         `}
                     `}
@@ -5236,6 +5252,8 @@ function showOrderDetailByData(order) {
     detailDiv.id = 'orderDetailView';
     detailDiv.innerHTML = detailHTML;
     document.body.appendChild(detailDiv);
+    // 🔥 把訂單編號存到 window，讓 submitPaymentCode 不需要依賴 onclick 字串
+    window._currentOrderId = order.訂單編號;
     
     // 加入 history，讓返回鍵可以關掉詳情頁而不是跳回首頁
     history.pushState({ modal: 'orderDetail' }, '');
@@ -5249,7 +5267,7 @@ function showOrderDetailByData(order) {
 
 // 倒數計時函數
 function startCountdown(orderId, orderTime) {
-    const orderIdHash = orderId.replace(/[^a-zA-Z0-9]/g, ''); // 移除特殊字元
+    const orderIdHash = (orderId || '').replace(/[^a-zA-Z0-9]/g, '') || 'order';
     const countdownEl = document.getElementById(`countdown-${orderIdHash}`);
     if (!countdownEl) return;
     
@@ -5331,6 +5349,9 @@ async function cancelExpiredOrder(orderId) {
 // 🆕 提交匯款末五碼 / LINE Pay 名稱
 // ==========================================
 async function submitPaymentCode(orderId) {
+    // 🔥 優先用傳入的 orderId，若無則從 window._currentOrderId 取
+    if (!orderId) orderId = window._currentOrderId;
+    if (!orderId) { showToast('找不到訂單編號', 'error'); return; }
     const input = document.getElementById('payment-code-input');
     if (!input) { showToast('找不到輸入欄位', 'error'); return; }
     
