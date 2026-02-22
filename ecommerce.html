@@ -439,8 +439,8 @@
 
         .product-image {
             width: 100%;
-            height: 200px;
-            background: #f5f5f5;
+            aspect-ratio: 1 / 1;
+            background: #000;
             border-radius: 10px;
             margin-bottom: 15px;
             display: flex;
@@ -453,7 +453,7 @@
         .product-image img {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
         }
 
         .product-name {
@@ -1277,7 +1277,7 @@
             }
 
             .product-image {
-                height: 180px;
+                aspect-ratio: 1 / 1;
             }
 
             .cart-float {
@@ -1357,7 +1357,7 @@
             }
             
             .featured-grid .product-image {
-                height: 140px;
+                aspect-ratio: 1 / 1;
             }
             
             .featured-grid .product-name {
@@ -1413,7 +1413,7 @@
             }
 
             .product-image {
-                height: 120px;
+                aspect-ratio: 1 / 1;
             }
 
             .product-name {
@@ -2045,41 +2045,7 @@
                         </label>
                     </div>
                     
-                    <!-- 匯款資訊 -->
-                    <div id="storeBankInfo" class="bank-info" style="display:block;">
-                        <div class="bank-info-card">
-                            <h4>💳 匯款帳戶資訊</h4>
-                            <div class="bank-detail">
-                                <span class="label">銀行：</span>
-                                <span class="value" id="storeBankName">載入中...</span>
-                            </div>
-                            <div class="bank-detail">
-                                <span class="label">帳號：</span>
-                                <span class="value" id="storeBankAccount">載入中...</span>
-                            </div>
-                            <div class="bank-detail">
-                                <span class="label">戶名：</span>
-                                <span class="value" id="storeBankHolder">載入中...</span>
-                            </div>
-                            <div class="bank-notice">
-                                ⚠️ 請在匯款後填寫訂單頁面的帳號末五碼
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- LINE Pay 資訊 -->
-                    <div id="storeLinePayInfo" style="display:none;">
-                        <div class="bank-info-card">
-                            <h4>💚 LINE Pay 付款</h4>
-                            <div class="bank-detail">
-                                <span class="label">LINE Pay 帳號：</span>
-                                <span class="value" id="linePayAccount">載入中...</span>
-                            </div>
-                            <div class="bank-notice">
-                                ⚠️ 請付款後至訂單頁面填寫您的 LINE 顯示名稱
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- 🆕 自取付款方式選擇 -->
@@ -2096,27 +2062,7 @@
                         </label>
                     </div>
                     
-                    <!-- 🆕 匯款資訊顯示區 -->
-                    <div id="bankInfo" class="bank-info">
-                        <div class="bank-info-card">
-                            <h4>💳 匯款帳戶資訊</h4>
-                            <div class="bank-detail">
-                                <span class="label">銀行：</span>
-                                <span class="value" id="bankName">載入中...</span>
-                            </div>
-                            <div class="bank-detail">
-                                <span class="label">帳號：</span>
-                                <span class="value" id="bankAccount">載入中...</span>
-                            </div>
-                            <div class="bank-detail">
-                                <span class="label">戶名：</span>
-                                <span class="value" id="bankHolder">載入中...</span>
-                            </div>
-                            <div class="bank-notice">
-                                ⚠️ 請在匯款後填寫下方的帳號末五碼
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 
