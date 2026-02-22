@@ -5011,6 +5011,7 @@ function showNewOrderDetail(orderData) {
         電話: orderData.電話,
         取貨方式: orderData.取貨方式,
         門市名稱: orderData.門市名稱 || '-',
+        付款方式: orderData.付款方式 || '',   // 🔥 補上付款方式，否則 LINE Pay 判斷失敗
         商品明細: orderData.商品明細,
         商品金額: orderData.商品金額,
         運費: orderData.運費,
