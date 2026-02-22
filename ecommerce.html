@@ -2031,6 +2031,61 @@
                     </div>
                 </div>
                 
+                <!-- 7-11 付款方式選擇 -->
+                <div id="storePaymentMethod" class="pickup-payment-method" style="display:none;">
+                    <label class="form-label">💰 付款方式</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="storePayment" value="transfer" checked onchange="toggleStorePayment()">
+                            🏦 匯款
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="storePayment" value="linepay" onchange="toggleStorePayment()">
+                            💚 LINE Pay
+                        </label>
+                    </div>
+                    
+                    <!-- 匯款資訊 -->
+                    <div id="storeBankInfo" class="bank-info" style="display:block;">
+                        <div class="bank-info-card">
+                            <h4>💳 匯款帳戶資訊</h4>
+                            <div class="bank-detail">
+                                <span class="label">銀行：</span>
+                                <span class="value" id="storeBankName">載入中...</span>
+                            </div>
+                            <div class="bank-detail">
+                                <span class="label">帳號：</span>
+                                <span class="value" id="storeBankAccount">載入中...</span>
+                            </div>
+                            <div class="bank-detail">
+                                <span class="label">戶名：</span>
+                                <span class="value" id="storeBankHolder">載入中...</span>
+                            </div>
+                            <div class="bank-notice">
+                                ⚠️ 請在匯款後填寫訂單頁面的帳號末五碼
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- LINE Pay 資訊 -->
+                    <div id="storeLinePayInfo" style="display:none;">
+                        <div class="bank-info-card">
+                            <h4>💚 LINE Pay 付款</h4>
+                            <div class="bank-detail">
+                                <span class="label">LINE Pay 帳號：</span>
+                                <span class="value" id="linePayAccount">載入中...</span>
+                            </div>
+                            <div class="bank-notice">
+                                ⚠️ 請付款後填寫下方您的 LINE 顯示名稱
+                            </div>
+                            <div style="margin-top:10px;">
+                                <label class="form-label" style="font-size:13px;">您的 LINE 顯示名稱</label>
+                                <input type="text" id="linePayName" class="form-input" placeholder="請輸入您的 LINE 顯示名稱" style="margin-top:5px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 🆕 自取付款方式選擇 -->
                 <div id="pickupPaymentMethod" class="pickup-payment-method">
                     <label class="form-label">💰 付款方式</label>
@@ -2519,6 +2574,8 @@ function displaySelectedStore() {
         document.getElementById('storeAddress').textContent = selectedStore.address || '';
         document.getElementById('storePhone').textContent = selectedStore.phone || '';
         console.log('✅ 門市資訊已顯示在頁面上');
+        // 顯示付款方式選擇
+        showStorePaymentMethod();
     } else {
         console.error('❌ 找不到 selectedStoreInfo 元素');
     }
@@ -4362,30 +4419,62 @@ function toggleShippingMethod() {
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const storeSelector = document.getElementById('storeSelector');
     const pickupPayment = document.getElementById('pickupPaymentMethod');
+    const storePayment = document.getElementById('storePaymentMethod');
     
     if (shipping === '711') {
-        // 顯示 7-11 門市選擇
         storeSelector.classList.add('active');
         pickupPayment.classList.remove('active');
+        storePayment.style.display = 'none';
         selectedStore = null;
     } else {
-        // 顯示自取付款方式
         storeSelector.classList.remove('active');
         pickupPayment.classList.add('active');
+        storePayment.style.display = 'none';
         selectedStore = null;
         
-        // 清除選擇的門市資訊
         const infoElement = document.getElementById('selectedStoreInfo');
-        if (infoElement) {
-            infoElement.classList.remove('active');
-        }
+        if (infoElement) infoElement.classList.remove('active');
         
-        // 根據付款方式決定是否顯示匯款資訊
         toggleBankInfo();
     }
     
-    // 🔥 更新結帳摘要（重新計算運費）
     updateCheckoutSummary();
+}
+
+// 門市選完後顯示付款方式
+function showStorePaymentMethod() {
+    const storePayment = document.getElementById('storePaymentMethod');
+    if (storePayment) {
+        storePayment.style.display = 'block';
+        updateStoreBankInfo();
+        toggleStorePayment();
+    }
+}
+
+// 切換 7-11 付款方式
+function toggleStorePayment() {
+    const method = document.querySelector('input[name="storePayment"]:checked')?.value;
+    const bankInfo = document.getElementById('storeBankInfo');
+    const linePayInfo = document.getElementById('storeLinePayInfo');
+    if (method === 'linepay') {
+        bankInfo.style.display = 'none';
+        linePayInfo.style.display = 'block';
+    } else {
+        bankInfo.style.display = 'block';
+        linePayInfo.style.display = 'none';
+    }
+}
+
+// 更新 7-11 匯款資訊
+function updateStoreBankInfo() {
+    const el1 = document.getElementById('storeBankName');
+    const el2 = document.getElementById('storeBankAccount');
+    const el3 = document.getElementById('storeBankHolder');
+    const el4 = document.getElementById('linePayAccount');
+    if (el1) el1.textContent = systemSettings.bankName || '請聯繫客服';
+    if (el2) el2.textContent = systemSettings.bankAccount || '請聯繫客服';
+    if (el3) el3.textContent = systemSettings.bankHolder || 'CANDY BOSS';
+    if (el4) el4.textContent = systemSettings.linePayAccount || '請聯繫客服';
 }
 
 // 🆕 切換匯款資訊顯示
@@ -4413,6 +4502,7 @@ async function loadSystemSettings() {
                 if (row[0] === '匯款銀行') systemSettings.bankName = row[1] || '';
                 if (row[0] === '匯款帳號') systemSettings.bankAccount = row[1] || '';
                 if (row[0] === '匯款戶名') systemSettings.bankHolder = row[1] || '';
+                if (row[0] === 'LINE Pay帳號') systemSettings.linePayAccount = row[1] || '';
             });
             
             console.log('✅ 系統設定載入成功:', systemSettings);
@@ -4463,12 +4553,24 @@ async function submitOrder() {
     if (shipping === 'pickup') {
         paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || '';
     } else if (shipping === '711') {
-        // 7-11 驗證門市
         if (!selectedStore) {
             showToast('請選擇 7-11 門市', 'error');
             return;
         }
-        paymentMethod = 'cod'; // 貨到付款
+        const storePaymentVal = document.querySelector('input[name="storePayment"]:checked')?.value || 'transfer';
+        if (storePaymentVal === 'linepay') {
+            const linePayName = document.getElementById('linePayName')?.value.trim();
+            if (!linePayName) {
+                showToast('請填寫您的 LINE 顯示名稱', 'error');
+                document.getElementById('linePayName')?.focus();
+                return;
+            }
+            paymentMethod = 'linepay';
+            window._linePayName = linePayName;
+        } else {
+            paymentMethod = 'transfer';
+            window._linePayName = '';
+        }
     }
 
     // 🔥 設定提交中標記，防止重複點擊
@@ -4515,11 +4617,11 @@ async function submitOrder() {
         姓名: name,
         電話: phone,
         取貨方式: shipping === '711' ? '7-11店到店' : '自取',
-        付款方式: shipping === '711' ? '貨到付款' : (paymentMethod === 'cash' ? '現場付款' : '匯款'),
+        付款方式: shipping === '711' ? (paymentMethod === 'linepay' ? 'LINE Pay' : '匯款') : (paymentMethod === 'cash' ? '現場付款' : '匯款'),
         付款狀態: '待付款', // 🆕 付款狀態
         門市名稱: shipping === '711' ? selectedStore.name : '-',
         門市地址: shipping === '711' ? selectedStore.address : '-',
-        匯款末五碼: '', // 🆕 初始為空，之後在訂單頁面填寫
+        匯款末五碼: paymentMethod === 'linepay' ? ('LINE:' + (window._linePayName || '')) : '',
         商品明細: cart.map(item => {
             const multiplier = item.quantityMultiplier || 1;
             const displayQty = multiplier > 1 ? `${item.quantity}組(共${item.quantity * multiplier}個)` : `${item.quantity}`;
