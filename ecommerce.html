@@ -5068,87 +5068,54 @@ function showOrderDetailByData(order) {
     order.訂單編號 = order.訂單編號 || ('ORD' + Date.now());
     order.訂購時間 = order.訂購時間 || new Date().toISOString();
     order.商品明細 = order.商品明細 || '';
-    order.匯款末五碼 = order.匯款末五碼 || '-';
+    // 🔥 匯款末五碼：只有 undefined/null 才補 '-'，空字串也保留（不覆蓋掉有效值）
+    if (order.匯款末五碼 === undefined || order.匯款末五碼 === null) order.匯款末五碼 = '-';
     order.付款方式 = order.付款方式 || '';
     order.取貨方式 = order.取貨方式 || '';
     order.訂單狀態 = order.訂單狀態 || '待處理';
     
-    // 🔥 檢查是否逾時並自動取消訂單
     let isExpired = false;
     let shouldShowPaymentButton = true;
     
-    // 已填末五碼/LINE名稱 或 已付款待出貨 = 已付款
-    // 優先用 GAS 回傳的 order.付款方式，若為空（舊訂單）則用 匯款末五碼 開頭 LINE: 來判斷
     const isLinePayOrder = order.付款方式 === 'LINE Pay';
-    const transferFilled = !isLinePayOrder && order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:');
-    const hasPaid = (isLinePayOrder && order.訂單狀態 === '已付款待出貨') || transferFilled || (!isLinePayOrder && order.訂單狀態 === '已付款待出貨');
+    const cancelledStatuses = ['取消訂單', '訂單取消', '已取消'];
     
-    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
-        try {
-            const orderTime = new Date(order.訂購時間);
-            const now = new Date();
-            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1分鐘
-            const remaining = deadline - now;
-            
-            if (remaining <= 0) {
-                isExpired = true;
-                shouldShowPaymentButton = false;
-                
-                // 自動取消訂單（呼叫 GAS）
-                if (order.訂單狀態 !== '取消訂單' && order.訂單狀態 !== '訂單取消' && order.訂單狀態 !== '已取消' && order.訂單狀態 !== '已付款待出貨') {
-                    cancelExpiredOrder(order.訂單編號);
-                }
-            }
-        } catch (e) {
-            console.error('檢查逾時錯誤:', e);
-        }
+    // 🔥 已付款判斷（三種情況都算已付款）：
+    // 1. 訂單狀態是「已付款待出貨」
+    // 2. 匯款：末五碼有填（非空、非'-'、非LINE:開頭）
+    // 3. LINE Pay：匯款欄以 LINE: 開頭且名稱非空
+    const transferFilled = !isLinePayOrder && order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼 !== '' && !order.匯款末五碼.startsWith('LINE:');
+    const linePayFilled  = isLinePayOrder  && order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '';
+    const hasPaid = order.訂單狀態 === '已付款待出貨' || transferFilled || linePayFilled;
+    
+    // 🔥 逾期判斷：只看訂單狀態，不做時間計算（避免誤殺正常訂單）
+    if (cancelledStatuses.includes(order.訂單狀態)) {
+        isExpired = true;
+        shouldShowPaymentButton = false;
     }
     
-    // 計算剩餘時間（如果是7-11店到店）
+    // 倒數計時：只有 7-11、未付款、未取消才顯示
     let countdownHTML = '';
-    const orderIdHash = (order.訂單編號 || '').replace(/[^a-zA-Z0-9]/g, '') || 'order'; // 移除特殊字元
+    const orderIdHash = (order.訂單編號 || '').replace(/[^a-zA-Z0-9]/g, '') || 'order';
     
-    // 已付款的訂單不顯示倒數或逾期
-    if (order.取貨方式 === '7-11店到店' && !hasPaid) {
+    if (order.取貨方式 === '7-11店到店' && !hasPaid && !isExpired) {
         try {
             const orderTime = new Date(order.訂購時間);
             const now = new Date();
-            const deadline = new Date(orderTime.getTime() + 1 * 60 * 1000); // 下單後1分鐘
+            const deadline = new Date(orderTime.getTime() + 30 * 60 * 1000); // 30分鐘
             const remaining = deadline - now;
             
             if (remaining > 0) {
                 const hours = Math.floor(remaining / (1000 * 60 * 60));
                 const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-                
-                countdownHTML = `
-                    <div id="countdown-container-${orderIdHash}" style="
-                        background: linear-gradient(135deg, rgba(255, 69, 0, 0.2), rgba(255, 140, 0, 0.2));
-                        border: 1.5px solid #ff4500;
-                        border-radius: 10px;
-                        padding: 8px 12px;
-                        margin-bottom: 8px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 10px;
-                    ">
-                        <span style="color:#ff4500;font-size:12px;font-weight:700;white-space:nowrap;">⏰ 付款倒數</span>
-                        <div id="countdown-${orderIdHash}" style="
-                            font-size: 20px;
-                            font-weight: 900;
-                            color: #FFD700;
-                            font-family: 'Orbitron', monospace;
-                        ">
-                            ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}
-                        </div>
-                        <div style="color:#ff8c00;font-size:15px;font-weight:700;white-space:nowrap;">
-                            請盡快完成付款
-                        </div>
-                    </div>
-                `;
-            } else {
-                countdownHTML = '';  // 不顯示上方逾期區塊，只顯示下方紅色橫幅
+                countdownHTML = '<div id="countdown-container-' + orderIdHash + '" style="background:linear-gradient(135deg,rgba(255,69,0,0.2),rgba(255,140,0,0.2));border:1.5px solid #ff4500;border-radius:10px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">'
+                    + '<span style="color:#ff4500;font-size:12px;font-weight:700;white-space:nowrap;">⏰ 付款倒數</span>'
+                    + '<div id="countdown-' + orderIdHash + '" style="font-size:20px;font-weight:900;color:#FFD700;font-family:Orbitron,monospace;">'
+                    + String(hours).padStart(2,'0') + ':' + String(minutes).padStart(2,'0') + ':' + String(seconds).padStart(2,'0')
+                    + '</div>'
+                    + '<div style="color:#ff8c00;font-size:15px;font-weight:700;white-space:nowrap;">請盡快完成付款</div>'
+                    + '</div>';
             }
         } catch (e) {
             console.error('倒數計時錯誤:', e);
