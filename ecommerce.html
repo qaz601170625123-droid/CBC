@@ -2340,7 +2340,8 @@ function generateMerchantTradeNo() {
  * 偵測裝置類型
  */
 function getDeviceType() {
-    return '0'; // 固定手機版地圖
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isMobile ? '0' : '1'; // 0=手機版, 1=網頁版
 }
 
 // ==========================================
@@ -4887,13 +4888,7 @@ function showOrderDetailByData(order) {
                 <!-- 付款資訊（只有7-11店到店顯示） -->
                 ${order.取貨方式 === '7-11店到店' ? `
                     ${order.付款方式 === 'LINE Pay' ? `
-                    <div style="
-                        background: linear-gradient(135deg, rgba(6,199,85,0.2), rgba(0,255,100,0.15));
-                        border: 2px solid #06C755;
-                        border-radius: 15px;
-                        padding: 25px;
-                        margin-bottom: 20px;
-                    ">
+                    <div style="background:linear-gradient(135deg,rgba(6,199,85,0.2),rgba(0,255,100,0.15));border:2px solid #06C755;border-radius:15px;padding:25px;margin-bottom:20px;">
                         <h2 style="color:#06C755;font-size:20px;margin-bottom:20px;text-align:center;">💚 LINE Pay 資訊</h2>
                         <div style="background:rgba(0,0,0,0.4);padding:20px;border-radius:10px;margin-bottom:15px;">
                             <div style="display:grid;gap:12px;">
@@ -4906,11 +4901,10 @@ function showOrderDetailByData(order) {
                                     <span style="color:#00FF00;font-weight:900;font-size:20px;">$${order.總金額}</span>
                                 </div>
                                 ${order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼.startsWith('LINE:') ? `
-                                    <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(0,255,0,0.2);border-radius:8px;border:1px solid #06C755;">
-                                        <span style="color:#999;font-size:14px;">您的 LINE 名稱</span>
-                                        <span style="color:#00FF00;font-weight:900;font-size:18px;">${order.匯款末五碼.replace('LINE:', '')}</span>
-                                    </div>
-                                ` : ''}
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(0,255,0,0.2);border-radius:8px;border:1px solid #06C755;">
+                                    <span style="color:#999;font-size:14px;">您的 LINE 名稱</span>
+                                    <span style="color:#00FF00;font-weight:900;font-size:18px;">${order.匯款末五碼.replace('LINE:','')}</span>
+                                </div>` : ''}
                             </div>
                         </div>
                         <div style="background:rgba(255,140,0,0.2);padding:15px;border-radius:8px;border-left:4px solid #ff8c00;">
@@ -4923,45 +4917,35 @@ function showOrderDetailByData(order) {
                         </div>
                     </div>
                     ` : `
-                    <div style="
-                        background: linear-gradient(135deg, rgba(0, 200, 0, 0.2), rgba(0, 255, 0, 0.2));
-                        border: 2px solid #00c800;
-                        border-radius: 15px;
-                        padding: 25px;
-                        margin-bottom: 20px;
-                    ">
-                        <h2 style="color: #00c800; font-size: 20px; margin-bottom: 20px; text-align: center;">
-                            💳 匯款資訊
-                        </h2>
-                        
-                        <div style="background: rgba(0, 0, 0, 0.4); padding: 20px; border-radius: 10px; margin-bottom: 15px;">
-                            <div style="display: grid; gap: 12px;">
-                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
-                                    <span style="color: #999; font-size: 14px;">銀行名稱</span>
-                                    <span style="color: #FFD700; font-weight: 700; font-size: 14px;">台新銀行（812）</span>
+                    <div style="background:linear-gradient(135deg,rgba(0,200,0,0.2),rgba(0,255,0,0.2));border:2px solid #00c800;border-radius:15px;padding:25px;margin-bottom:20px;">
+                        <h2 style="color:#00c800;font-size:20px;margin-bottom:20px;text-align:center;">💳 匯款資訊</h2>
+                        <div style="background:rgba(0,0,0,0.4);padding:20px;border-radius:10px;margin-bottom:15px;">
+                            <div style="display:grid;gap:12px;">
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+                                    <span style="color:#999;font-size:14px;">銀行名稱</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">台新銀行（812）</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
-                                    <span style="color: #999; font-size: 14px;">帳號</span>
-                                    <span style="color: #FFD700; font-weight: 700; font-size: 16px; letter-spacing: 2px;">2028-01-0002558-8</span>
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+                                    <span style="color:#999;font-size:14px;">帳號</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:16px;letter-spacing:2px;">2028-01-0002558-8</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
-                                    <span style="color: #999; font-size: 14px;">戶名</span>
-                                    <span style="color: #FFD700; font-weight: 700; font-size: 14px;">周冠廷</span>
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+                                    <span style="color:#999;font-size:14px;">戶名</span>
+                                    <span style="color:#FFD700;font-weight:700;font-size:14px;">周冠廷</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
-                                    <span style="color: #999; font-size: 14px;">匯款金額</span>
-                                    <span style="color: #00FF00; font-weight: 900; font-size: 20px;">$${order.總金額}</span>
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(255,215,0,0.1);border-radius:8px;">
+                                    <span style="color:#999;font-size:14px;">匯款金額</span>
+                                    <span style="color:#00FF00;font-weight:900;font-size:20px;">$${order.總金額}</span>
                                 </div>
                                 ${order.匯款末五碼 && order.匯款末五碼 !== '-' ? `
-                                    <div style="display: flex; justify-content: space-between; padding: 10px; background: rgba(0, 255, 0, 0.2); border-radius: 8px; border: 1px solid #00c800;">
-                                        <span style="color: #999; font-size: 14px;">您的匯款末五碼</span>
-                                        <span style="color: #00FF00; font-weight: 900; font-size: 18px;">${order.匯款末五碼}</span>
-                                    </div>
-                                ` : ''}
+                                <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(0,255,0,0.2);border-radius:8px;border:1px solid #00c800;">
+                                    <span style="color:#999;font-size:14px;">您的匯款末五碼</span>
+                                    <span style="color:#00FF00;font-weight:900;font-size:18px;">${order.匯款末五碼}</span>
+                                </div>` : ''}
                             </div>
                         </div>
-                        <div style="background: rgba(255, 140, 0, 0.2); padding: 15px; border-radius: 8px; border-left: 4px solid #ff8c00;">
-                            <div style="color: #ff8c00; font-size: 14px; line-height: 1.6;">
+                        <div style="background:rgba(255,140,0,0.2);padding:15px;border-radius:8px;border-left:4px solid #ff8c00;">
+                            <div style="color:#ff8c00;font-size:14px;line-height:1.6;">
                                 <strong>⚠️ 重要提醒：</strong><br>
                                 • 請於時間內完成匯款<br>
                                 • 匯款完成後請記下帳號末五碼<br>
