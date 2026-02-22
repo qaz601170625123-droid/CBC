@@ -754,6 +754,30 @@
             text-decoration: line-through;
             margin-left: 8px;
         }
+        .sale-badge {
+            display: inline-block;
+            background: #ff4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
+        }
+        .card-sale-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: #ff4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            z-index: 2;
+        }
         
         .spec-info-stock {
             font-size: 13px;
@@ -2774,8 +2798,7 @@ function renderSpecPrice(spec) {
     const el = document.getElementById('specInfoPrice');
     if (!el) return;
     if (spec.originalPrice && spec.originalPrice > spec.price) {
-        const pct = Math.round((1 - spec.price / spec.originalPrice) * 100);
-        el.innerHTML = `$${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span>`;
+        el.innerHTML = `$${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span><span class="sale-badge">特價中</span>`;
     } else {
         el.textContent = `$${spec.price}`;
     }
@@ -3281,8 +3304,10 @@ function displayFeaturedProducts() {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.onclick = () => openFeaturedCategoryModal();
+        const featuredHasSale = featuredProducts.some(p => productSpecs[p.id]?.some(s => s.originalPrice > 0));
         card.innerHTML = `
             <div class="featured-badge">⭐ 主打推薦</div>
+            ${featuredHasSale ? '<div class="card-sale-badge">🔥 特價中</div>' : ''}
             <div class="product-image">
                 <img src="${imageUrl}" alt="主打商品" onerror="this.src='https://via.placeholder.com/300x300/8B4513/FFFFFF?text=主打商品'">
             </div>
@@ -3316,11 +3341,13 @@ function displayFeaturedProducts() {
         
         const priceText = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
         
+        const blockHasSale = blockProducts.some(p => productSpecs[p.id]?.some(s => s.originalPrice > 0));
         const card = document.createElement('div');
         card.className = 'product-card custom-block-card';
         card.onclick = () => openCustomBlockModal(blockName);
         card.innerHTML = `
             <div class="custom-block-badge">🎯 精選</div>
+            ${blockHasSale ? '<div class="card-sale-badge">🔥 特價中</div>' : ''}
             <div class="product-image">
                 <img src="${imageUrl}" alt="${blockName}" onerror="this.src='https://via.placeholder.com/300x300/1a1a2e/FFD700?text=${encodeURIComponent(blockName)}'">
             </div>
