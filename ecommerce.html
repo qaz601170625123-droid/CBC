@@ -5100,7 +5100,7 @@ function showOrderDetailByData(order) {
                             ${order.訂單狀態}
                         </div>
                         
-                        ${order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-') && shouldShowPaymentButton && !isExpired ? `
+                        ${order.取貨方式 === '7-11店到店' && (!order.匯款末五碼 || order.匯款末五碼 === '-' || order.匯款末五碼 === 'LINE:') && shouldShowPaymentButton && !isExpired ? `
                             <div>
                                 <button 
                                     onclick="submitPaymentCode('${order.訂單編號}')"
