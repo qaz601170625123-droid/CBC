@@ -2076,11 +2076,7 @@
                                 <span class="value" id="linePayAccount">載入中...</span>
                             </div>
                             <div class="bank-notice">
-                                ⚠️ 請付款後填寫下方您的 LINE 顯示名稱
-                            </div>
-                            <div style="margin-top:10px;">
-                                <label class="form-label" style="font-size:13px;">您的 LINE 顯示名稱</label>
-                                <input type="text" id="linePayName" class="form-input" placeholder="請輸入您的 LINE 顯示名稱" style="margin-top:5px;">
+                                ⚠️ 請付款後至訂單頁面填寫您的 LINE 顯示名稱
                             </div>
                         </div>
                     </div>
@@ -3457,12 +3453,11 @@ function openCustomBlockModal(blockName) {
     const flavorOptions = currentCategoryProducts.map((product, index) => {
         const specs = productSpecs[product.id];
         const hasStock = specs && specs.some(s => s.stock > 0);
-        const hasSale = specs && specs.some(s => s.originalPrice > 0);
         return `
             <div class="spec-option ${!hasStock ? 'out-of-stock' : ''}"
                  onclick="selectFlavor(${index})" id="flavor-${index}"
                  title="${product.name}${!hasStock ? ' - 已售完' : ''}">
-                <div class="spec-name">${product.name}${!hasStock ? ' ❌' : ''}${hasSale ? '<span class="sale-badge">特價中</span>' : ''}</div>
+                <div class="spec-name">${product.name}${!hasStock ? ' ❌' : ''}</div>
             </div>`;
     }).join('');
     optionsContainer.innerHTML = flavorTitle + flavorOptions;
@@ -3546,14 +3541,13 @@ function renderFeaturedFlavorOptions() {
         const specs = productSpecs[product.id];
         const hasStock = specs && specs.some(s => s.stock > 0);
         const isOutOfStock = !hasStock;
-        const hasSale = specs && specs.some(s => s.originalPrice > 0);
         
         return `
             <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
                  onclick="selectFlavor(${index})"
                  id="flavor-${index}"
                  title="${product.name}${isOutOfStock ? ' - 已售完' : ''}">
-                <div class="spec-name">${product.name}${isOutOfStock ? ' ❌' : ''}${hasSale ? '<span class="sale-badge">特價中</span>' : ''}</div>
+                <div class="spec-name">${product.name}${isOutOfStock ? ' ❌' : ''}</div>
             </div>
         `;
     }).join('');
@@ -3753,14 +3747,13 @@ function renderFlavorOptions(categoryName) {
         const specs = productSpecs[product.id];
         const hasStock = specs && specs.some(s => s.stock > 0);
         const isOutOfStock = !hasStock;
-        const hasSale = specs && specs.some(s => s.originalPrice > 0);
         
         return `
             <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
                  onclick="selectFlavor(${index})"
                  id="flavor-${index}"
                  title="${product.name}${isOutOfStock ? ' - 已售完' : ''}">
-                <div class="spec-name">${product.name}${isOutOfStock ? ' ❌' : ''}${hasSale ? '<span class="sale-badge">特價中</span>' : ''}</div>
+                <div class="spec-name">${product.name}${isOutOfStock ? ' ❌' : ''}</div>
             </div>
         `;
     }).join('');
@@ -4562,14 +4555,8 @@ async function submitOrder() {
         }
         const storePaymentVal = document.querySelector('input[name="storePayment"]:checked')?.value || 'transfer';
         if (storePaymentVal === 'linepay') {
-            const linePayName = document.getElementById('linePayName')?.value.trim();
-            if (!linePayName) {
-                showToast('請填寫您的 LINE 顯示名稱', 'error');
-                document.getElementById('linePayName')?.focus();
-                return;
-            }
             paymentMethod = 'linepay';
-            window._linePayName = linePayName;
+            window._linePayName = '';
         } else {
             paymentMethod = 'transfer';
             window._linePayName = '';
@@ -4996,30 +4983,53 @@ function showOrderDetailByData(order) {
                         </div>
                         
                         <div style="background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px;" id="payment-code-section">
-                            <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
-                            ${order.匯款末五碼 && order.匯款末五碼 !== '-' ? `
-                                <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${order.匯款末五碼}</div>
-                            ` : order.取貨方式 === '7-11店到店' ? `
-                                <input 
-                                    type="text" 
-                                    id="payment-code-input" 
-                                    placeholder="請輸入5碼"
-                                    maxlength="5"
-                                    style="
-                                        width: 100%;
-                                        padding: 8px;
-                                        border: 2px solid #FFD700;
-                                        border-radius: 5px;
-                                        background: rgba(0, 0, 0, 0.5);
-                                        color: #FFD700;
-                                        font-size: 16px;
-                                        font-weight: 700;
-                                        text-align: center;
-                                        letter-spacing: 3px;
-                                    "
-                                >
+                            ${order.付款方式 === 'LINE Pay' ? `
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">LINE 顯示名稱</div>
+                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' && order.匯款末五碼.startsWith('LINE:') ? `
+                                    <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${order.匯款末五碼.replace('LINE:', '')}</div>
+                                ` : `
+                                    <input 
+                                        type="text" 
+                                        id="payment-code-input" 
+                                        placeholder="請輸入 LINE 顯示名稱"
+                                        style="
+                                            width: 100%;
+                                            padding: 8px;
+                                            border: 2px solid #06C755;
+                                            border-radius: 5px;
+                                            background: rgba(0, 0, 0, 0.5);
+                                            color: #06C755;
+                                            font-size: 14px;
+                                            font-weight: 700;
+                                        "
+                                    >
+                                `}
                             ` : `
-                                <div style="color: #FFD700; font-weight: 700; font-size: 14px;">-</div>
+                                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">匯款末五碼</div>
+                                ${order.匯款末五碼 && order.匯款末五碼 !== '-' ? `
+                                    <div style="color: #00FF00; font-weight: 700; font-size: 14px;">✅ ${order.匯款末五碼}</div>
+                                ` : order.取貨方式 === '7-11店到店' ? `
+                                    <input 
+                                        type="text" 
+                                        id="payment-code-input" 
+                                        placeholder="請輸入5碼"
+                                        maxlength="5"
+                                        style="
+                                            width: 100%;
+                                            padding: 8px;
+                                            border: 2px solid #FFD700;
+                                            border-radius: 5px;
+                                            background: rgba(0, 0, 0, 0.5);
+                                            color: #FFD700;
+                                            font-size: 16px;
+                                            font-weight: 700;
+                                            text-align: center;
+                                            letter-spacing: 3px;
+                                        "
+                                    >
+                                ` : `
+                                    <div style="color: #FFD700; font-weight: 700; font-size: 14px;">-</div>
+                                `}
                             `}
                         </div>
                     </div>
@@ -5116,7 +5126,7 @@ function showOrderDetailByData(order) {
                                     💳 確認付款
                                 </button>
                                 <div style="color: #999; font-size: 12px; margin-top: 10px;">
-                                    請先填寫匯款末五碼後再點擊確認
+                                    ${order.付款方式 === 'LINE Pay' ? '請先填寫 LINE 顯示名稱後再點擊確認' : '請先填寫匯款末五碼後再點擊確認'}
                                 </div>
                             </div>
                         ` : isExpired ? `
@@ -5268,10 +5278,22 @@ async function submitPaymentCode(orderId) {
     if (!input) { showToast('找不到輸入欄位', 'error'); return; }
     
     const paymentCode = input.value.trim();
-    if (!paymentCode) { showToast('請輸入匯款末五碼', 'error'); input.focus(); return; }
-    if (paymentCode.length !== 5) { showToast('請輸入完整的5碼', 'error'); input.focus(); return; }
-    if (!/^\d{5}$/.test(paymentCode)) { showToast('請輸入5位數字', 'error'); input.focus(); return; }
-    if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
+    if (!paymentCode) { showToast('請輸入資料', 'error'); input.focus(); return; }
+    
+    // 判斷是 LINE Pay 還是匯款
+    const isLinePay = input.placeholder.includes('LINE');
+    let finalCode = paymentCode;
+    
+    if (!isLinePay) {
+        // 匯款末五碼驗證
+        if (paymentCode.length !== 5) { showToast('請輸入完整的5碼', 'error'); input.focus(); return; }
+        if (!/^\d{5}$/.test(paymentCode)) { showToast('請輸入5位數字', 'error'); input.focus(); return; }
+        if (!confirm(`確認匯款末五碼為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
+    } else {
+        // LINE Pay 名稱
+        finalCode = 'LINE:' + paymentCode;
+        if (!confirm(`確認 LINE 顯示名稱為：${paymentCode}？\n\n送出後將更新訂單狀態為「已付款」`)) return;
+    }
     
     // btn 在 try 外，catch 才能用
     const btn = event.target;
@@ -5287,7 +5309,7 @@ async function submitPaymentCode(orderId) {
             body: JSON.stringify({
                 action: 'updatePaymentCode',
                 orderId: orderId,
-                paymentCode: paymentCode
+                paymentCode: finalCode
             })
         });
         
@@ -5308,11 +5330,12 @@ async function submitPaymentCode(orderId) {
             }
         }
         
-        // 更新末五碼顯示
+        // 更新顯示
         const section = document.getElementById('payment-code-section');
         if (section) {
+            const label = isLinePay ? 'LINE 顯示名稱' : '匯款末五碼';
             section.innerHTML = `
-                <div style="color:#999;font-size:12px;margin-bottom:5px;">匯款末五碼</div>
+                <div style="color:#999;font-size:12px;margin-bottom:5px;">${label}</div>
                 <div style="color:#00FF00;font-weight:700;font-size:14px;">✅ ${paymentCode}</div>
             `;
         }
