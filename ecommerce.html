@@ -4845,82 +4845,82 @@ function showOrderDetailByData(order) {
 
                 <!-- 頂部：返回 + 狀態 -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <button onclick="closeOrderDetail()" style="background:rgba(255,215,0,0.1);border:1.5px solid #FFD700;color:#FFD700;padding:6px 14px;border-radius:20px;font-weight:700;cursor:pointer;font-size:13px;">← 返回</button>
-                    <div style="background:${statusColor};color:#000;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:900;">${order.訂單狀態}</div>
+                    <button onclick="closeOrderDetail()" style="background:rgba(255,215,0,0.1);border:1.5px solid #FFD700;color:#FFD700;padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 返回</button>
+                    <div style="background:${statusColor};color:#000;padding:7px 18px;border-radius:20px;font-size:15px;font-weight:900;">${order.訂單狀態}</div>
                 </div>
 
                 ${countdownHTML}
 
                 <!-- 訂單資訊卡 -->
-                <div style="background:rgba(255,255,255,0.05);border:1.5px solid #FFD700;border-radius:12px;padding:10px 12px;margin-bottom:8px;">
-                    <div style="color:#FFD700;font-size:13px;font-weight:900;margin-bottom:8px;">📦 ${order.訂單編號}</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-                        <div><span style="color:#666;">姓名</span><br><span style="color:#fff;font-weight:700;">${order.姓名}</span></div>
-                        <div><span style="color:#666;">電話</span><br><span style="color:#fff;font-weight:700;">${order.電話}</span></div>
-                        <div><span style="color:#666;">取貨</span><br><span style="color:#FFD700;font-weight:700;">${order.取貨方式}</span></div>
-                        <div><span style="color:#666;">付款</span><br><span style="color:#FFD700;font-weight:700;">${order.付款方式 || '-'}</span></div>
-                        ${order.門市名稱 && order.門市名稱 !== '-' ? `<div style="grid-column:1/-1;"><span style="color:#666;">門市</span><br><span style="color:#FFD700;font-weight:700;">${order.門市名稱}</span></div>` : ''}
+                <div style="background:rgba(255,255,255,0.05);border:1.5px solid #FFD700;border-radius:12px;padding:14px 16px;margin-bottom:10px;">
+                    <div style="color:#FFD700;font-size:15px;font-weight:900;margin-bottom:10px;">📦 ${order.訂單編號}</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:15px;">
+                        <div><span style="color:#888;">姓名</span><br><span style="color:#fff;font-weight:700;font-size:16px;">${order.姓名}</span></div>
+                        <div><span style="color:#888;">電話</span><br><span style="color:#fff;font-weight:700;font-size:16px;">${order.電話}</span></div>
+                        <div><span style="color:#888;">取貨</span><br><span style="color:#FFD700;font-weight:700;font-size:16px;">${order.取貨方式}</span></div>
+                        <div><span style="color:#888;">付款</span><br><span style="color:#FFD700;font-weight:700;font-size:16px;">${order.付款方式 || '-'}</span></div>
+                        ${order.門市名稱 && order.門市名稱 !== '-' ? `<div style="grid-column:1/-1;"><span style="color:#888;">門市</span><br><span style="color:#FFD700;font-weight:700;font-size:16px;">${order.門市名稱}</span></div>` : ''}
                     </div>
                 </div>
 
                 <!-- 付款資訊（7-11才顯示） -->
                 ${order.取貨方式 === '7-11店到店' ? `
-                <div style="background:${isLinePayOrder ? 'rgba(6,199,85,0.1)' : 'rgba(255,215,0,0.08)'};border:1.5px solid ${isLinePayOrder ? '#06C755' : '#FFD700'};border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:12px;">
-                    <div style="color:${isLinePayOrder ? '#06C755' : '#FFD700'};font-weight:900;margin-bottom:6px;">${isLinePayOrder ? '💚 LINE Pay 資訊' : '💳 匯款資訊'}</div>
+                <div style="background:${isLinePayOrder ? 'rgba(6,199,85,0.1)' : 'rgba(255,215,0,0.08)'};border:1.5px solid ${isLinePayOrder ? '#06C755' : '#FFD700'};border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:15px;">
+                    <div style="color:${isLinePayOrder ? '#06C755' : '#FFD700'};font-weight:900;margin-bottom:8px;font-size:16px;">${isLinePayOrder ? '💚 LINE Pay 資訊' : '💳 匯款資訊'}</div>
                     ${isLinePayOrder ? `
-                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#666;">LINE Pay 帳號</span><span style="color:#06C755;font-weight:700;">${systemSettings.linePayAccount || '請聯繫客服'}</span></div>
-                        <div style="display:flex;justify-content:space-between;"><span style="color:#666;">付款金額</span><span style="color:#00FF00;font-weight:900;">$${order.總金額}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#888;">LINE Pay 帳號</span><span style="color:#06C755;font-weight:700;">${systemSettings.linePayAccount || '請聯繫客服'}</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span style="color:#888;">付款金額</span><span style="color:#00FF00;font-weight:900;font-size:18px;">$${order.總金額}</span></div>
                     ` : `
-                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#666;">銀行</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankName || '請聯繫客服'}</span></div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#666;">帳號</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankAccount || '請聯繫客服'}</span></div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#666;">注意事項</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankHolder || ''}</span></div>
-                        <div style="display:flex;justify-content:space-between;"><span style="color:#666;">匯款金額</span><span style="color:#00FF00;font-weight:900;">$${order.總金額}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#888;">銀行</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankName || '請聯繫客服'}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#888;">帳號</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankAccount || '請聯繫客服'}</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:#888;">注意事項</span><span style="color:#FFD700;font-weight:700;">${systemSettings.bankHolder || ''}</span></div>
+                        <div style="display:flex;justify-content:space-between;"><span style="color:#888;">匯款金額</span><span style="color:#00FF00;font-weight:900;font-size:18px;">$${order.總金額}</span></div>
                     `}
                 </div>
                 ` : ''}
 
                 <!-- 商品明細 + 金額 -->
-                <div style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,215,0,0.3);border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:12px;">
-                    <div style="color:#FFD700;font-weight:900;margin-bottom:6px;">🛒 商品明細</div>
-                    <div style="color:#fff;max-height:80px;overflow-y:auto;margin-bottom:8px;line-height:1.8;">
+                <div style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,215,0,0.3);border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:15px;">
+                    <div style="color:#FFD700;font-weight:900;margin-bottom:8px;font-size:16px;">🛒 商品明細</div>
+                    <div style="color:#fff;max-height:120px;overflow-y:auto;margin-bottom:10px;line-height:2;">
                         ${order.商品明細.split(',').map(item => `• ${item.trim()}`).join('<br>')}
                     </div>
-                    <div style="border-top:1px solid rgba(255,215,0,0.3);padding-top:6px;display:flex;justify-content:space-between;align-items:center;">
-                        ${order.運費 && order.運費 > 0 ? `<span style="color:#999;">含運費 $${order.運費}</span>` : '<span></span>'}
-                        <span style="color:#FFD700;font-weight:900;font-size:16px;">總計 $${order.總金額}</span>
+                    <div style="border-top:1px solid rgba(255,215,0,0.3);padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+                        ${order.運費 && order.運費 > 0 ? `<span style="color:#999;font-size:14px;">含運費 $${order.運費}</span>` : '<span></span>'}
+                        <span style="color:#FFD700;font-weight:900;font-size:20px;">總計 $${order.總金額}</span>
                     </div>
                 </div>
 
                 <!-- 付款輸入 + 確認按鈕 -->
                 ${order.取貨方式 === '7-11店到店' && shouldShowPaymentButton && !isExpired ? `
-                <div id="payment-code-section" style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,215,0,0.3);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+                <div id="payment-code-section" style="background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,215,0,0.3);border-radius:12px;padding:14px 16px;margin-bottom:10px;">
                     ${isLinePayOrder ? `
                         ${order.匯款末五碼 && order.匯款末五碼.startsWith('LINE:') && order.匯款末五碼.replace('LINE:','').trim() !== '' ? `
-                            <div style="color:#00FF00;font-weight:700;font-size:13px;">✅ LINE 名稱：${order.匯款末五碼.replace('LINE:','')}</div>
+                            <div style="color:#00FF00;font-weight:700;font-size:16px;">✅ LINE 名稱：${order.匯款末五碼.replace('LINE:','')}</div>
                         ` : `
-                            <div style="color:#999;font-size:12px;margin-bottom:6px;">💚 請輸入 LINE 顯示名稱後確認付款</div>
+                            <div style="color:#aaa;font-size:14px;margin-bottom:8px;">💚 請輸入 LINE 顯示名稱後確認付款</div>
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <input type="text" id="payment-code-input" placeholder="LINE 顯示名稱"
-                                    style="flex:1;padding:8px;border:1.5px solid #06C755;border-radius:8px;background:rgba(0,0,0,0.5);color:#06C755;font-size:13px;font-weight:700;">
-                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#06C755,#00ff88);color:#000;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
+                                    style="flex:1;padding:10px;border:1.5px solid #06C755;border-radius:8px;background:rgba(0,0,0,0.5);color:#06C755;font-size:15px;font-weight:700;">
+                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#06C755,#00ff88);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
                         `}
                     ` : `
                         ${order.匯款末五碼 && order.匯款末五碼 !== '-' && !order.匯款末五碼.startsWith('LINE:') ? `
-                            <div style="color:#00FF00;font-weight:700;font-size:13px;">✅ 匯款末五碼：${order.匯款末五碼}</div>
+                            <div style="color:#00FF00;font-weight:700;font-size:16px;">✅ 匯款末五碼：${order.匯款末五碼}</div>
                         ` : `
-                            <div style="color:#999;font-size:12px;margin-bottom:6px;">💳 請輸入匯款末五碼後確認付款</div>
+                            <div style="color:#aaa;font-size:14px;margin-bottom:8px;">💳 請輸入匯款末五碼後確認付款</div>
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <input type="text" id="payment-code-input" placeholder="末五碼" maxlength="5"
-                                    style="flex:1;padding:8px;border:1.5px solid #FFD700;border-radius:8px;background:rgba(0,0,0,0.5);color:#FFD700;font-size:16px;font-weight:700;text-align:center;letter-spacing:3px;">
-                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#00c800,#00ff00);color:#000;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
+                                    style="flex:1;padding:10px;border:1.5px solid #FFD700;border-radius:8px;background:rgba(0,0,0,0.5);color:#FFD700;font-size:18px;font-weight:700;text-align:center;letter-spacing:3px;">
+                                <button onclick="submitPaymentCode('${order.訂單編號}')" style="background:linear-gradient(135deg,#00c800,#00ff00);color:#000;border:none;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;white-space:nowrap;">✓ 確認</button>
                             </div>
                         `}
                     `}
                 </div>
                 ` : order.取貨方式 === '7-11店到店' && isExpired ? `
-                <div style="background:rgba(255,0,0,0.15);border:1.5px solid #ff4444;border-radius:12px;padding:10px 12px;text-align:center;font-size:13px;">
-                    <div style="color:#ff4444;font-weight:700;margin-bottom:4px;">❌ 付款時限已過，訂單已取消</div>
+                <div style="background:rgba(255,0,0,0.15);border:1.5px solid #ff4444;border-radius:12px;padding:14px 16px;text-align:center;font-size:15px;">
+                    <div style="color:#ff4444;font-weight:700;margin-bottom:6px;font-size:16px;">❌ 付款時限已過，訂單已取消</div>
                     <div style="color:#ff8c00;">請返回重新下單</div>
                 </div>
                 ` : ''}
@@ -5145,50 +5145,50 @@ async function loadMemberOrders() {
             ordersList.innerHTML = result.orders.map((order, index) => `
                 <div class="order-card" style="
                     background: rgba(255, 255, 255, 0.05);
-                    border: 1px solid rgba(255, 215, 0, 0.3);
-                    border-radius: 10px;
-                    padding: 20px;
-                    margin-bottom: 15px;
+                    border: 1.5px solid rgba(255, 215, 0, 0.4);
+                    border-radius: 14px;
+                    padding: 20px 18px;
+                    margin-bottom: 16px;
                     cursor: pointer;
                     transition: all 0.3s ease;
                 " onclick="showOrderDetail(${index})">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:12px;">
                         <div>
-                            <div style="font-size:16px; font-weight:700; color:var(--primary);">
+                            <div style="font-size:20px; font-weight:900; color:var(--primary);">
                                 訂單 #${index + 1}
                             </div>
-                            <div style="font-size:12px; color:#999; margin-top:5px;">
+                            <div style="font-size:13px; color:#aaa; margin-top:5px;">
                                 ${order.訂購時間}
                             </div>
                         </div>
                         <div style="
                             background: ${order.訂單狀態 === '已完成' ? 'var(--accent-green)' : order.訂單狀態 === '待處理' ? '#ffa500' : order.訂單狀態 === '取消訂單' || order.訂單狀態 === '訂單取消' ? '#ff4444' : order.訂單狀態 === '已付款待出貨' ? '#00bfff' : 'var(--primary)'};
                             color: var(--secondary);
-                            padding: 5px 15px;
-                            border-radius: 15px;
-                            font-size: 12px;
-                            font-weight: 700;
+                            padding: 7px 18px;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 900;
                         ">
                             ${order.訂單狀態}
                         </div>
                     </div>
                     
-                    <div style="line-height:1.8; font-size:14px;">
-                        <div><strong>訂單編號：</strong>${order.訂單編號}</div>
-                        <div><strong>總金額：</strong><span style="color:var(--primary); font-size:18px; font-weight:900;">$${order.總金額}</span></div>
-                        <div style="margin-top:10px; color:#999; font-size:12px;">
-                            ${order.商品明細.length > 50 ? order.商品明細.substring(0, 50) + '...' : order.商品明細}
+                    <div style="line-height:2; font-size:16px;">
+                        <div><span style="color:#aaa;">訂單編號</span>　<strong style="color:#fff;">${order.訂單編號}</strong></div>
+                        <div><span style="color:#aaa;">總金額</span>　<span style="color:var(--primary); font-size:22px; font-weight:900;">$${order.總金額}</span></div>
+                        <div style="margin-top:8px; color:#bbb; font-size:14px; line-height:1.6;">
+                            ${order.商品明細.length > 60 ? order.商品明細.substring(0, 60) + '...' : order.商品明細}
                         </div>
                     </div>
                     
-                    <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,215,0,0.2); text-align:center;">
-                        <span style="color:var(--primary); font-size:14px; font-weight:700;">
+                    <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,215,0,0.2); text-align:center;">
+                        <span style="color:var(--primary); font-size:16px; font-weight:900; letter-spacing:1px;">
                             👉 點擊查看詳情
                         </span>
                     </div>
                 </div>
             `).join('') + `
-                <div style="text-align:center; padding:20px; color:#999; font-size:14px;">
+                <div style="text-align:center; padding:20px; color:#999; font-size:15px;">
                     共 ${result.orders.length} 筆訂單
                 </div>
             `;
