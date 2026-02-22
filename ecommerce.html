@@ -4610,8 +4610,12 @@ async function submitOrder() {
         submitBtn.style.cursor = '';
         submitBtn.innerHTML = originalBtnText;
         
-        // 關閉結帳模態框
+        // 關閉結帳模態框，同時關閉購物車
         closeCheckout();
+        // 強制關閉購物車，確保返回鍵不會回到購物車狀態
+        document.getElementById('cartSidebar').classList.remove('active');
+        // 用 replaceState 清掉 cart/checkout 的 history，讓詳情頁返回直接回首頁
+        history.replaceState(null, '', location.href);
         
         // 🆕 直接在當前頁面顯示訂單詳情（使用新訂單資料）
         setTimeout(() => {
@@ -4633,8 +4637,12 @@ async function submitOrder() {
         submitBtn.style.cursor = '';
         submitBtn.innerHTML = originalBtnText;
         
-        // 關閉結帳模態框
+        // 關閉結帳模態框，同時關閉購物車
         closeCheckout();
+        // 強制關閉購物車，確保返回鍵不會回到購物車狀態
+        document.getElementById('cartSidebar').classList.remove('active');
+        // 用 replaceState 清掉 cart/checkout 的 history，讓詳情頁返回直接回首頁
+        history.replaceState(null, '', location.href);
         
         // 顯示訂單詳情
         setTimeout(() => {
