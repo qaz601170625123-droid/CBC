@@ -3336,11 +3336,7 @@ function openCustomBlockModal(blockName) {
     });
     if (minPrice === Infinity) minPrice = 0;
     
-    // 圖片
-    let imageUrl = categoryImages[blockName] || currentCategoryProducts[0]?.image || '';
-    if (imageUrl && !imageUrl.startsWith('http')) imageUrl = 'https://' + imageUrl;
-    if (!imageUrl) imageUrl = `https://via.placeholder.com/300x300/1a1a2e/FFD700?text=${encodeURIComponent(blockName)}`;
-    document.getElementById('specModalImage').innerHTML = `<img src="${imageUrl}" alt="${blockName}" onerror="this.src='https://via.placeholder.com/300x300/1a1a2e/FFD700?text=${encodeURIComponent(blockName)}'">`;
+    // 小圖已移除
     document.getElementById('specInfoPrice').textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
     document.getElementById('specInfoStock').textContent = `庫存：${totalStock} 件`;
     document.getElementById('specInfoStock').style.color = 'var(--accent-green)';
