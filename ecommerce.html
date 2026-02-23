@@ -3910,7 +3910,7 @@ function selectFlavor(index) {
     }
     
     selectedFlavor = product;
-    // updateSpecThumbFromProduct 已由下方 initCarouselFromUrls 統一處理，不需單獨呼叫
+    updateSpecThumbFromProduct(product);
     
     // 更新口味選項的選中狀態
     document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
@@ -4147,30 +4147,24 @@ let _carouselTouchX = 0;
  * 以分類名稱初始化輪播（從 categoryCarouselImages 取 C 欄起的圖）
  */
 function initCarousel(categoryName) {
-    // 優先用 C 欄起的輪播圖（使用者手動設定）
-    let imgs = categoryCarouselImages[categoryName] || [];
+    const seen = new Set();
+    const imgs = [];
 
-    // ── Fallback：若 C 欄沒填，就收集該分類所有商品的圖片 ──
+    // 1. 永遠先放 B 欄封面圖（預設第一張）
+    const coverImg = (categoryImages[categoryName] || '').trim();
+    if (coverImg) { seen.add(coverImg); imgs.push(coverImg); }
+
+    // 2. 再接 C 欄起的輪播圖
+    (categoryCarouselImages[categoryName] || []).forEach(u => {
+        u = (u || '').trim();
+        if (u && !seen.has(u)) { seen.add(u); imgs.push(u); }
+    });
+
+    // 3. 若都沒有，fallback 到商品各自的圖片
     if (imgs.length === 0) {
-        const seen = new Set();
-        const fallbackImgs = [];
-
-        // 先加 B 欄（卡片封面圖）
-        const coverImg = categoryImages[categoryName] || '';
-        if (coverImg && !seen.has(coverImg)) {
-            seen.add(coverImg);
-            fallbackImgs.push(coverImg);
-        }
-
-        // 再加每個商品自己的圖片
         currentCategoryProducts.forEach(p => {
-            if (p.image && !seen.has(p.image)) {
-                seen.add(p.image);
-                fallbackImgs.push(p.image);
-            }
+            if (p.image && !seen.has(p.image)) { seen.add(p.image); imgs.push(p.image); }
         });
-
-        imgs = fallbackImgs;
     }
 
     initCarouselFromUrls(imgs);
@@ -4239,13 +4233,10 @@ function initCarouselFromUrls(rawUrls) {
         if (Math.abs(diff) > 35) carouselMove(diff > 0 ? 1 : -1);
     };
 
-    // 等 DOM 佈局完成後再計算寬度，確保第一張正確顯示
-    requestAnimationFrame(() => {
-        _carouselIdx = 0;
-        _carouselRender();
-        updateSpecThumbStrip(_carouselImgs);
-        console.log('🖼 縮圖列圖片數:', _carouselImgs.length, _carouselImgs);
-    });
+    _carouselRender();
+    // 同步縮圖列
+    console.log('🖼 縮圖列圖片數:', _carouselImgs.length, _carouselImgs);
+    updateSpecThumbStrip(_carouselImgs);
 }
 
 function carouselMove(dir) {
@@ -4264,16 +4255,12 @@ function _carouselRender() {
     const dots  = document.querySelectorAll('.carousel-dot');
     const counter = document.querySelector('.carousel-counter');
     if (track) {
+        // 用像素偏移確保精確（不依賴百分比繼承問題）
         const slideWidth = track.parentElement ? track.parentElement.offsetWidth : 0;
         if (slideWidth > 0) {
             track.style.transform = `translateX(-${_carouselIdx * slideWidth}px)`;
         } else {
-            // DOM 尚未佈局完成，改用百分比並延後重算
             track.style.transform = `translateX(-${_carouselIdx * 100}%)`;
-            requestAnimationFrame(() => {
-                const w = track.parentElement ? track.parentElement.offsetWidth : 0;
-                if (w > 0) track.style.transform = `translateX(-${_carouselIdx * w}px)`;
-            });
         }
     }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
