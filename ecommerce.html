@@ -2256,14 +2256,14 @@
     </div>
 
     <!-- 訂單查詢彈窗 -->
-    <div class="modal" id="orderSearchModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">📦 我的訂單</div>
-                <button class="close-modal" onclick="closeOrderSearch()">×</button>
+    <!-- 查詢訂單全頁 -->
+    <div id="orderSearchPage" style="display:none;">
+        <div style="max-width:600px; margin:0 auto; padding:20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid var(--primary);">
+                <div style="font-size:22px; font-weight:900; color:var(--primary);">📦 我的訂單</div>
+                <button onclick="closeOrderSearch()" style="background:rgba(255,215,0,0.1);border:1.5px solid var(--primary);color:var(--primary);padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 返回商城</button>
             </div>
-            
-            <div id="ordersList" style="max-height: 500px; overflow-y: auto;">
+            <div id="ordersList">
                 <!-- 訂單列表會動態生成 -->
             </div>
         </div>
@@ -4216,8 +4216,7 @@ window.addEventListener('popstate', function(event) {
     const specModal = document.getElementById('specModal');
     const cartSidebar = document.getElementById('cartSidebar');
     const checkoutModal = document.getElementById('checkoutModal');
-    const orderSearchModal = document.getElementById('orderSearchModal');
-    const profileUpdateModal = document.getElementById('profileUpdateModal');
+    const orderSearchPage = document.getElementById('orderSearchPage');
     
     // 依序檢查並關閉開啟的彈窗
     // 燈箱優先關閉
@@ -4231,6 +4230,9 @@ window.addEventListener('popstate', function(event) {
         // 優先關閉訂單詳情全螢幕頁
         closeOrderDetail();
         isModalOpen = false;
+    } else if (orderSearchPage && orderSearchPage.style.display !== 'none' && orderSearchPage.style.display !== '') {
+        closeOrderSearch();
+        isModalOpen = false;
     } else if (specModal && specModal.classList.contains('active')) {
         closeSpecModal();
         isModalOpen = false;
@@ -4239,9 +4241,6 @@ window.addEventListener('popstate', function(event) {
         isModalOpen = false;
     } else if (checkoutModal && checkoutModal.classList.contains('active')) {
         closeCheckout();
-        isModalOpen = false;
-    } else if (orderSearchModal && orderSearchModal.classList.contains('active')) {
-        closeOrderSearch();
         isModalOpen = false;
     } else if (profileUpdateModal && profileUpdateModal.classList.contains('active')) {
         closeProfileUpdateModal();
@@ -5238,21 +5237,16 @@ async function submitOrder() {
 // 訂單查詢
 // ==========================================
 async function openOrderSearch() {
-    // 檢查是否已登入
     if (!currentMember || !currentMember.lineId) {
         showToast('請先登入 LINE 帳號', 'error');
         return;
     }
     
-    // 顯示模態框（重置任何 style.display 覆蓋）
-    const osm = document.getElementById('orderSearchModal');
-    osm.style.display = '';
-    osm.classList.add('active');
+    // 隱藏商品區、顯示訂單頁
+    document.getElementById('productsSection').style.display = 'none';
+    document.getElementById('orderSearchPage').style.display = 'block';
     window._orderDetailFromSearch = false;
-    
-    // 🔥 添加歷史記錄
-    history.pushState({ modal: 'orderSearch' }, '');
-    isModalOpen = true;
+    window.scrollTo(0, 0);
     
     // 顯示載入中
     document.getElementById('ordersList').innerHTML = `
@@ -5262,17 +5256,15 @@ async function openOrderSearch() {
         </div>
     `;
     
-    // 查詢訂單
     await loadMemberOrders();
 }
 
 
 function closeOrderSearch() {
-    const osm = document.getElementById('orderSearchModal');
-    osm.classList.remove('active');
-    osm.style.display = '';
-    isModalOpen = false;
+    document.getElementById('orderSearchPage').style.display = 'none';
+    document.getElementById('productsSection').style.display = 'block';
     window._orderDetailFromSearch = false;
+    window.scrollTo(0, 0);
 }
 
 // ==========================================
@@ -5325,8 +5317,8 @@ function showOrderDetail(orderIndex) {
         return;
     }
     
-    // 🔥 不關閉 orderSearchModal，只是暫時隱藏（返回時還能回去）
-    document.getElementById('orderSearchModal').style.display = 'none';
+    // 隱藏訂單列表頁，標記是從 orderSearch 進來的
+    document.getElementById('orderSearchPage').style.display = 'none';
     // 標記是從 orderSearch 進來的
     window._orderDetailFromSearch = true;
     
@@ -5338,9 +5330,8 @@ function showOrderDetailByData(order) {
     // 🔥 防呆：確保 order 是有效物件
     if (!order || typeof order !== 'object') {
         showToast('訂單資料格式錯誤', 'error');
-        // 恢復 orderSearch modal
-        const osm = document.getElementById('orderSearchModal');
-        if (osm) { osm.style.display = ''; osm.classList.add('active'); }
+        // 恢復訂單列表頁
+        document.getElementById('orderSearchPage').style.display = 'block';
         return;
     }
     // 確保關鍵欄位有值（避免 .replace 在 undefined 上爆炸）
@@ -5686,15 +5677,11 @@ function closeOrderDetail() {
     if (detailView) detailView.remove();
     isModalOpen = false;
     
-    // 🔥 若是從查詢訂單進來的，返回時重新顯示訂單列表
+    // 若是從查詢訂單進來的，返回訂單列表頁
     if (window._orderDetailFromSearch) {
         window._orderDetailFromSearch = false;
-        const orderSearchModal = document.getElementById('orderSearchModal');
-        orderSearchModal.style.display = '';   // 恢復 display
-        orderSearchModal.classList.add('active');
-        isModalOpen = true;
-        // 補一筆 history state，讓再按返回可以關掉 orderSearch
-        history.pushState({ modal: 'orderSearch' }, '');
+        document.getElementById('orderSearchPage').style.display = 'block';
+        window.scrollTo(0, 0);
     }
 }
 
