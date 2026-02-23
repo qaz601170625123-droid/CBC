@@ -1826,11 +1826,28 @@
             margin-left: -10px;
             margin-right: -10px;
             margin-top: -10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border-radius: 13px 13px 0 0;
             overflow: hidden;
             background: #000;
             user-select: none;
+        }
+        /* 縮圖列 */
+        #specThumbStrip::-webkit-scrollbar { display: none; }
+        #specThumbStrip img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 6px;
+            flex-shrink: 0;
+            cursor: pointer;
+            outline: 2px solid transparent;
+            transition: outline 0.15s, opacity 0.15s;
+            opacity: 0.65;
+        }
+        #specThumbStrip img.active-thumb {
+            outline: 2px solid #FFD700;
+            opacity: 1;
         }
 
         /* 圖片滑動區域：用 grid 疊層，不用絕對定位 */
@@ -1906,28 +1923,11 @@
             pointer-events: none;
         }
 
-        /* 圓點：放在 track-wrap 外面，不疊在圖片上 */
+        /* 圓點：隱藏（改用縮圖列） */
         .carousel-dots {
-            display: flex;
-            justify-content: center;
-            gap: 7px;
-            padding: 7px 0 5px;
-            background: rgba(0,0,0,0.5);
+            display: none !important;
         }
-
-        .carousel-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.35);
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-        }
-
-        .carousel-dot.active {
-            background: var(--primary);
-            transform: scale(1.35);
-        }
+        .carousel-dot { display: none; }
 
         /* 🆕 動畫效果 */
         @keyframes slideDown {
@@ -2068,17 +2068,19 @@
                 <div class="modal-title" id="specModalTitle">選擇規格</div>
                 <button class="close-modal" onclick="closeSpecModal()">×</button>
             </div>
-            <!-- 🆕 多圖輪播 -->
+            <!-- 大圖輪播（滿版，點擊放大） -->
             <div class="product-carousel" id="productCarousel" style="display:none;">
-                <div class="carousel-track-wrap" id="carouselWrap" onclick="openCarouselLightbox(event)">
+                <div class="carousel-track-wrap" id="carouselWrap" onclick="openCarouselLightbox(event)" style="cursor:zoom-in;">
                     <div class="carousel-track" id="carouselTrack"></div>
                     <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
                     <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
+                    <!-- 放大提示 -->
+                    <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#FFD700;font-size:11px;padding:3px 8px;border-radius:10px;pointer-events:none;z-index:5;">🔍 點擊放大</div>
                 </div>
-                <div class="carousel-dots" id="carouselDots"></div>
+                <!-- 縮圖列：緊貼大圖下方 -->
+                <div id="specThumbStrip" style="display:none;gap:5px;padding:6px 8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.6);"></div>
             </div>
-            <!-- 縮圖列：點縮圖切換大圖 -->
-            <div id="specThumbStrip" style="display:none;gap:6px;padding:6px 2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
+            <!-- 價格庫存（緊湊一行） -->
             <div class="spec-header-container">
                 <div class="spec-info-display" style="flex:1;">
                     <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
@@ -2086,9 +2088,9 @@
                 </div>
             </div>
             <!-- 燈箱（點大圖觸發） -->
-            <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-                <img id="specLightboxImg" src="" style="max-width:96vw;max-height:85vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(255,215,0,0.2);">
-                <div style="color:#FFD700;font-size:14px;opacity:0.7;">點任意處關閉</div>
+            <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+                <img id="specLightboxImg" src="" style="max-width:98vw;max-height:88vh;object-fit:contain;border-radius:8px;">
+                <div style="color:rgba(255,215,0,0.6);font-size:13px;">點任意處關閉</div>
             </div>
             <div class="spec-options" id="specOptions"></div>
             <div class="quantity-selector">
@@ -4255,15 +4257,12 @@ function _carouselRender() {
     }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
     if (counter) counter.textContent = `${_carouselIdx + 1} / ${_carouselImgs.length}`;
-    // 同步縮圖列選中狀態
+    // 同步縮圖列 active
     const strip = document.getElementById('specThumbStrip');
     if (strip) {
-        strip.querySelectorAll('img').forEach((img, i) => {
-            img.style.outline = i === _carouselIdx ? '2px solid #FFD700' : '2px solid transparent';
-        });
-        // 讓當前縮圖捲入視野
-        const active = strip.querySelectorAll('img')[_carouselIdx];
-        if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const thumbs = strip.querySelectorAll('img');
+        thumbs.forEach((img, i) => img.classList.toggle('active-thumb', i === _carouselIdx));
+        if (thumbs[_carouselIdx]) thumbs[_carouselIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 }
 
@@ -4273,7 +4272,8 @@ function _carouselRender() {
 function updateSpecThumbStrip(urls) {
     const strip = document.getElementById('specThumbStrip');
     if (!strip) return;
-    if (!urls || urls.length === 0) {
+    if (!urls || urls.length <= 1) {
+        // 只有 0~1 張：不顯示縮圖列
         strip.style.display = 'none';
         strip.innerHTML = '';
         return;
@@ -4281,22 +4281,20 @@ function updateSpecThumbStrip(urls) {
     strip.style.display = 'flex';
     strip.innerHTML = urls.map((src, i) => {
         const s = (!src.startsWith('http') ? 'https://' + src : src);
-        const active = i === 0 ? 'outline:2px solid #FFD700;' : 'outline:2px solid transparent;';
         return '<img src="' + s + '" data-idx="' + i + '" '
-            + 'style="width:58px;height:58px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;' + active + 'transition:outline 0.2s;" '
-            + 'onerror="this.style.display=\'none\'" '
+            + 'class="' + (i === 0 ? 'active-thumb' : '') + '" '
+            + 'onerror="this.style.display='none'" '
             + 'onclick="specThumbClick(this,' + i + ')">';
     }).join('');
 }
 // 點縮圖：切換大圖
 function specThumbClick(el, idx) {
     carouselGoTo(idx);
-    // 更新選中框
     const strip = document.getElementById('specThumbStrip');
     if (strip) {
-        strip.querySelectorAll('img').forEach((img, i) => {
-            img.style.outline = i === idx ? '2px solid #FFD700' : '2px solid transparent';
-        });
+        strip.querySelectorAll('img').forEach(img => img.classList.remove('active-thumb'));
+        el.classList.add('active-thumb');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 }
 // 大圖點擊放大
