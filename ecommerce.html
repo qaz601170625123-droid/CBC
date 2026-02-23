@@ -1834,6 +1834,10 @@
             user-select: none;
         }
         #specThumbStrip::-webkit-scrollbar { display: none; }
+        #specThumbStrip {
+            min-height: 70px;
+            align-items: center;
+        }
         #specThumbStrip img {
             width: 54px;
             height: 54px;
@@ -1842,8 +1846,9 @@
             flex-shrink: 0;
             cursor: pointer;
             border: 2px solid transparent;
-            opacity: 0.55;
+            opacity: 0.6;
             transition: border-color 0.15s, opacity 0.15s;
+            background: #222;
         }
         #specThumbStrip img.th-active {
             border-color: #FFD700;
@@ -2094,7 +2099,7 @@
                     <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#FFD700;font-size:11px;padding:3px 8px;border-radius:10px;pointer-events:none;z-index:5;">🔍 點擊放大</div>
                 </div>
                 <!-- 縮圖列：緊貼大圖下方，2張以上才顯示 -->
-                <div id="specThumbStrip" style="display:none;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
+                <div id="specThumbStrip" style="display:none;flex-wrap:nowrap;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
                 <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
             </div>
             <div class="spec-header-container">
@@ -4205,7 +4210,7 @@ function initCarouselFromUrls(rawUrls) {
     // 渲染幻燈片
     track.innerHTML = _carouselImgs.map((url, i) => `
         <div class="carousel-slide">
-            <img src="${url}" alt="商品圖 ${i + 1}" onerror="this.style.opacity='0.15'">
+            <img src="${url}" alt="商品圖 ${i + 1}" onerror="this.style.background='#222';this.style.minHeight='200px';this.removeAttribute('src')">
         </div>
     `).join('');
 
@@ -4291,13 +4296,16 @@ function updateSpecThumbStrip(urls) {
         strip.innerHTML = '';
         return;
     }
+    // 單張圖片也顯示縮圖列，方便使用者確認目前圖片
     strip.style.display = 'flex';
     strip.innerHTML = urls.map((src, i) => {
-        const s = src.startsWith('http') ? src : 'https://' + src;
-        return '<img src="' + s + '" data-idx="' + i + '" class="' + (i === 0 ? 'th-active' : '') + '" '
-            + 'onerror="this.style.opacity=\'0.1\'" '
+        const s = (src || '').trim();
+        const finalSrc = s.startsWith('http') ? s : 'https://' + s;
+        return '<img src="' + finalSrc + '" data-idx="' + i + '" class="' + (i === 0 ? 'th-active' : '') + '" '
+            + 'onerror="this.style.background=\'#333\';this.style.opacity=\'0.4\';this.removeAttribute(\'src\')" '
             + 'onclick="specThumbClick(this,' + i + ')">';
     }).join('');
+    console.log('✅ 縮圖列已渲染，共', urls.length, '張');
 }
 // 點縮圖：切換大圖
 function specThumbClick(el, idx) {
