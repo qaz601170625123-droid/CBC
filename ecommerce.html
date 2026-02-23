@@ -677,13 +677,14 @@
             background: var(--bg-dark);
             border: 2px solid var(--primary);
             border-radius: 15px;
-            padding: 0;
+            padding: 0 10px 10px 10px;
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
-            overflow: hidden;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         .modal-header {
@@ -708,14 +709,6 @@
             cursor: pointer;
         }
         
-        /* specModal 以外的 modal 補回 padding */
-        #checkoutModal .modal-content,
-        #memberProfileModal .modal-content,
-        #profileUpdateModal .modal-content {
-            padding: 0 10px 10px 10px;
-            overflow-y: auto;
-        }
-
         /* specModal 的 header 在照片下方，不需要額外 padding-top */
         #specModal .modal-header {
             padding-top: 8px;
@@ -809,7 +802,9 @@
 
         .spec-options {
             margin-bottom: 10px;
-            overflow: visible;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
             padding-right: 5px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1310,11 +1305,7 @@
             .modal-content {
                 width: 95%;
                 max-height: 90vh;
-            }
-            #checkoutModal .modal-content,
-            #memberProfileModal .modal-content,
-            #profileUpdateModal .modal-content {
-                padding: 10px;
+                padding: 15px;
             }
 
             .modal-title {
@@ -1420,12 +1411,8 @@
 
             .modal-content {
                 width: 95%;
-                max-height: 90vh;
-            }
-            #checkoutModal .modal-content,
-            #memberProfileModal .modal-content,
-            #profileUpdateModal .modal-content {
                 padding: 15px;
+                max-height: 90vh;
                 overflow-y: auto;
             }
 
@@ -1847,10 +1834,6 @@
             user-select: none;
         }
         #specThumbStrip::-webkit-scrollbar { display: none; }
-        #specThumbStrip {
-            min-height: 70px;
-            align-items: center;
-        }
         #specThumbStrip img {
             width: 54px;
             height: 54px;
@@ -1859,9 +1842,8 @@
             flex-shrink: 0;
             cursor: pointer;
             border: 2px solid transparent;
-            opacity: 0.6;
+            opacity: 0.55;
             transition: border-color 0.15s, opacity 0.15s;
-            background: #222;
         }
         #specThumbStrip img.th-active {
             border-color: #FFD700;
@@ -2099,52 +2081,45 @@
     <!-- 規格選擇彈窗 -->
     <div class="modal" id="specModal">
         <div class="modal-content">
-            <!-- 固定標題列 -->
-            <div class="modal-header" style="padding: 10px 14px 8px 14px; flex-shrink:0; border-bottom: 1px solid rgba(255,215,0,0.2);">
+            <div class="modal-header">
                 <div class="modal-title" id="specModalTitle">選擇規格</div>
                 <button class="close-modal" onclick="closeSpecModal()">×</button>
             </div>
-            <!-- 可捲動的內容區（圖片 + 口味選項） -->
-            <div id="specScrollArea" style="flex:1; overflow-y:auto; overflow-x:hidden; padding: 0 10px 10px 10px; -webkit-overflow-scrolling:touch;">
-                <!-- 🆕 多圖輪播 -->
-                <div class="product-carousel" id="productCarousel" style="display:none; margin: 0 -10px;">
-                    <div class="carousel-track-wrap" id="carouselWrap" onclick="openCarouselLightbox(event)" style="cursor:zoom-in;">
-                        <div class="carousel-track" id="carouselTrack"></div>
-                        <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
-                        <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
-                        <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#FFD700;font-size:11px;padding:3px 8px;border-radius:10px;pointer-events:none;z-index:5;">🔍 點擊放大</div>
-                    </div>
-                    <!-- 縮圖列：緊貼大圖下方，2張以上才顯示 -->
-                    <div id="specThumbStrip" style="display:none;flex-wrap:nowrap;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
-                    <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
+            <!-- 🆕 多圖輪播 -->
+            <div class="product-carousel" id="productCarousel" style="display:none;">
+                <div class="carousel-track-wrap" id="carouselWrap" onclick="openCarouselLightbox(event)" style="cursor:zoom-in;">
+                    <div class="carousel-track" id="carouselTrack"></div>
+                    <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
+                    <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
+                    <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#FFD700;font-size:11px;padding:3px 8px;border-radius:10px;pointer-events:none;z-index:5;">🔍 點擊放大</div>
                 </div>
-                <div class="spec-header-container" style="margin-top: 10px;">
-                    <div class="spec-info-display" style="flex:1;">
-                        <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
-                        <div class="spec-info-stock" id="specInfoStock"></div>
-                    </div>
-                </div>
-                <!-- 燈箱（點大圖觸發） -->
-                <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-                    <img id="specLightboxImg" src="" style="max-width:96vw;max-height:85vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(255,215,0,0.2);">
-                    <div style="color:#FFD700;font-size:14px;opacity:0.7;">點任意處關閉</div>
-                </div>
-                <div class="spec-options" id="specOptions"></div>
+                <!-- 縮圖列：緊貼大圖下方，2張以上才顯示 -->
+                <div id="specThumbStrip" style="display:none;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
+                <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
             </div>
-            <!-- 固定底部：數量選擇 + 加入購物車 -->
-            <div style="flex-shrink:0; padding: 10px 14px 14px 14px; border-top: 1px solid rgba(255,215,0,0.2); background: var(--bg-dark);">
-                <div class="quantity-selector" style="margin-bottom: 10px;">
-                    <div class="quantity-label" style="display: none;">選擇數量:</div>
-                    <div class="quantity-controls">
-                        <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
-                        <div class="quantity-display" id="quantityDisplay">1</div>
-                        <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
-                    </div>
+            <div class="spec-header-container">
+                <div class="spec-info-display" style="flex:1;">
+                    <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
+                    <div class="spec-info-stock" id="specInfoStock"></div>
                 </div>
-                <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
-                <div style="text-align: center; margin-top: 10px; color: #999; font-size: 13px;">
-                    💡 加入後可繼續選購其他規格
+            </div>
+            <!-- 燈箱（點大圖觸發） -->
+            <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+                <img id="specLightboxImg" src="" style="max-width:96vw;max-height:85vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(255,215,0,0.2);">
+                <div style="color:#FFD700;font-size:14px;opacity:0.7;">點任意處關閉</div>
+            </div>
+            <div class="spec-options" id="specOptions"></div>
+            <div class="quantity-selector">
+                <div class="quantity-label" style="display: none;">選擇數量:</div>
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
+                    <div class="quantity-display" id="quantityDisplay">1</div>
+                    <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
                 </div>
+            </div>
+            <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
+            <div style="text-align: center; margin-top: 15px; color: #999; font-size: 14px;">
+                💡 加入後可繼續選購其他規格
             </div>
         </div>
     </div>
@@ -3935,7 +3910,7 @@ function selectFlavor(index) {
     }
     
     selectedFlavor = product;
-    updateSpecThumbFromProduct(product);
+    // updateSpecThumbFromProduct 已由下方 initCarouselFromUrls 統一處理，不需單獨呼叫
     
     // 更新口味選項的選中狀態
     document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
@@ -4264,10 +4239,13 @@ function initCarouselFromUrls(rawUrls) {
         if (Math.abs(diff) > 35) carouselMove(diff > 0 ? 1 : -1);
     };
 
-    _carouselRender();
-    // 同步縮圖列
-    console.log('🖼 縮圖列圖片數:', _carouselImgs.length, _carouselImgs);
-    updateSpecThumbStrip(_carouselImgs);
+    // 等 DOM 佈局完成後再計算寬度，確保第一張正確顯示
+    requestAnimationFrame(() => {
+        _carouselIdx = 0;
+        _carouselRender();
+        updateSpecThumbStrip(_carouselImgs);
+        console.log('🖼 縮圖列圖片數:', _carouselImgs.length, _carouselImgs);
+    });
 }
 
 function carouselMove(dir) {
@@ -4286,12 +4264,16 @@ function _carouselRender() {
     const dots  = document.querySelectorAll('.carousel-dot');
     const counter = document.querySelector('.carousel-counter');
     if (track) {
-        // 用像素偏移確保精確（不依賴百分比繼承問題）
         const slideWidth = track.parentElement ? track.parentElement.offsetWidth : 0;
         if (slideWidth > 0) {
             track.style.transform = `translateX(-${_carouselIdx * slideWidth}px)`;
         } else {
+            // DOM 尚未佈局完成，改用百分比並延後重算
             track.style.transform = `translateX(-${_carouselIdx * 100}%)`;
+            requestAnimationFrame(() => {
+                const w = track.parentElement ? track.parentElement.offsetWidth : 0;
+                if (w > 0) track.style.transform = `translateX(-${_carouselIdx * w}px)`;
+            });
         }
     }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
@@ -4318,13 +4300,11 @@ function updateSpecThumbStrip(urls) {
     }
     strip.style.display = 'flex';
     strip.innerHTML = urls.map((src, i) => {
-        const s = (src || '').trim();
-        const finalSrc = s.startsWith('http') ? s : 'https://' + s;
-        return '<img src="' + finalSrc + '" data-idx="' + i + '" class="' + (i === 0 ? 'th-active' : '') + '" '
-            + 'onerror="this.style.background=\'#333\';this.style.opacity=\'0.4\';this.removeAttribute(\'src\')" '
+        const s = src.startsWith('http') ? src : 'https://' + src;
+        return '<img src="' + s + '" data-idx="' + i + '" class="' + (i === 0 ? 'th-active' : '') + '" '
+            + 'onerror="this.style.opacity=\'0.1\'" '
             + 'onclick="specThumbClick(this,' + i + ')">';
     }).join('');
-    console.log('✅ 縮圖列已渲染，共', urls.length, '張');
 }
 // 點縮圖：切換大圖
 function specThumbClick(el, idx) {
