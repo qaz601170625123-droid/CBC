@@ -1894,7 +1894,7 @@
             height: auto;
             max-height: 60vw;
             display: block;
-            object-fit: contain;
+            object-fit: cover;
             background: #111;
         }
 
@@ -2115,7 +2115,6 @@
                         <div class="carousel-track" id="carouselTrack"></div>
                         <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
                         <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
-                        <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#FFD700;font-size:11px;padding:3px 8px;border-radius:10px;pointer-events:none;z-index:5;">🔍 點擊放大</div>
                     </div>
                     <!-- 縮圖列：緊貼大圖下方，2張以上才顯示 -->
                     <div id="specThumbStrip" style="display:none;flex-wrap:nowrap;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
@@ -2145,9 +2144,7 @@
                     </div>
                 </div>
                 <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
-                <div style="text-align: center; margin-top: 10px; color: #999; font-size: 13px;">
-                    💡 加入後可繼續選購其他規格
-                </div>
+                <div id="modalPromoHint" style="text-align:center; margin-top:10px; font-size:13px; min-height:18px;"></div>
             </div>
         </div>
     </div>
@@ -3589,7 +3586,7 @@ function openCustomBlockModal(blockName) {
     const _st1 = categorySubtitles[blockName] || '';
     if (_sub1) { _sub1.textContent = _st1; _sub1.style.display = _st1 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
-    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
@@ -3684,7 +3681,7 @@ function openFeaturedCategoryModal() {
     const _st2 = categorySubtitles['主打商品'] || '';
     if (_sub2) { _sub2.textContent = _st2; _sub2.style.display = _st2 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
-    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -3932,7 +3929,7 @@ function openCategoryModal(categoryName) {
     const _st3 = categorySubtitles[categoryName] || '';
     if (_sub3) { _sub3.textContent = _st3; _sub3.style.display = _st3 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
-    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -4268,7 +4265,7 @@ function openSpecModal(productId) {
 
     document.getElementById('specModalTitle').textContent = currentProduct.name;
     document.getElementById('specModal').classList.add('active');
-    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -4575,6 +4572,18 @@ function selectSpec(index) {
     quantity = 1;
     updateQuantityDisplay();
     updateAddToCartButton();
+}
+
+function updateModalPromoHint() {
+    const el = document.getElementById('modalPromoHint');
+    if (!el) return;
+    if (!promotions || promotions.length === 0) {
+        el.innerHTML = '';
+        return;
+    }
+    // 顯示所有啟用的優惠名稱
+    const names = promotions.map(p => `🎁 ${p.name}`).join('　');
+    el.innerHTML = `<span style="color:#FFD700;">${names}</span>`;
 }
 
 function changeQuantity(change) {
