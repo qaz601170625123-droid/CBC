@@ -439,8 +439,7 @@
 
         .product-image {
             width: 100%;
-            aspect-ratio: 1 / 1;
-            background: #000;
+            background: #111;
             border-radius: 10px;
             margin-bottom: 15px;
             display: flex;
@@ -452,8 +451,10 @@
 
         .product-image img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 10px;
         }
 
         .product-name {
