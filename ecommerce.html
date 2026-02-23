@@ -4276,6 +4276,8 @@ function openSpecModal(productId) {
     }
 
     document.getElementById('specModalTitle').textContent = currentProduct.name;
+    // 🔥 設定當前分類名稱，讓優惠提示可以正確比對
+    window._currentModalCategoryName = currentProduct.category || '';
     document.getElementById('specModal').classList.add('active');
     setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
