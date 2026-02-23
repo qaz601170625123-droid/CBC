@@ -2120,7 +2120,7 @@
                 <div style="display:flex; align-items:center; background:rgba(0,0,0,0.7); padding: 4px 10px;">
                     <div id="specThumbStrip" style="display:flex; flex-wrap:nowrap; gap:5px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; flex:1; min-width:0;"></div>
                     <div style="flex:0 0 auto; text-align:right; padding-left:10px; max-width:50%;">
-                        <div class="spec-info-price" id="specInfoPrice" style="font-size:16px; margin:0;">請選擇規格</div>
+                        <div class="spec-info-price" id="specInfoPrice" style="font-size:14px; margin:0;">請選擇規格</div>
                         <div class="spec-info-stock" id="specInfoStock" style="font-size:12px; margin:0;"></div>
                     </div>
                 </div>
@@ -2975,9 +2975,10 @@ function renderSpecPrice(spec) {
     const el = document.getElementById('specInfoPrice');
     if (!el) return;
     if (spec.originalPrice && spec.originalPrice > spec.price) {
-        el.innerHTML = `售價: $${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span><span class="sale-badge">特價中</span>`;
+        el.innerHTML = `<span style="font-size:14px;">售價: $${spec.price}</span> <span class="spec-original-price">$${spec.originalPrice}</span><span class="sale-badge">特價中</span>`;
     } else {
         el.textContent = `售價: $${spec.price}`;
+        el.style.fontSize = '14px';
     }
 }
 
@@ -3321,6 +3322,13 @@ let categoryImages = {};        // 儲存分類照片設定（C欄，最外層�
 let categoryCarouselImages = {}; // 儲存分類輪播圖（D欄起，點進去的多張圖）
 let categorySubtitles = {};     // 🆕 儲存副標題文字（B欄）
 
+// 將分類名稱中的國家代碼轉成旗幟 emoji（例如「Ploom蛋 JP」→「Ploom蛋 🇯🇵」）
+function formatCategoryName(name) {
+    if (!name) return '';
+    const flags = { 'JP': '🇯🇵', 'KR': '🇰🇷', 'US': '🇺🇸', 'TW': '🇹🇼', 'CN': '🇨🇳', 'UK': '🇬🇧' };
+    return name.replace(/\b([A-Z]{2})\b/g, (match) => flags[match] || match);
+}
+
 async function loadCategoryImages() {
     try {
         const sheetName = '分類照片設定';
@@ -3440,7 +3448,7 @@ async function loadCategories() {
             const button = document.createElement('button');
             button.className = 'category-tab';
             button.onclick = () => filterCategory(category.name);
-            button.textContent = category.name;
+            button.textContent = formatCategoryName(category.name);
             categoryTabs.appendChild(button);
         });
         
@@ -3580,7 +3588,7 @@ function openCustomBlockModal(blockName) {
         return;
     }
     
-    document.getElementById('specModalTitle').textContent = blockName;
+    document.getElementById('specModalTitle').textContent = formatCategoryName(blockName);
     // 🆕 設定副標題
     const _sub1 = document.getElementById('specModalSubtitle');
     const _st1 = categorySubtitles[blockName] || '';
@@ -3878,7 +3886,7 @@ function displayProducts() {
                 <div class="product-image">
                     <img src="${imageUrl}" alt="${category.name}" onerror="this.style.display='none'">
                 </div>
-                <div class="product-name">${category.name}</div>
+                <div class="product-name">${formatCategoryName(category.name)}</div>
                 <div class="product-price">$${category.minPrice}${category.minPrice !== category.maxPrice ? ` - $${category.maxPrice}` : ''}</div>
                 <button class="add-to-cart-btn" onclick="event.stopPropagation(); openCategoryModal('${category.name}')">
                     選擇規格
@@ -3923,7 +3931,7 @@ function openCategoryModal(categoryName) {
     }
     
     // 設置彈窗標題
-    document.getElementById('specModalTitle').textContent = categoryName;
+    document.getElementById('specModalTitle').textContent = formatCategoryName(categoryName);
     // 🆕 設定副標題
     const _sub3 = document.getElementById('specModalSubtitle');
     const _st3 = categorySubtitles[categoryName] || '';
@@ -4189,8 +4197,12 @@ function selectQuantitySpec(index) {
     }
     
     const isLowStock = actualStock > 0 && actualStock <= 10;
-    stockDisplay.textContent = stockText + (isLowStock ? ' ⚠️ 即將售完' : '');
-    stockDisplay.style.color = isLowStock ? '#ff9900' : 'var(--accent-green)';
+    const isCriticalStock = actualStock > 0 && actualStock <= 3;
+    let stockSuffix = '';
+    if (isCriticalStock) stockSuffix = ' 🔥 庫存緊張！';
+    else if (isLowStock) stockSuffix = ' ⚠️ 即將售完';
+    stockDisplay.textContent = stockText + stockSuffix;
+    stockDisplay.style.color = isCriticalStock ? '#ff4444' : isLowStock ? '#ff9900' : 'var(--accent-green)';
     
     // 重置數量
     quantity = 1;
@@ -4565,8 +4577,12 @@ function selectSpec(index) {
     }
     
     const isLowStock = actualStock > 0 && actualStock <= 10;
-    stockDisplay.textContent = stockText + (isLowStock ? ' ⚠️ 即將售完' : '');
-    stockDisplay.style.color = isLowStock ? '#ff9900' : 'var(--accent-green)';
+    const isCriticalStock = actualStock > 0 && actualStock <= 3;
+    let stockSuffix = '';
+    if (isCriticalStock) stockSuffix = ' 🔥 庫存緊張！';
+    else if (isLowStock) stockSuffix = ' ⚠️ 即將售完';
+    stockDisplay.textContent = stockText + stockSuffix;
+    stockDisplay.style.color = isCriticalStock ? '#ff4444' : isLowStock ? '#ff9900' : 'var(--accent-green)';
     
     // 重置數量
     quantity = 1;
@@ -4579,11 +4595,12 @@ function updateModalPromoHint() {
     if (!el) return;
     if (!promotions || promotions.length === 0) { el.innerHTML = ''; return; }
     const categoryName = window._currentModalCategoryName || '';
-    // 只顯示非免運、有折扣、且適用類別包含當前分類（或沒有限制類別）的優惠
+    // 比對：適用類別包含當前分類（用 includes 支援多重條件以,分割的情況）
     const matched = promotions.filter(p =>
         p.type !== '滿額免運' &&
         p.discount > 0 &&
-        (p.allowedCategories.length === 0 || p.allowedCategories.includes(categoryName))
+        (p.allowedCategories.length === 0 ||
+         p.allowedCategories.some(c => categoryName.includes(c) || c.includes(categoryName)))
     );
     if (matched.length === 0) { el.innerHTML = ''; return; }
     const names = matched.map(p => `🎁 ${p.name}`).join('　');
