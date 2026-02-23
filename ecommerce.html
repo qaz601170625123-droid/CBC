@@ -3936,6 +3936,8 @@ function openCategoryModal(categoryName) {
     const _sub3 = document.getElementById('specModalSubtitle');
     const _st3 = categorySubtitles[categoryName] || '';
     if (_sub3) { _sub3.textContent = _st3; _sub3.style.display = _st3 ? 'inline' : 'none'; }
+    // 🔥 必須在 updateModalPromoHint() 之前先設定分類名稱
+    window._currentModalCategoryName = categoryName;
     document.getElementById('specModal').classList.add('active');
     setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
@@ -3944,7 +3946,6 @@ function openCategoryModal(categoryName) {
     isModalOpen = true;
     
     // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
-    window._currentModalCategoryName = categoryName;
     initCarousel(categoryName);
     
     // 渲染該類別下的所有口味選項（內部會設定 selectedFlavor）
