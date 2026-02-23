@@ -2101,7 +2101,10 @@
         <div class="modal-content">
             <!-- 固定標題列 -->
             <div class="modal-header" style="padding: 10px 14px 8px 14px; flex-shrink:0; border-bottom: 1px solid rgba(255,215,0,0.2);">
-                <div class="modal-title" id="specModalTitle">選擇規格</div>
+                <div style="display:flex; align-items:baseline; gap:8px; flex:1; min-width:0;">
+                    <div class="modal-title" id="specModalTitle">選擇規格</div>
+                    <span id="specModalSubtitle" style="display:none; font-size:12px; color:#aaa; font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
+                </div>
                 <button class="close-modal" onclick="closeSpecModal()">×</button>
             </div>
             <!-- 可捲動的內容區（圖片 + 口味選項） -->
@@ -3317,8 +3320,9 @@ function stopAutoRefresh() {
 // ==========================================
 // 🆕 載入分類照片設定（從「分類照片設定」工作表）
 // ==========================================
-let categoryImages = {};        // 儲存分類照片設定（B欄，最外層卡片圖）
-let categoryCarouselImages = {}; // 🆕 儲存分類輪播圖（C欄起，點進去的多張圖）
+let categoryImages = {};        // 儲存分類照片設定（C欄，最外層卡片圖）
+let categoryCarouselImages = {}; // 儲存分類輪播圖（D欄起，點進去的多張圖）
+let categorySubtitles = {};     // 🆕 儲存副標題文字（B欄）
 
 async function loadCategoryImages() {
     try {
@@ -3331,22 +3335,36 @@ async function loadCategoryImages() {
             if (data.values && data.values.length > 1) {
                 categoryImages = {};
                 categoryCarouselImages = {};
+                categorySubtitles = {};   // 🆕 副標題
                 data.values.slice(1).forEach(row => {
                     const categoryName = row[0] || '';   // A欄：分類名稱
-                    const cardImage = row[1] || '';      // B欄：最外層卡片圖
-                    
                     if (!categoryName) return;
-                    
-                    if (cardImage) {
-                        categoryImages[categoryName] = cardImage;
+
+                    // 判斷 B 欄是副標題還是圖片網址
+                    // 若 B 欄不含 http，視為副標題文字；否則為舊格式封面圖
+                    const bVal = (row[1] || '').trim();
+                    let subtitle = '';
+                    let cardImage = '';
+                    let carouselStartIdx = 2;
+
+                    if (bVal && !bVal.startsWith('http')) {
+                        // 新格式：B=副標題, C=封面圖, D起=輪播
+                        subtitle   = bVal;
+                        cardImage  = (row[2] || '').trim();
+                        carouselStartIdx = 3;
+                    } else {
+                        // 舊格式：B=封面圖, C起=輪播（向下相容）
+                        cardImage  = bVal;
+                        carouselStartIdx = 2;
                     }
-                    
-                    // 🆕 C欄起（index 2）：輪播圖片，可有多欄
+
+                    if (subtitle)   categorySubtitles[categoryName] = subtitle;
+                    if (cardImage)  categoryImages[categoryName]    = cardImage;
+
+                    // 輪播圖
                     const carouselImgs = [];
-                    for (let i = 2; i < row.length; i++) {
-                        if (row[i] && row[i].trim()) {
-                            carouselImgs.push(row[i].trim());
-                        }
+                    for (let i = carouselStartIdx; i < row.length; i++) {
+                        if (row[i] && row[i].trim()) carouselImgs.push(row[i].trim());
                     }
                     if (carouselImgs.length > 0) {
                         categoryCarouselImages[categoryName] = carouselImgs;
@@ -3355,6 +3373,7 @@ async function loadCategoryImages() {
                 
                 console.log('✅ 已載入分類照片設定：', categoryImages);
                 console.log('✅ 已載入輪播圖設定：', categoryCarouselImages);
+                console.log('✅ 已載入副標題設定：', categorySubtitles);
             }
         }
     } catch (error) {
@@ -3565,25 +3584,17 @@ function openCustomBlockModal(blockName) {
     }
     
     document.getElementById('specModalTitle').textContent = blockName;
+    // 🆕 設定副標題
+    const _sub1 = document.getElementById('specModalSubtitle');
+    const _st1 = categorySubtitles[blockName] || '';
+    if (_sub1) { _sub1.textContent = _st1; _sub1.style.display = _st1 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖：每個口味對應一張圖，順序與口味按鈕一致
+    // 🆕 初始化輪播圖
     window._currentModalCategoryName = blockName;
-    window._modalIsFeaturedOrCustom = true;
-    {
-        const imgs = currentCategoryProducts.map(p => {
-            let img = (p.image || '').trim();
-            if (img && !img.startsWith('http')) img = 'https://' + img;
-            return img;
-        }).filter(u => u);
-        if (imgs.length > 0) {
-            initCarouselFromUrls(imgs);
-        } else {
-            initCarousel(blockName);
-        }
-    }
+    initCarousel(blockName);
     
     // 計算統計
     let totalStock = 0, minPrice = Infinity, maxPrice = 0;
@@ -3636,28 +3647,19 @@ function openFeaturedCategoryModal() {
     
     // 設置彈窗標題為「主打商品」
     document.getElementById('specModalTitle').textContent = '主打商品';
+    // 🆕 設定副標題
+    const _sub2 = document.getElementById('specModalSubtitle');
+    const _st2 = categorySubtitles['主打商品'] || '';
+    if (_sub2) { _sub2.textContent = _st2; _sub2.style.display = _st2 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖：每個口味對應一張圖，順序與口味按鈕一致
+    // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
     window._currentModalCategoryName = '主打商品';
-    window._modalIsFeaturedOrCustom = true;
-    {
-        const imgs = currentCategoryProducts.map(p => {
-            let img = (p.image || '').trim();
-            if (img && !img.startsWith('http')) img = 'https://' + img;
-            return img;
-        }).filter(u => u);
-        // 若商品沒有各自圖片，fallback 到 B/C 欄
-        if (imgs.length > 0) {
-            initCarouselFromUrls(imgs);
-        } else {
-            initCarousel('主打商品');
-        }
-    }
+    initCarousel('主打商品');
     
     // 渲染主打商品選項
     renderFeaturedFlavorOptions();
@@ -3860,15 +3862,18 @@ function openCategoryModal(categoryName) {
     
     // 設置彈窗標題
     document.getElementById('specModalTitle').textContent = categoryName;
+    // 🆕 設定副標題
+    const _sub3 = document.getElementById('specModalSubtitle');
+    const _st3 = categorySubtitles[categoryName] || '';
+    if (_sub3) { _sub3.textContent = _st3; _sub3.style.display = _st3 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖（從分類照片設定的 B 欄優先）
+    // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
     window._currentModalCategoryName = categoryName;
-    window._modalIsFeaturedOrCustom = false;
     initCarousel(categoryName);
     
     // 渲染該類別下的所有口味選項
@@ -3961,15 +3966,35 @@ function selectFlavor(index) {
     }
     
     selectedFlavor = product;
+    updateSpecThumbFromProduct(product);
     
     // 更新口味選項的選中狀態
     document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
         el.classList.toggle('selected', i === index);
     });
     
-    // 主打/自定義：直接跳到該口味對應的圖片（index 對應輪播順序）
-    if (window._modalIsFeaturedOrCustom) {
-        carouselGoTo(index);
+    // 🆕 點選口味時：重新組合輪播（商品圖優先 + 分類輪播圖接後）
+    {
+        const categoryName = window._currentModalCategoryName || '';
+        const carouselBase = categoryCarouselImages[categoryName] || [];
+        const seen = new Set();
+        const merged = [];
+
+        // 1. 先加這個口味的商品圖
+        let productImg = product.image || '';
+        if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
+        if (productImg && !seen.has(productImg)) { seen.add(productImg); merged.push(productImg); }
+
+        // 2. 再加 C 欄起的分類輪播圖
+        carouselBase.forEach(u => { if (!seen.has(u)) { seen.add(u); merged.push(u); } });
+
+        // 3. 若完全沒圖，fallback 到 B 欄卡片圖
+        if (merged.length === 0) {
+            const coverImg = categoryImages[categoryName] || '';
+            if (coverImg) merged.push(coverImg);
+        }
+
+        if (merged.length > 0) initCarouselFromUrls(merged);
     }
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
@@ -4374,6 +4399,9 @@ function updateSpecThumbFromProduct(product) {
 
 function closeSpecModal() {
     document.getElementById('specModal').classList.remove('active');
+    // 清除副標題
+    const sub = document.getElementById('specModalSubtitle');
+    if (sub) { sub.textContent = ''; sub.style.display = 'none'; }
     currentProduct = null;
     selectedSpec = null;
     selectedFlavor = null;
