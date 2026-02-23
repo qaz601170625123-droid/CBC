@@ -439,12 +439,11 @@
 
         .product-image {
             width: 100%;
+            aspect-ratio: 1 / 1;
             background: transparent;
             border-radius: 10px;
             margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: block;
             position: relative;
             overflow: hidden;
         }
@@ -453,6 +452,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center;
             display: block;
             border-radius: 10px;
         }
@@ -1887,14 +1887,16 @@
             flex: 0 0 100%;
             width: 100%;
             min-width: 0;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
         }
 
         .carousel-slide img {
             width: 100%;
-            height: auto;
-            max-height: 60vw;
+            height: 100%;
             display: block;
             object-fit: cover;
+            object-position: center;
             background: transparent;
         }
 
