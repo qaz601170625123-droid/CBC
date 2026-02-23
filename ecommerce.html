@@ -916,10 +916,10 @@
             background: var(--primary);
             color: var(--secondary);
             border: none;
-            width: 30px;
-            height: 30px;
+            width: 34px;
+            height: 34px;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
             touch-action: manipulation;
@@ -928,9 +928,9 @@
         }
 
         .quantity-display {
-            font-size: 17px;
+            font-size: 20px;
             font-weight: 700;
-            min-width: 30px;
+            min-width: 36px;
             text-align: center;
         }
 
@@ -939,9 +939,9 @@
             background: var(--primary);
             color: var(--secondary);
             border: none;
-            padding: 9px;
+            padding: 11px;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
             cursor: pointer;
             flex-shrink: 0;
@@ -1888,7 +1888,6 @@
         .carousel-slide img {
             width: 100%;
             height: auto;
-            max-height: 42vw;
             display: block;
             object-fit: contain;
             background: #000;
@@ -1937,27 +1936,22 @@
             pointer-events: none;
         }
 
-        /* 圓點：嵌在圖片內下方 */
+        /* 圓點：放在 track-wrap 外面，不疊在圖片上 */
         .carousel-dots {
-            position: absolute;
-            bottom: 10px;
-            left: 0;
-            right: 0;
             display: flex;
             justify-content: center;
             gap: 7px;
-            z-index: 10;
-            pointer-events: auto;
+            padding: 7px 0 5px;
+            background: rgba(0,0,0,0.5);
         }
 
         .carousel-dot {
-            width: 7px;
-            height: 7px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.35);
             cursor: pointer;
             transition: background 0.2s, transform 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
 
         .carousel-dot.active {
@@ -2115,7 +2109,6 @@
                         <div class="carousel-track" id="carouselTrack"></div>
                         <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
                         <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
-                        <div class="carousel-dots" id="carouselDots" onclick="event.stopPropagation();" style="display:none;"></div>
                     </div>
                     <!-- 縮圖列 + 售價庫存同一列 -->
                 <div style="display:flex; align-items:center; background:rgba(0,0,0,0.7); padding: 4px 10px;">
@@ -2125,6 +2118,7 @@
                         <div class="spec-info-stock" id="specInfoStock" style="font-size:12px; margin:0;"></div>
                     </div>
                 </div>
+                <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
                 </div>
                 <!-- 燈箱（點大圖觸發） -->
                 <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
@@ -2134,8 +2128,8 @@
                 <div class="spec-options" id="specOptions"></div>
             </div>
             <!-- 固定底部：數量選擇 + 加入購物車 -->
-            <div style="flex-shrink:0; padding: 18px 14px 14px 14px; border-top: 1px solid rgba(255,215,0,0.2); background: var(--bg-dark);">
-                <div class="quantity-selector" style="margin-bottom: 8px;">
+            <div style="flex-shrink:0; padding: 10px 14px 14px 14px; border-top: 1px solid rgba(255,215,0,0.2); background: var(--bg-dark);">
+                <div class="quantity-selector" style="margin-bottom: 10px;">
                     <div class="quantity-label" style="display: none;">選擇數量:</div>
                     <div class="quantity-controls">
                         <button class="quantity-btn" ontouchstart="event.preventDefault();changeQuantity(-1)" onclick="changeQuantity(-1)">−</button>
@@ -2144,7 +2138,7 @@
                     </div>
                 </div>
                 <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
-                <div id="modalPromoHint" style="text-align:center; margin-top:8px; font-size:13px; min-height:18px;"></div>
+                <div id="modalPromoHint" style="text-align:center; margin-top:10px; font-size:13px; min-height:18px;"></div>
             </div>
         </div>
     </div>
