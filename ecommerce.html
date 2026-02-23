@@ -3571,6 +3571,7 @@ function openCustomBlockModal(blockName) {
     
     // 🆕 初始化輪播圖
     window._currentModalCategoryName = blockName;
+    window._modalIsFeaturedOrCustom = true;  // 主打/自定義才隨口味換圖
     initCarousel(blockName);
     
     // 計算統計
@@ -3632,6 +3633,7 @@ function openFeaturedCategoryModal() {
     
     // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
     window._currentModalCategoryName = '主打商品';
+    window._modalIsFeaturedOrCustom = true;  // 主打/自定義才隨口味換圖
     initCarousel('主打商品');
     
     // 渲染主打商品選項
@@ -3843,6 +3845,7 @@ function openCategoryModal(categoryName) {
     
     // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
     window._currentModalCategoryName = categoryName;
+    window._modalIsFeaturedOrCustom = false;  // 一般分類不隨口味換圖
     initCarousel(categoryName);
     
     // 渲染該類別下的所有口味選項
@@ -3912,31 +3915,7 @@ function renderFlavorOptions(categoryName) {
         `;
     }).join('');
     
-    // 取得第一個有庫存口味的規格，作為預設「選擇項目」顯示
-    const firstProduct = currentCategoryProducts.find(p => {
-        const s = productSpecs[p.id];
-        return s && s.some(x => x.stock > 0);
-    }) || currentCategoryProducts[0];
-    const defaultSpecs = firstProduct ? (productSpecs[firstProduct.id] || []) : [];
-    window.currentQuantitySpecs = defaultSpecs;
-
-    const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
-    const quantityOptions = defaultSpecs.map((spec, index) => {
-        const isOutOfStock = spec.stock === 0;
-        return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}"
-                 onclick="selectQuantitySpec(${index})"
-                 id="qty-spec-${index}"
-                 title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
-                <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
-            </div>`;
-    }).join('');
-
-    optionsContainer.innerHTML = flavorTitle + flavorOptions + quantityTitle + quantityOptions;
-
-    // 自動預選第一個有庫存的規格
-    let autoIdx = defaultSpecs.findIndex(s => s.specName.includes('單包') && s.stock > 0);
-    if (autoIdx === -1) autoIdx = defaultSpecs.findIndex(s => s.stock > 0);
-    if (autoIdx !== -1) setTimeout(() => selectQuantitySpec(autoIdx), 100);
+    optionsContainer.innerHTML = flavorTitle + flavorOptions;
 }
 
 // ==========================================
@@ -3966,26 +3945,26 @@ function selectFlavor(index) {
         el.classList.toggle('selected', i === index);
     });
     
-    // 🆕 點選口味時：重新組合輪播（商品圖優先 + 分類輪播圖接後）
-    {
+    // 🆕 主打/自定義才隨口味換圖，一般分類不換
+    if (window._modalIsFeaturedOrCustom) {
         const categoryName = window._currentModalCategoryName || '';
-        const carouselBase = categoryCarouselImages[categoryName] || [];
         const seen = new Set();
         const merged = [];
 
-        // 1. 先加這個口味的商品圖
-        let productImg = product.image || '';
+        // 1. 先加這個口味自己的商品圖（C欄）
+        let productImg = (product.image || '').trim();
         if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
-        if (productImg && !seen.has(productImg)) { seen.add(productImg); merged.push(productImg); }
+        if (productImg) { seen.add(productImg); merged.push(productImg); }
 
-        // 2. 再加 C 欄起的分類輪播圖
-        carouselBase.forEach(u => { if (!seen.has(u)) { seen.add(u); merged.push(u); } });
+        // 2. 再加 B 欄封面圖
+        const coverImg = (categoryImages[categoryName] || '').trim();
+        if (coverImg && !seen.has(coverImg)) { seen.add(coverImg); merged.push(coverImg); }
 
-        // 3. 若完全沒圖，fallback 到 B 欄卡片圖
-        if (merged.length === 0) {
-            const coverImg = categoryImages[categoryName] || '';
-            if (coverImg) merged.push(coverImg);
-        }
+        // 3. 再加 C 欄起的分類輪播圖
+        (categoryCarouselImages[categoryName] || []).forEach(u => {
+            u = (u || '').trim();
+            if (u && !seen.has(u)) { seen.add(u); merged.push(u); }
+        });
 
         if (merged.length > 0) initCarouselFromUrls(merged);
     }
