@@ -3912,7 +3912,31 @@ function renderFlavorOptions(categoryName) {
         `;
     }).join('');
     
-    optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    // 取得第一個有庫存口味的規格，作為預設「選擇項目」顯示
+    const firstProduct = currentCategoryProducts.find(p => {
+        const s = productSpecs[p.id];
+        return s && s.some(x => x.stock > 0);
+    }) || currentCategoryProducts[0];
+    const defaultSpecs = firstProduct ? (productSpecs[firstProduct.id] || []) : [];
+    window.currentQuantitySpecs = defaultSpecs;
+
+    const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
+    const quantityOptions = defaultSpecs.map((spec, index) => {
+        const isOutOfStock = spec.stock === 0;
+        return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}"
+                 onclick="selectQuantitySpec(${index})"
+                 id="qty-spec-${index}"
+                 title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+            </div>`;
+    }).join('');
+
+    optionsContainer.innerHTML = flavorTitle + flavorOptions + quantityTitle + quantityOptions;
+
+    // 自動預選第一個有庫存的規格
+    let autoIdx = defaultSpecs.findIndex(s => s.specName.includes('單包') && s.stock > 0);
+    if (autoIdx === -1) autoIdx = defaultSpecs.findIndex(s => s.stock > 0);
+    if (autoIdx !== -1) setTimeout(() => selectQuantitySpec(autoIdx), 100);
 }
 
 // ==========================================
@@ -4172,30 +4196,24 @@ let _carouselTouchX = 0;
  * 以分類名稱初始化輪播（從 categoryCarouselImages 取 C 欄起的圖）
  */
 function initCarousel(categoryName) {
-    // 優先用 C 欄起的輪播圖（使用者手動設定）
-    let imgs = categoryCarouselImages[categoryName] || [];
+    const seen = new Set();
+    const imgs = [];
 
-    // ── Fallback：若 C 欄沒填，就收集該分類所有商品的圖片 ──
+    // 1. 永遠先放 B 欄封面圖（預設第一張）
+    const coverImg = (categoryImages[categoryName] || '').trim();
+    if (coverImg) { seen.add(coverImg); imgs.push(coverImg); }
+
+    // 2. 再接 C 欄起的輪播圖
+    (categoryCarouselImages[categoryName] || []).forEach(u => {
+        u = (u || '').trim();
+        if (u && !seen.has(u)) { seen.add(u); imgs.push(u); }
+    });
+
+    // 3. 若都沒有，fallback 到商品各自的圖片
     if (imgs.length === 0) {
-        const seen = new Set();
-        const fallbackImgs = [];
-
-        // 先加 B 欄（卡片封面圖）
-        const coverImg = categoryImages[categoryName] || '';
-        if (coverImg && !seen.has(coverImg)) {
-            seen.add(coverImg);
-            fallbackImgs.push(coverImg);
-        }
-
-        // 再加每個商品自己的圖片
         currentCategoryProducts.forEach(p => {
-            if (p.image && !seen.has(p.image)) {
-                seen.add(p.image);
-                fallbackImgs.push(p.image);
-            }
+            if (p.image && !seen.has(p.image)) { seen.add(p.image); imgs.push(p.image); }
         });
-
-        imgs = fallbackImgs;
     }
 
     initCarouselFromUrls(imgs);
