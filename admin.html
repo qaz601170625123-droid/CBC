@@ -620,14 +620,13 @@ async function sheetsRead(sheetName) {
     return await res.json();
 }
 
-// 透過 Apps Script 寫入（POST no-cors → 無法取得回傳值，需 Apps Script 支援對應 action）
+// 透過 Apps Script GET 寫入（可取得回傳值，確認成功/失敗）
 async function scriptPost(payload) {
-    await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    const params = new URLSearchParams({ data: JSON.stringify(payload) });
+    const res = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error || '操作失敗');
+    return result;
 }
 
 // ==========================================
@@ -738,20 +737,24 @@ function updatePromoFields() {
 }
 
 async function savePromo() {
-    const name    = document.getElementById('pf_name').value.trim();
-    const type    = document.getElementById('pf_type').value;
+    const name      = document.getElementById('pf_name').value.trim();
+    const type      = document.getElementById('pf_type').value;
     const threshold = document.getElementById('pf_threshold').value.trim();
-    if (!name) { showToast('請輸入優惠名稱', 'error'); return; }
+    if (!name)      { showToast('請輸入優惠名稱', 'error'); return; }
     if (!threshold) { showToast('請輸入門檻值', 'error'); return; }
 
     const rowIndex = document.getElementById('pf_rowIndex').value;
+    const saveBtn  = document.querySelector('#promoModal .modal-footer .btn-purple');
+    const origText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中...';
+
     const payload = {
         action:   rowIndex ? 'adminUpdatePromo' : 'adminAddPromo',
         rowIndex: rowIndex ? parseInt(rowIndex) : null,
         adminLineId: adminMember.lineId,
         promo: {
-            name,
-            type,
+            name, type,
             unit:       document.getElementById('pf_unit').value,
             threshold,
             discount:   document.getElementById('pf_discount').value.trim(),
@@ -765,10 +768,12 @@ async function savePromo() {
     try {
         await scriptPost(payload);
         closePromoModal();
-        showToast(rowIndex ? '優惠已更新！' : '優惠已新增！');
-        setTimeout(loadPromos, 1200);
+        showToast(rowIndex ? '✅ 優惠已更新！' : '✅ 優惠已新增！');
+        await loadPromos();  // 等待刷新完成，不靠 setTimeout
     } catch(e) {
-        showToast('操作失敗：' + e.message, 'error');
+        showToast('❌ ' + e.message, 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = origText;
     }
 }
 
@@ -777,10 +782,10 @@ async function deletePromo(idx) {
     if (!confirm(`確定要刪除「${p.name}」嗎？`)) return;
     try {
         await scriptPost({ action: 'adminDeleteRow', sheet: PROMO_SHEET, rowIndex: p.rowIndex, adminLineId: adminMember.lineId });
-        showToast('已刪除優惠');
-        setTimeout(loadPromos, 1200);
+        showToast('✅ 已刪除優惠');
+        await loadPromos();
     } catch(e) {
-        showToast('刪除失敗', 'error');
+        showToast('❌ 刪除失敗：' + e.message, 'error');
     }
 }
 
@@ -857,6 +862,10 @@ async function saveAnn() {
     const text = document.getElementById('af_text').value.trim();
     if (!text) { showToast('請輸入公告內容', 'error'); return; }
     const rowIndex = document.getElementById('af_rowIndex').value;
+    const saveBtn  = document.querySelector('#annModal .modal-footer .btn-purple');
+    const origText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中...';
     const payload = {
         action:   rowIndex ? 'adminUpdateAnn' : 'adminAddAnn',
         rowIndex: rowIndex ? parseInt(rowIndex) : null,
@@ -870,10 +879,12 @@ async function saveAnn() {
     try {
         await scriptPost(payload);
         closeAnnModal();
-        showToast(rowIndex ? '公告已更新！' : '公告已新增！');
-        setTimeout(loadAnnouncements, 1200);
+        showToast(rowIndex ? '✅ 公告已更新！' : '✅ 公告已新增！');
+        await loadAnnouncements();
     } catch(e) {
-        showToast('操作失敗', 'error');
+        showToast('❌ ' + e.message, 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = origText;
     }
 }
 
@@ -882,10 +893,10 @@ async function deleteAnn(idx) {
     if (!confirm('確定要刪除這則公告嗎？')) return;
     try {
         await scriptPost({ action: 'adminDeleteRow', sheet: ANN_SHEET, rowIndex: a.rowIndex, adminLineId: adminMember.lineId });
-        showToast('公告已刪除');
-        setTimeout(loadAnnouncements, 1200);
+        showToast('✅ 公告已刪除');
+        await loadAnnouncements();
     } catch(e) {
-        showToast('刪除失敗', 'error');
+        showToast('❌ 刪除失敗：' + e.message, 'error');
     }
 }
 
