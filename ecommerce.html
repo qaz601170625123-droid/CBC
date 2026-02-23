@@ -748,7 +748,7 @@
         }
         
         .spec-info-price {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: 900;
             color: var(--primary);
             line-height: 1.2;
@@ -787,7 +787,7 @@
         }
         
         .spec-info-stock {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--accent-green);
             text-align: center;
@@ -2078,10 +2078,18 @@
                 <div class="carousel-dots" id="carouselDots"></div>
             </div>
             <div class="spec-header-container">
-                <div class="spec-info-display" style="width:100%">
+                <div id="specThumbWrap" onclick="openSpecLightbox()" style="display:none;width:72px;height:72px;flex-shrink:0;cursor:pointer;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,215,0,0.5);position:relative;">
+                    <img id="specThumbImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+                    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);text-align:center;font-size:9px;color:#FFD700;padding:2px 0;">🔍 放大</div>
+                </div>
+                <div class="spec-info-display" style="flex:1;">
                     <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
                     <div class="spec-info-stock" id="specInfoStock"></div>
                 </div>
+            </div>
+            <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+                <img id="specLightboxImg" src="" style="max-width:96vw;max-height:85vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(255,215,0,0.2);">
+                <div style="color:#FFD700;font-size:14px;opacity:0.7;">點任意處關閉</div>
             </div>
             <div class="spec-options" id="specOptions"></div>
             <div class="quantity-selector">
@@ -3522,6 +3530,7 @@ function openCustomBlockModal(blockName) {
     // 🆕 初始化輪播圖
     window._currentModalCategoryName = blockName;
     initCarousel(blockName);
+    updateSpecThumb(window._currentModalCategoryName);
     
     // 計算統計
     let totalStock = 0, minPrice = Infinity, maxPrice = 0;
@@ -3583,6 +3592,7 @@ function openFeaturedCategoryModal() {
     // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
     window._currentModalCategoryName = '主打商品';
     initCarousel('主打商品');
+    updateSpecThumb(window._currentModalCategoryName);
     
     // 渲染主打商品選項
     renderFeaturedFlavorOptions();
@@ -3794,6 +3804,7 @@ function openCategoryModal(categoryName) {
     // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
     window._currentModalCategoryName = categoryName;
     initCarousel(categoryName);
+    updateSpecThumb(window._currentModalCategoryName);
     
     // 渲染該類別下的所有口味選項
     renderFlavorOptions(categoryName);
@@ -3885,6 +3896,7 @@ function selectFlavor(index) {
     }
     
     selectedFlavor = product;
+    updateSpecThumbFromProduct(product);
     
     // 更新口味選項的選中狀態
     document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
@@ -4045,6 +4057,12 @@ window.addEventListener('popstate', function(event) {
     const profileUpdateModal = document.getElementById('profileUpdateModal');
     
     // 依序檢查並關閉開啟的彈窗
+    // 燈箱優先關閉
+    const specLb = document.getElementById('specLightbox');
+    if (specLb && specLb.style.display === 'flex') {
+        closeSpecLightbox();
+        return;
+    }
     const orderDetailView = document.getElementById('orderDetailView');
     if (orderDetailView) {
         // 優先關閉訂單詳情全螢幕頁
@@ -4236,6 +4254,49 @@ function _carouselRender() {
     }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
     if (counter) counter.textContent = `${_carouselIdx + 1} / ${_carouselImgs.length}`;
+}
+
+
+// 🆕 縮圖 & 燈箱
+function updateSpecThumb(categoryName) {
+    const wrap = document.getElementById('specThumbWrap');
+    const img  = document.getElementById('specThumbImg');
+    if (!wrap || !img) return;
+    // 優先用 C 欄輪播第一張，否則 B 欄封面
+    const imgs = categoryCarouselImages[categoryName] || [];
+    let src = imgs.length > 0 ? imgs[0] : (categoryImages[categoryName] || '');
+    if (!src && window.currentCategoryProducts && window.currentCategoryProducts[0])
+        src = window.currentCategoryProducts[0].image || '';
+    if (src) {
+        if (!src.startsWith('http')) src = 'https://' + src;
+        img.src = src;
+        wrap.style.display = 'block';
+    } else {
+        wrap.style.display = 'none';
+    }
+}
+function updateSpecThumbFromProduct(product) {
+    const wrap = document.getElementById('specThumbWrap');
+    const img  = document.getElementById('specThumbImg');
+    if (!wrap || !img || !product) return;
+    let src = product.image || '';
+    if (!src) return;
+    if (!src.startsWith('http')) src = 'https://' + src;
+    img.src = src;
+    wrap.style.display = 'block';
+}
+function openSpecLightbox() {
+    const img  = document.getElementById('specThumbImg');
+    const lb   = document.getElementById('specLightbox');
+    const lbImg= document.getElementById('specLightboxImg');
+    if (!img || !lb || !lbImg) return;
+    lbImg.src = img.src;
+    lb.style.display = 'flex';
+    history.pushState({ modal: 'lightbox' }, '');
+}
+function closeSpecLightbox() {
+    const lb = document.getElementById('specLightbox');
+    if (lb) lb.style.display = 'none';
 }
 
 function closeSpecModal() {
