@@ -4284,7 +4284,7 @@ function updateSpecThumbStrip(urls) {
         const active = i === 0 ? 'outline:2px solid #FFD700;' : 'outline:2px solid transparent;';
         return '<img src="' + s + '" data-idx="' + i + '" '
             + 'style="width:58px;height:58px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;' + active + 'transition:outline 0.2s;" '
-            + 'onerror="this.style.display='none'" '
+            + 'onerror="this.style.display=\'none\'" '
             + 'onclick="specThumbClick(this,' + i + ')">';
     }).join('');
 }
