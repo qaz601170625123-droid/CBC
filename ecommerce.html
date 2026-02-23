@@ -3627,7 +3627,34 @@ function openCustomBlockModal(blockName) {
                 <div class="spec-name">${product.name}${!hasStock ? ' ❌' : ''}${hasSale ? '<span class="sale-badge">特價中</span>' : ''}</div>
             </div>`;
     }).join('');
-    optionsContainer.innerHTML = flavorTitle + flavorOptions;
+
+    // 🆕 預設顯示「選擇項目」
+    const firstCustomProduct = currentCategoryProducts.find(p => {
+        const s = productSpecs[p.id];
+        return s && s.some(x => x.stock > 0);
+    }) || currentCategoryProducts[0];
+    const defaultCustomSpecs = firstCustomProduct ? (productSpecs[firstCustomProduct.id] || []) : [];
+    window.currentQuantitySpecs = defaultCustomSpecs;
+
+    if (defaultCustomSpecs.length > 0) {
+        const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
+        const quantityOptions = defaultCustomSpecs.map((spec, index) => {
+            const isOutOfStock = spec.stock === 0;
+            return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}"
+                         onclick="selectQuantitySpec(${index})"
+                         id="qty-spec-${index}"
+                         title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                        <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+                    </div>`;
+        }).join('');
+        optionsContainer.innerHTML = flavorTitle + flavorOptions + quantityTitle + quantityOptions;
+
+        let autoIdx = defaultCustomSpecs.findIndex(s => s.specName.includes('單包') && s.stock > 0);
+        if (autoIdx === -1) autoIdx = defaultCustomSpecs.findIndex(s => s.stock > 0);
+        if (autoIdx !== -1) setTimeout(() => selectQuantitySpec(autoIdx), 100);
+    } else {
+        optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    }
     
     selectedFlavor = null; selectedSpec = null; quantity = 1;
     updateQuantityDisplay(); updateAddToCartButton();
@@ -3728,7 +3755,33 @@ function renderFeaturedFlavorOptions() {
         `;
     }).join('');
     
-    optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    // 🆕 預設顯示「選擇項目」
+    const firstFeaturedProduct = currentCategoryProducts.find(p => {
+        const s = productSpecs[p.id];
+        return s && s.some(x => x.stock > 0);
+    }) || currentCategoryProducts[0];
+    const defaultFeaturedSpecs = firstFeaturedProduct ? (productSpecs[firstFeaturedProduct.id] || []) : [];
+    window.currentQuantitySpecs = defaultFeaturedSpecs;
+
+    if (defaultFeaturedSpecs.length > 0) {
+        const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
+        const quantityOptions = defaultFeaturedSpecs.map((spec, index) => {
+            const isOutOfStock = spec.stock === 0;
+            return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}"
+                         onclick="selectQuantitySpec(${index})"
+                         id="qty-spec-${index}"
+                         title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                        <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+                    </div>`;
+        }).join('');
+        optionsContainer.innerHTML = flavorTitle + flavorOptions + quantityTitle + quantityOptions;
+
+        let autoIdx = defaultFeaturedSpecs.findIndex(s => s.specName.includes('單包') && s.stock > 0);
+        if (autoIdx === -1) autoIdx = defaultFeaturedSpecs.findIndex(s => s.stock > 0);
+        if (autoIdx !== -1) setTimeout(() => selectQuantitySpec(autoIdx), 100);
+    } else {
+        optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    }
 }
 
 // ==========================================
@@ -3943,7 +3996,34 @@ function renderFlavorOptions(categoryName) {
         `;
     }).join('');
     
-    optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    // 🆕 預設顯示「選擇項目」：抓第一個有庫存口味的規格
+    const firstProduct = currentCategoryProducts.find(p => {
+        const s = productSpecs[p.id];
+        return s && s.some(x => x.stock > 0);
+    }) || currentCategoryProducts[0];
+    const defaultSpecs = firstProduct ? (productSpecs[firstProduct.id] || []) : [];
+    window.currentQuantitySpecs = defaultSpecs;
+
+    if (defaultSpecs.length > 0) {
+        const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
+        const quantityOptions = defaultSpecs.map((spec, index) => {
+            const isOutOfStock = spec.stock === 0;
+            return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}"
+                         onclick="selectQuantitySpec(${index})"
+                         id="qty-spec-${index}"
+                         title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                        <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+                    </div>`;
+        }).join('');
+        optionsContainer.innerHTML = flavorTitle + flavorOptions + quantityTitle + quantityOptions;
+
+        // 自動預選第一個有庫存的規格
+        let autoIdx = defaultSpecs.findIndex(s => s.specName.includes('單包') && s.stock > 0);
+        if (autoIdx === -1) autoIdx = defaultSpecs.findIndex(s => s.stock > 0);
+        if (autoIdx !== -1) setTimeout(() => selectQuantitySpec(autoIdx), 100);
+    } else {
+        optionsContainer.innerHTML = flavorTitle + flavorOptions;
+    }
 }
 
 // ==========================================
