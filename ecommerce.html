@@ -2070,23 +2070,22 @@
             </div>
             <!-- 🆕 多圖輪播 -->
             <div class="product-carousel" id="productCarousel" style="display:none;">
-                <div class="carousel-track-wrap" id="carouselWrap">
+                <div class="carousel-track-wrap" id="carouselWrap" onclick="openCarouselLightbox(event)">
                     <div class="carousel-track" id="carouselTrack"></div>
-                    <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="carouselMove(-1)">&#8249;</button>
-                    <button class="carousel-btn carousel-next" id="carouselNext" onclick="carouselMove(1)">&#8250;</button>
+                    <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
+                    <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
                 </div>
                 <div class="carousel-dots" id="carouselDots"></div>
             </div>
+            <!-- 縮圖列：點縮圖切換大圖 -->
+            <div id="specThumbStrip" style="display:none;gap:6px;padding:6px 2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
             <div class="spec-header-container">
-                <div id="specThumbWrap" onclick="openSpecLightbox()" style="display:none;width:72px;height:72px;flex-shrink:0;cursor:pointer;border-radius:8px;overflow:hidden;border:1.5px solid rgba(255,215,0,0.5);position:relative;">
-                    <img id="specThumbImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
-                    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.45);text-align:center;font-size:9px;color:#FFD700;padding:2px 0;">🔍 放大</div>
-                </div>
                 <div class="spec-info-display" style="flex:1;">
                     <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
                     <div class="spec-info-stock" id="specInfoStock"></div>
                 </div>
             </div>
+            <!-- 燈箱（點大圖觸發） -->
             <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
                 <img id="specLightboxImg" src="" style="max-width:96vw;max-height:85vh;object-fit:contain;border-radius:10px;box-shadow:0 0 40px rgba(255,215,0,0.2);">
                 <div style="color:#FFD700;font-size:14px;opacity:0.7;">點任意處關閉</div>
@@ -4226,6 +4225,8 @@ function initCarouselFromUrls(rawUrls) {
     };
 
     _carouselRender();
+    // 同步縮圖列
+    updateSpecThumbStrip(_carouselImgs);
 }
 
 function carouselMove(dir) {
@@ -4254,49 +4255,84 @@ function _carouselRender() {
     }
     dots.forEach((d, i) => d.classList.toggle('active', i === _carouselIdx));
     if (counter) counter.textContent = `${_carouselIdx + 1} / ${_carouselImgs.length}`;
-}
-
-
-// 🆕 縮圖 & 燈箱
-function updateSpecThumb(categoryName) {
-    const wrap = document.getElementById('specThumbWrap');
-    const img  = document.getElementById('specThumbImg');
-    if (!wrap || !img) return;
-    // 優先用 C 欄輪播第一張，否則 B 欄封面
-    const imgs = categoryCarouselImages[categoryName] || [];
-    let src = imgs.length > 0 ? imgs[0] : (categoryImages[categoryName] || '');
-    if (!src && window.currentCategoryProducts && window.currentCategoryProducts[0])
-        src = window.currentCategoryProducts[0].image || '';
-    if (src) {
-        if (!src.startsWith('http')) src = 'https://' + src;
-        img.src = src;
-        wrap.style.display = 'block';
-    } else {
-        wrap.style.display = 'none';
+    // 同步縮圖列選中狀態
+    const strip = document.getElementById('specThumbStrip');
+    if (strip) {
+        strip.querySelectorAll('img').forEach((img, i) => {
+            img.style.outline = i === _carouselIdx ? '2px solid #FFD700' : '2px solid transparent';
+        });
+        // 讓當前縮圖捲入視野
+        const active = strip.querySelectorAll('img')[_carouselIdx];
+        if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 }
-function updateSpecThumbFromProduct(product) {
-    const wrap = document.getElementById('specThumbWrap');
-    const img  = document.getElementById('specThumbImg');
-    if (!wrap || !img || !product) return;
-    let src = product.image || '';
-    if (!src) return;
-    if (!src.startsWith('http')) src = 'https://' + src;
-    img.src = src;
-    wrap.style.display = 'block';
+
+
+// 🆕 縮圖列 & 燈箱
+// 更新縮圖列（從輪播圖陣列生成）
+function updateSpecThumbStrip(urls) {
+    const strip = document.getElementById('specThumbStrip');
+    if (!strip) return;
+    if (!urls || urls.length === 0) {
+        strip.style.display = 'none';
+        strip.innerHTML = '';
+        return;
+    }
+    strip.style.display = 'flex';
+    strip.innerHTML = urls.map((src, i) => {
+        const s = (!src.startsWith('http') ? 'https://' + src : src);
+        const active = i === 0 ? 'outline:2px solid #FFD700;' : 'outline:2px solid transparent;';
+        return '<img src="' + s + '" data-idx="' + i + '" '
+            + 'style="width:58px;height:58px;object-fit:cover;border-radius:7px;flex-shrink:0;cursor:pointer;' + active + 'transition:outline 0.2s;" '
+            + 'onerror="this.style.display='none'" '
+            + 'onclick="specThumbClick(this,' + i + ')">';
+    }).join('');
 }
-function openSpecLightbox() {
-    const img  = document.getElementById('specThumbImg');
-    const lb   = document.getElementById('specLightbox');
-    const lbImg= document.getElementById('specLightboxImg');
-    if (!img || !lb || !lbImg) return;
-    lbImg.src = img.src;
+// 點縮圖：切換大圖
+function specThumbClick(el, idx) {
+    carouselGoTo(idx);
+    // 更新選中框
+    const strip = document.getElementById('specThumbStrip');
+    if (strip) {
+        strip.querySelectorAll('img').forEach((img, i) => {
+            img.style.outline = i === idx ? '2px solid #FFD700' : '2px solid transparent';
+        });
+    }
+}
+// 大圖點擊放大
+function openCarouselLightbox(e) {
+    if (e && e.target.tagName === 'BUTTON') return;
+    const lb = document.getElementById('specLightbox');
+    const lbImg = document.getElementById('specLightboxImg');
+    if (!lb || !lbImg || !_carouselImgs.length) return;
+    lbImg.src = _carouselImgs[_carouselIdx] || '';
     lb.style.display = 'flex';
     history.pushState({ modal: 'lightbox' }, '');
 }
 function closeSpecLightbox() {
     const lb = document.getElementById('specLightbox');
     if (lb) lb.style.display = 'none';
+}
+function updateSpecThumb(categoryName) {
+    // 用輪播圖更新縮圖列
+    const imgs = (categoryCarouselImages[categoryName] || [])
+        .map(u => (u||'').trim()).filter(u => u);
+    // fallback 到 B 欄封面
+    if (imgs.length === 0) {
+        const cover = categoryImages[categoryName] || '';
+        if (cover) imgs.push(cover);
+    }
+    updateSpecThumbStrip(imgs);
+}
+function updateSpecThumbFromProduct(product) {
+    // 選口味後：把商品圖插到縮圖列最前面
+    if (!product || !product.image) return;
+    const strip = document.getElementById('specThumbStrip');
+    if (!strip) return;
+    const src = product.image.startsWith('http') ? product.image : 'https://' + product.image;
+    // 更新第一張縮圖
+    const first = strip.querySelector('img[data-idx="0"]');
+    if (first) first.src = src;
 }
 
 function closeSpecModal() {
