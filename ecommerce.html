@@ -1894,7 +1894,7 @@
             height: auto;
             max-height: 60vw;
             display: block;
-            object-fit: cover;
+            object-fit: contain;
             background: #111;
         }
 
@@ -2116,15 +2116,15 @@
                         <button class="carousel-btn carousel-prev" id="carouselPrev" onclick="event.stopPropagation();carouselMove(-1)">&#8249;</button>
                         <button class="carousel-btn carousel-next" id="carouselNext" onclick="event.stopPropagation();carouselMove(1)">&#8250;</button>
                     </div>
-                    <!-- 縮圖列：緊貼大圖下方，2張以上才顯示 -->
-                    <div id="specThumbStrip" style="display:none;flex-wrap:nowrap;gap:5px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(0,0,0,0.7);"></div>
-                    <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
-                </div>
-                <div class="spec-header-container" style="margin-top: 10px;">
-                    <div class="spec-info-display" style="flex:1;">
-                        <div class="spec-info-price" id="specInfoPrice">請選擇規格</div>
-                        <div class="spec-info-stock" id="specInfoStock"></div>
+                    <!-- 縮圖列 + 售價庫存同一列 -->
+                <div style="display:flex; align-items:center; background:rgba(0,0,0,0.7); padding: 4px 10px;">
+                    <div id="specThumbStrip" style="display:flex; flex-wrap:nowrap; gap:5px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; flex:1; min-width:0;"></div>
+                    <div style="flex:0 0 auto; text-align:right; padding-left:10px; max-width:50%;">
+                        <div class="spec-info-price" id="specInfoPrice" style="font-size:16px; margin:0;">請選擇規格</div>
+                        <div class="spec-info-stock" id="specInfoStock" style="font-size:12px; margin:0;"></div>
                     </div>
+                </div>
+                <div class="carousel-dots" id="carouselDots" style="display:none;"></div>
                 </div>
                 <!-- 燈箱（點大圖觸發） -->
                 <div id="specLightbox" onclick="closeSpecLightbox()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.93);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
@@ -4581,8 +4581,13 @@ function updateModalPromoHint() {
         el.innerHTML = '';
         return;
     }
-    // 顯示所有啟用的優惠名稱
-    const names = promotions.map(p => `🎁 ${p.name}`).join('　');
+    // 只顯示非免運（有折扣）的優惠名稱
+    const discountPromos = promotions.filter(p => p.type !== '滿額免運' && p.discount > 0);
+    if (discountPromos.length === 0) {
+        el.innerHTML = '';
+        return;
+    }
+    const names = discountPromos.map(p => `🎁 ${p.name}`).join('　');
     el.innerHTML = `<span style="color:#FFD700;">${names}</span>`;
 }
 
