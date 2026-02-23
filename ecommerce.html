@@ -3637,6 +3637,13 @@ function openCustomBlockModal(blockName) {
     const defaultCustomSpecs = firstCustomProduct ? (productSpecs[firstCustomProduct.id] || []) : [];
     window.currentQuantitySpecs = defaultCustomSpecs;
 
+    // 預先設定 selectedFlavor 為第一個有庫存的口味
+    selectedFlavor = firstCustomProduct || null;
+    selectedSpec = null;
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
+
     if (defaultCustomSpecs.length > 0) {
         const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
         const quantityOptions = defaultCustomSpecs.map((spec, index) => {
@@ -3656,9 +3663,6 @@ function openCustomBlockModal(blockName) {
     } else {
         optionsContainer.innerHTML = flavorTitle + flavorOptions;
     }
-    
-    selectedFlavor = null; selectedSpec = null; quantity = 1;
-    updateQuantityDisplay(); updateAddToCartButton();
 }
 
 // ==========================================
@@ -3764,6 +3768,13 @@ function renderFeaturedFlavorOptions() {
     }) || currentCategoryProducts[0];
     const defaultFeaturedSpecs = firstFeaturedProduct ? (productSpecs[firstFeaturedProduct.id] || []) : [];
     window.currentQuantitySpecs = defaultFeaturedSpecs;
+
+    // 預先設定 selectedFlavor
+    selectedFlavor = firstFeaturedProduct || null;
+    selectedSpec = null;
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
 
     if (defaultFeaturedSpecs.length > 0) {
         const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
@@ -3932,15 +3943,8 @@ function openCategoryModal(categoryName) {
     window._currentModalCategoryName = categoryName;
     initCarousel(categoryName);
     
-    // 渲染該類別下的所有口味選項
+    // 渲染該類別下的所有口味選項（內部會設定 selectedFlavor）
     renderFlavorOptions(categoryName);
-    
-    // 重置選擇狀態
-    selectedFlavor = null;
-    selectedSpec = null;
-    quantity = 1;
-    updateQuantityDisplay();
-    updateAddToCartButton();
 }
 
 function renderFlavorOptions(categoryName) {
@@ -4006,6 +4010,13 @@ function renderFlavorOptions(categoryName) {
     }) || currentCategoryProducts[0];
     const defaultSpecs = firstProduct ? (productSpecs[firstProduct.id] || []) : [];
     window.currentQuantitySpecs = defaultSpecs;
+
+    // 預先設定 selectedFlavor，讓 selectQuantitySpec 可以正常執行
+    selectedFlavor = firstProduct || null;
+    selectedSpec = null;
+    quantity = 1;
+    updateQuantityDisplay();
+    updateAddToCartButton();
 
     if (defaultSpecs.length > 0) {
         const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
