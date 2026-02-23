@@ -3547,7 +3547,6 @@ function openCustomBlockModal(blockName) {
     // 🆕 初始化輪播圖
     window._currentModalCategoryName = blockName;
     initCarousel(blockName);
-    updateSpecThumb(window._currentModalCategoryName);
     
     // 計算統計
     let totalStock = 0, minPrice = Infinity, maxPrice = 0;
@@ -3609,7 +3608,6 @@ function openFeaturedCategoryModal() {
     // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
     window._currentModalCategoryName = '主打商品';
     initCarousel('主打商品');
-    updateSpecThumb(window._currentModalCategoryName);
     
     // 渲染主打商品選項
     renderFeaturedFlavorOptions();
@@ -3821,7 +3819,6 @@ function openCategoryModal(categoryName) {
     // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
     window._currentModalCategoryName = categoryName;
     initCarousel(categoryName);
-    updateSpecThumb(window._currentModalCategoryName);
     
     // 渲染該類別下的所有口味選項
     renderFlavorOptions(categoryName);
