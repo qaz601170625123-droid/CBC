@@ -2139,9 +2139,9 @@
                 <div class="quantity-selector" style="margin-bottom: 10px;">
                     <div class="quantity-label" style="display: none;">選擇數量:</div>
                     <div class="quantity-controls">
-                        <button class="quantity-btn" onclick="changeQuantity(-1)">−</button>
+                        <button class="quantity-btn" ontouchstart="event.preventDefault();changeQuantity(-1)" onclick="changeQuantity(-1)">−</button>
                         <div class="quantity-display" id="quantityDisplay">1</div>
-                        <button class="quantity-btn" onclick="changeQuantity(1)">+</button>
+                        <button class="quantity-btn" ontouchstart="event.preventDefault();changeQuantity(1)" onclick="changeQuantity(1)">+</button>
                     </div>
                 </div>
                 <button class="add-to-cart-modal-btn" id="addToCartModalBtn" onclick="confirmAddToCart()">加入購物車</button>
@@ -3589,6 +3589,7 @@ function openCustomBlockModal(blockName) {
     const _st1 = categorySubtitles[blockName] || '';
     if (_sub1) { _sub1.textContent = _st1; _sub1.style.display = _st1 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
@@ -3679,6 +3680,7 @@ function openFeaturedCategoryModal() {
     const _st2 = categorySubtitles['主打商品'] || '';
     if (_sub2) { _sub2.textContent = _st2; _sub2.style.display = _st2 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -3920,6 +3922,7 @@ function openCategoryModal(categoryName) {
     const _st3 = categorySubtitles[categoryName] || '';
     if (_sub3) { _sub3.textContent = _st3; _sub3.style.display = _st3 ? 'inline' : 'none'; }
     document.getElementById('specModal').classList.add('active');
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -4105,39 +4108,35 @@ function selectFlavor(index) {
 function renderQuantitySpecOptions(specs) {
     const optionsContainer = document.getElementById('specOptions');
     
-    // 保留口味選項，在下方添加數量規格選項
-    const currentFlavorOptions = Array.from(document.querySelectorAll('[id^="flavor-"]')).map(el => el.outerHTML).join('');
     const flavorTitle = `<div class="spec-section-title" style="grid-column: 1 / -1;">🎯 選擇口味 (${currentCategoryProducts.length} 種選項)</div>`;
     
-    // 添加數量規格選項標題
+    // 重新建立口味選項（不用 outerHTML，避免殘留 selected class）
+    const currentFlavorOptions = currentCategoryProducts.map((product, index) => {
+        const pSpecs = productSpecs[product.id];
+        const hasStock = pSpecs && pSpecs.some(s => s.stock > 0);
+        const hasSale = pSpecs && pSpecs.some(s => s.originalPrice > 0);
+        // 只有當前選中的口味才加 selected
+        const isSelected = selectedFlavor && product.id === selectedFlavor.id;
+        return `<div class="spec-option ${!hasStock ? 'out-of-stock' : ''} ${isSelected ? 'selected' : ''}"
+                     onclick="selectFlavor(${index})" id="flavor-${index}"
+                     title="${product.name}${!hasStock ? ' - 已售完' : ''}">
+                    <div class="spec-name">${product.name}${!hasStock ? ' ❌' : ''}${hasSale ? '<span class="sale-badge">特價中</span>' : ''}</div>
+                </div>`;
+    }).join('');
+    
     const quantityTitle = `<div class="spec-section-title" style="grid-column: 1 / -1; margin-top: 20px;">📦 選擇項目</div>`;
     
     const quantityOptions = specs.map((spec, index) => {
         const isOutOfStock = spec.stock === 0;
-        
-        return `
-            <div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
-                 onclick="selectQuantitySpec(${index})"
-                 id="qty-spec-${index}"
-                 title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
-                <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
-            </div>
-        `;
+        return `<div class="spec-option ${isOutOfStock ? 'out-of-stock' : ''}" 
+                     onclick="selectQuantitySpec(${index})"
+                     id="qty-spec-${index}"
+                     title="${spec.specName}${isOutOfStock ? ' - 已售完' : ''}">
+                    <div class="spec-name">${spec.specName}${isOutOfStock ? ' ❌' : ''}</div>
+                </div>`;
     }).join('');
     
     optionsContainer.innerHTML = flavorTitle + currentFlavorOptions + quantityTitle + quantityOptions;
-    
-    // 重新綁定口味選項的點擊事件
-    currentCategoryProducts.forEach((_, index) => {
-        const flavorOption = document.getElementById(`flavor-${index}`);
-        if (flavorOption) {
-            flavorOption.onclick = () => selectFlavor(index);
-            // 保持當前選中狀態
-            if (selectedFlavor && currentCategoryProducts[index].id === selectedFlavor.id) {
-                flavorOption.classList.add('selected');
-            }
-        }
-    });
     
     // 儲存當前規格到全域變數
     window.currentQuantitySpecs = specs;
@@ -4259,6 +4258,7 @@ function openSpecModal(productId) {
 
     document.getElementById('specModalTitle').textContent = currentProduct.name;
     document.getElementById('specModal').classList.add('active');
+    setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50);
     
     // 🔥 添加歷史記錄，讓返回鍵可以關閉彈窗
     history.pushState({ modal: 'spec' }, '');
@@ -4568,6 +4568,7 @@ function selectSpec(index) {
 }
 
 function changeQuantity(change) {
+
     if (!selectedSpec) {
         showToast('請先選擇規格', 'error');
         return;
