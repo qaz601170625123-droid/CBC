@@ -4283,7 +4283,7 @@ function updateSpecThumbStrip(urls) {
         const s = (!src.startsWith('http') ? 'https://' + src : src);
         return '<img src="' + s + '" data-idx="' + i + '" '
             + 'class="' + (i === 0 ? 'active-thumb' : '') + '" '
-            + 'onerror="this.style.display='none'" '
+            + 'onerror="this.style.opacity=\'0.15\'" '
             + 'onclick="specThumbClick(this,' + i + ')">';
     }).join('');
 }
