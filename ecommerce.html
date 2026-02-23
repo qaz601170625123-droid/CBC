@@ -4241,6 +4241,7 @@ function initCarouselFromUrls(rawUrls) {
 
     _carouselRender();
     // 同步縮圖列
+    console.log('🖼 縮圖列圖片數:', _carouselImgs.length, _carouselImgs);
     updateSpecThumbStrip(_carouselImgs);
 }
 
@@ -4285,7 +4286,7 @@ function _carouselRender() {
 function updateSpecThumbStrip(urls) {
     const strip = document.getElementById('specThumbStrip');
     if (!strip) return;
-    if (!urls || urls.length <= 1) {
+    if (!urls || urls.length === 0) {
         strip.style.display = 'none';
         strip.innerHTML = '';
         return;
