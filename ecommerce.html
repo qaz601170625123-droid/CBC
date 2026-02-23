@@ -439,7 +439,7 @@
 
         .product-image {
             width: 100%;
-            background: #111;
+            background: transparent;
             border-radius: 10px;
             margin-bottom: 15px;
             display: flex;
@@ -451,8 +451,8 @@
 
         .product-image img {
             width: 100%;
-            height: auto;
-            object-fit: contain;
+            height: 100%;
+            object-fit: cover;
             display: block;
             border-radius: 10px;
         }
@@ -1894,8 +1894,8 @@
             height: auto;
             max-height: 60vw;
             display: block;
-            object-fit: contain;
-            background: #111;
+            object-fit: cover;
+            background: transparent;
         }
 
         /* 左右箭頭：疊在 track-wrap 上 */
