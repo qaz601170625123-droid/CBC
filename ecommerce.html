@@ -2258,11 +2258,14 @@
     <!-- 訂單查詢彈窗 -->
     <!-- 查詢訂單全頁 -->
     <div id="orderSearchPage" style="display:none;">
-        <div style="max-width:600px; margin:0 auto; padding:20px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid var(--primary);">
+        <!-- 🔒 固定置頂標題列 -->
+        <div style="position:sticky; top:0; z-index:99; background:rgba(10,10,10,0.97); backdrop-filter:blur(12px); border-bottom:2px solid var(--primary); padding:14px 20px;">
+            <div style="max-width:600px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;">
                 <div style="font-size:22px; font-weight:900; color:var(--primary);">📦 我的訂單</div>
                 <button onclick="closeOrderSearch()" style="background:rgba(255,215,0,0.1);border:1.5px solid var(--primary);color:var(--primary);padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 返回商城</button>
             </div>
+        </div>
+        <div style="max-width:600px; margin:0 auto; padding:20px;">
             <div id="ordersList">
                 <!-- 訂單列表會動態生成 -->
             </div>
