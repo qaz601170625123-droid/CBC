@@ -3569,10 +3569,21 @@ function openCustomBlockModal(blockName) {
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖
+    // 🆕 初始化輪播圖：每個口味對應一張圖，順序與口味按鈕一致
     window._currentModalCategoryName = blockName;
-    window._modalIsFeaturedOrCustom = true;  // 主打/自定義才隨口味換圖
-    initCarousel(blockName);
+    window._modalIsFeaturedOrCustom = true;
+    {
+        const imgs = currentCategoryProducts.map(p => {
+            let img = (p.image || '').trim();
+            if (img && !img.startsWith('http')) img = 'https://' + img;
+            return img;
+        }).filter(u => u);
+        if (imgs.length > 0) {
+            initCarouselFromUrls(imgs);
+        } else {
+            initCarousel(blockName);
+        }
+    }
     
     // 計算統計
     let totalStock = 0, minPrice = Infinity, maxPrice = 0;
@@ -3631,10 +3642,22 @@ function openFeaturedCategoryModal() {
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
+    // 🆕 初始化輪播圖：每個口味對應一張圖，順序與口味按鈕一致
     window._currentModalCategoryName = '主打商品';
-    window._modalIsFeaturedOrCustom = true;  // 主打/自定義才隨口味換圖
-    initCarousel('主打商品');
+    window._modalIsFeaturedOrCustom = true;
+    {
+        const imgs = currentCategoryProducts.map(p => {
+            let img = (p.image || '').trim();
+            if (img && !img.startsWith('http')) img = 'https://' + img;
+            return img;
+        }).filter(u => u);
+        // 若商品沒有各自圖片，fallback 到 B/C 欄
+        if (imgs.length > 0) {
+            initCarouselFromUrls(imgs);
+        } else {
+            initCarousel('主打商品');
+        }
+    }
     
     // 渲染主打商品選項
     renderFeaturedFlavorOptions();
@@ -3843,9 +3866,9 @@ function openCategoryModal(categoryName) {
     history.pushState({ modal: 'spec' }, '');
     isModalOpen = true;
     
-    // 🆕 初始化輪播圖（從分類照片設定的 C 欄起）
+    // 🆕 初始化輪播圖（從分類照片設定的 B 欄優先）
     window._currentModalCategoryName = categoryName;
-    window._modalIsFeaturedOrCustom = false;  // 一般分類不隨口味換圖
+    window._modalIsFeaturedOrCustom = false;
     initCarousel(categoryName);
     
     // 渲染該類別下的所有口味選項
@@ -3938,35 +3961,15 @@ function selectFlavor(index) {
     }
     
     selectedFlavor = product;
-    updateSpecThumbFromProduct(product);
     
     // 更新口味選項的選中狀態
     document.querySelectorAll('[id^="flavor-"]').forEach((el, i) => {
         el.classList.toggle('selected', i === index);
     });
     
-    // 🆕 主打/自定義才隨口味換圖，一般分類不換
+    // 主打/自定義：直接跳到該口味對應的圖片（index 對應輪播順序）
     if (window._modalIsFeaturedOrCustom) {
-        const categoryName = window._currentModalCategoryName || '';
-        const seen = new Set();
-        const merged = [];
-
-        // 1. 先加這個口味自己的商品圖（C欄）
-        let productImg = (product.image || '').trim();
-        if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
-        if (productImg) { seen.add(productImg); merged.push(productImg); }
-
-        // 2. 再加 B 欄封面圖
-        const coverImg = (categoryImages[categoryName] || '').trim();
-        if (coverImg && !seen.has(coverImg)) { seen.add(coverImg); merged.push(coverImg); }
-
-        // 3. 再加 C 欄起的分類輪播圖
-        (categoryCarouselImages[categoryName] || []).forEach(u => {
-            u = (u || '').trim();
-            if (u && !seen.has(u)) { seen.add(u); merged.push(u); }
-        });
-
-        if (merged.length > 0) initCarouselFromUrls(merged);
+        carouselGoTo(index);
     }
     
     // 顯示該口味的數量規格選項（單包、10包組合等）
