@@ -4066,26 +4066,29 @@ function selectFlavor(index) {
         el.classList.toggle('selected', i === index);
     });
     
-    // 🆕 點選口味時：重新組合輪播（商品圖優先 + 分類輪播圖接後）
+    // 🆕 點選口味時：重新組合輪播（B欄封面圖永遠第一 + C欄輪播圖 + 商品圖）
     {
         const categoryName = window._currentModalCategoryName || '';
         const carouselBase = categoryCarouselImages[categoryName] || [];
         const seen = new Set();
         const merged = [];
 
-        // 1. 先加這個口味的商品圖
+        // 1. 先加 B 欄封面圖（永遠第一張）
+        const coverImg = (categoryImages[categoryName] || '').trim();
+        if (coverImg) {
+            const fullCover = coverImg.startsWith('http') ? coverImg : 'https://' + coverImg;
+            seen.add(fullCover); merged.push(fullCover);
+        }
+
+        // 2. 再加 C 欄起的分類輪播圖
+        carouselBase.forEach(u => {
+            if (!seen.has(u)) { seen.add(u); merged.push(u); }
+        });
+
+        // 3. 商品自己的圖若不重複則加在最後
         let productImg = product.image || '';
         if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
         if (productImg && !seen.has(productImg)) { seen.add(productImg); merged.push(productImg); }
-
-        // 2. 再加 C 欄起的分類輪播圖
-        carouselBase.forEach(u => { if (!seen.has(u)) { seen.add(u); merged.push(u); } });
-
-        // 3. 若完全沒圖，fallback 到 B 欄卡片圖
-        if (merged.length === 0) {
-            const coverImg = categoryImages[categoryName] || '';
-            if (coverImg) merged.push(coverImg);
-        }
 
         if (merged.length > 0) initCarouselFromUrls(merged);
     }
