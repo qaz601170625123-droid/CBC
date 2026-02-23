@@ -460,12 +460,12 @@
         .product-name {
             font-size: 18px;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .product-price {
-            font-size: 24px;
-            font-weight: 900;
+            font-size: 15px;
+            font-weight: 700;
             color: var(--primary);
             margin-bottom: 5px;
         }
@@ -756,18 +756,18 @@
         }
         
         .spec-info-price {
-            font-size: 13px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--primary);
             line-height: 1.2;
-            text-align: center;
+            text-align: right;
         }
         .spec-original-price {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 400;
             color: #888;
             text-decoration: line-through;
-            margin-left: 8px;
+            margin-left: 6px;
         }
         .sale-badge {
             display: inline-block;
@@ -795,10 +795,10 @@
         }
         
         .spec-info-stock {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--accent-green);
-            text-align: center;
+            text-align: right;
         }
 
         .spec-image img {
@@ -2120,7 +2120,7 @@
                 <div style="display:flex; align-items:center; background:rgba(0,0,0,0.7); padding: 4px 10px;">
                     <div id="specThumbStrip" style="display:flex; flex-wrap:nowrap; gap:5px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; flex:1; min-width:0;"></div>
                     <div style="flex:0 0 auto; text-align:right; padding-left:10px; max-width:50%;">
-                        <div class="spec-info-price" id="specInfoPrice" style="font-size:14px; margin:0;">請選擇規格</div>
+                        <div class="spec-info-price" id="specInfoPrice" style="margin:0;">請選擇規格</div>
                         <div class="spec-info-stock" id="specInfoStock" style="font-size:12px; margin:0;"></div>
                     </div>
                 </div>
@@ -4595,12 +4595,10 @@ function updateModalPromoHint() {
     if (!el) return;
     if (!promotions || promotions.length === 0) { el.innerHTML = ''; return; }
     const categoryName = window._currentModalCategoryName || '';
-    // 比對：適用類別包含當前分類（用 includes 支援多重條件以,分割的情況）
+    // 顯示適用此分類的優惠（allowedCategories 為空=全部適用，否則精確比對）
     const matched = promotions.filter(p =>
-        p.type !== '滿額免運' &&
-        p.discount > 0 &&
-        (p.allowedCategories.length === 0 ||
-         p.allowedCategories.some(c => categoryName.includes(c) || c.includes(categoryName)))
+        p.allowedCategories.length === 0 ||
+        p.allowedCategories.includes(categoryName)
     );
     if (matched.length === 0) { el.innerHTML = ''; return; }
     const names = matched.map(p => `🎁 ${p.name}`).join('　');
