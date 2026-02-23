@@ -2975,9 +2975,9 @@ function renderSpecPrice(spec) {
     const el = document.getElementById('specInfoPrice');
     if (!el) return;
     if (spec.originalPrice && spec.originalPrice > spec.price) {
-        el.innerHTML = `$${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span><span class="sale-badge">特價中</span>`;
+        el.innerHTML = `售價: $${spec.price} <span class="spec-original-price">$${spec.originalPrice}</span><span class="sale-badge">特價中</span>`;
     } else {
-        el.textContent = `$${spec.price}`;
+        el.textContent = `售價: $${spec.price}`;
     }
 }
 
@@ -3607,7 +3607,7 @@ function openCustomBlockModal(blockName) {
     if (minPrice === Infinity) minPrice = 0;
     
     // 小圖已移除
-    document.getElementById('specInfoPrice').textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
+    document.getElementById('specInfoPrice').textContent = minPrice === maxPrice ? `售價: $${minPrice}` : `售價: $${minPrice} - $${maxPrice}`;
     document.getElementById('specInfoStock').textContent = `庫存：${totalStock} 件`;
     document.getElementById('specInfoStock').style.color = 'var(--accent-green)';
     
@@ -3735,7 +3735,7 @@ function renderFeaturedFlavorOptions() {
     // 小圖已移除
     
     // 更新價格和庫存
-    priceDisplay.textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
+    priceDisplay.textContent = minPrice === maxPrice ? `售價: $${minPrice}` : `售價: $${minPrice} - $${maxPrice}`;
     stockDisplay.textContent = `庫存：${totalStock} 件`;
     stockDisplay.style.color = 'var(--accent-green)';
     
@@ -3976,7 +3976,7 @@ function renderFlavorOptions(categoryName) {
     // 小圖已移除
     
     // 更新價格和庫存
-    priceDisplay.textContent = minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`;
+    priceDisplay.textContent = minPrice === maxPrice ? `售價: $${minPrice}` : `售價: $${minPrice} - $${maxPrice}`;
     stockDisplay.textContent = `庫存：${totalStock} 件`;
     stockDisplay.style.color = 'var(--accent-green)';
     
@@ -4577,17 +4577,16 @@ function selectSpec(index) {
 function updateModalPromoHint() {
     const el = document.getElementById('modalPromoHint');
     if (!el) return;
-    if (!promotions || promotions.length === 0) {
-        el.innerHTML = '';
-        return;
-    }
-    // 只顯示非免運（有折扣）的優惠名稱
-    const discountPromos = promotions.filter(p => p.type !== '滿額免運' && p.discount > 0);
-    if (discountPromos.length === 0) {
-        el.innerHTML = '';
-        return;
-    }
-    const names = discountPromos.map(p => `🎁 ${p.name}`).join('　');
+    if (!promotions || promotions.length === 0) { el.innerHTML = ''; return; }
+    const categoryName = window._currentModalCategoryName || '';
+    // 只顯示非免運、有折扣、且適用類別包含當前分類（或沒有限制類別）的優惠
+    const matched = promotions.filter(p =>
+        p.type !== '滿額免運' &&
+        p.discount > 0 &&
+        (p.allowedCategories.length === 0 || p.allowedCategories.includes(categoryName))
+    );
+    if (matched.length === 0) { el.innerHTML = ''; return; }
+    const names = matched.map(p => `🎁 ${p.name}`).join('　');
     el.innerHTML = `<span style="color:#FFD700;">${names}</span>`;
 }
 
