@@ -308,6 +308,53 @@
             .order-row { grid-template-columns: 1fr; }
             .promo-actions { width: 100%; justify-content: flex-end; }
         }
+
+        /* ── 庫存橫式表格 ── */
+        .stock-table-wrap {
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+        }
+        .stock-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 900px;
+        }
+        .stock-table th {
+            background: rgba(192,132,252,0.1);
+            color: var(--purple);
+            font-weight: 900;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid rgba(192,132,252,0.2);
+            white-space: nowrap;
+            font-size: 12px;
+        }
+        .stock-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: middle;
+        }
+        .stock-table tr:last-child td { border-bottom: none; }
+        .stock-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .stock-table tr.editing td { background: rgba(192,132,252,0.06); }
+        .stock-td-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
+        .stock-td-img-empty { width: 40px; height: 40px; border-radius: 6px; background: rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; color:#555; font-size:18px; }
+        .stock-num { font-weight: 900; font-size: 15px; }
+        .stock-num.ok   { color: #00FF00; }
+        .stock-num.low  { color: #ffa500; }
+        .stock-num.zero { color: #ff4444; }
+        .stock-price { font-size: 12px; color: #888; }
+        .stock-sale  { font-size: 12px; color: var(--primary); }
+        .stock-sync  { font-size: 11px; color: #555; }
+        .tbl-input {
+            background: #111; border: 1.5px solid var(--purple);
+            border-radius: 8px; padding: 5px 8px; color: #fff;
+            font-size: 13px; width: 80px; outline: none;
+        }
+        .tbl-input-wide { width: 130px; }
+        .tbl-actions { display: flex; gap: 6px; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -420,7 +467,10 @@
             </div>
         </div>
         <div class="search-bar">
-            <input class="search-input" id="stockSearch" placeholder="🔍 搜尋商品名稱..." oninput="filterStock()">
+            <input class="search-input" id="stockSearch" placeholder="🔍 搜尋商品編號/名稱/類別..." oninput="filterStock()">
+            <select class="form-select" id="stockCatFilter" onchange="filterStock()" style="width:160px;flex-shrink:0;">
+                <option value="">全部類別</option>
+            </select>
         </div>
         <div id="stockList">
             <div class="loading-state"><div class="icon">⏳</div><div>載入中...</div></div>
@@ -1596,48 +1646,208 @@ async function loadStock() {
 }
 
 function filterStock() {
-    const kw = document.getElementById('stockSearch').value.trim().toLowerCase();
-    filteredProducts = allProducts.filter(p => !kw ||
-        p.name.toLowerCase().includes(kw) ||
-        p.id.toLowerCase().includes(kw) ||
-        p.category.toLowerCase().includes(kw));
+    const kw  = document.getElementById('stockSearch').value.trim().toLowerCase();
+    const cat = document.getElementById('stockCatFilter').value;
+    filteredProducts = allProducts.filter(p =>
+        (!kw  || p.name.toLowerCase().includes(kw) || p.id.toLowerCase().includes(kw) || p.category.toLowerCase().includes(kw)) &&
+        (!cat || p.category === cat)
+    );
     renderStock();
 }
 
+function buildCatFilter() {
+    const cats = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
+    const sel = document.getElementById('stockCatFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部類別</option>';
+    cats.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c; o.textContent = c;
+        if (c === cur) o.selected = true;
+        sel.appendChild(o);
+    });
+}
+
+let inlineEditId = null;  // 目前就地編輯的商品 id
+
 function renderStock() {
+    buildCatFilter();
     const el = document.getElementById('stockList');
     if (filteredProducts.length === 0) {
         el.innerHTML = `<div class="loading-state"><div class="icon">📦</div><div>沒有符合的商品</div></div>`;
         return;
     }
-    el.innerHTML = filteredProducts.map(p => {
-        const specs = allSpecs.filter(s => s.productId === p.id);
-        if (specs.length === 0) return '';
-        const specChips = specs.map(s => {
-            const cls = s.stock === 0 ? 'zero' : s.stock <= 10 ? 'low' : 'ok';
-            const isTiao = s.specName === '條';
-            const editBtn = isTiao
-                ? `<span style="margin-left:auto;font-size:10px;color:#666;white-space:nowrap;">🔗 同步單包</span>`
-                : `<button class="btn btn-yellow btn-sm" style="margin-left:auto;" onclick="openStockModal('${escHtml(p.id)}','${escHtml(p.name)}','${escHtml(s.specName)}',${s.stock},${s.row})">✏️</button>`;
+
+    const rows = filteredProducts.map(p => {
+        const specs   = allSpecs.filter(s => s.productId === p.id);
+        const bao     = specs.find(s => s.specName === '單包');
+        const tiao    = specs.find(s => s.specName === '條');
+        const tai     = specs.find(s => s.specName === '台');
+        const isEditing = inlineEditId === p.id;
+
+        const imgCell = p.image
+            ? `<img class="stock-td-img" src="${escHtml(p.image)}" onerror="this.style.display='none'">`
+            : `<div class="stock-td-img-empty">📦</div>`;
+
+        function stockCls(s) { return s===0?'zero':s<=10?'low':'ok'; }
+
+        function specCell(spec) {
+            if (!spec) return `<td colspan="2" style="color:#333;text-align:center;">—</td>`;
+            const isTiao = spec.specName === '條';
+            if (isEditing) {
+                const stockField = isTiao
+                    ? `<span class="stock-sync">🔗同包</span>`
+                    : `<input class="tbl-input" type="number" min="0" id="ie_stock_${p.id}_${spec.specName}" value="${spec.stock}">`;
+                return `
+                <td>${stockField}</td>
+                <td>
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <input class="tbl-input" type="number" min="0" placeholder="原價" id="ie_price_${p.id}_${spec.specName}" value="${spec.price}">
+                        <input class="tbl-input" type="number" min="0" placeholder="特價" id="ie_sale_${p.id}_${spec.specName}" value="${spec.salePrice||''}">
+                    </div>
+                </td>`;
+            }
+            const priceStr = spec.salePrice
+                ? `<div class="stock-sale">特 $${spec.salePrice}</div><div class="stock-price" style="text-decoration:line-through;font-size:11px;">$${spec.price}</div>`
+                : `<div class="stock-price">$${spec.price}</div>`;
             return `
-            <div class="spec-chip">
-                <div>
-                    <div class="spec-chip-name">${escHtml(s.specName)}</div>
-                    <div class="spec-chip-stock ${cls}">${s.stock}</div>
-                </div>
-                ${editBtn}
-            </div>`;
-        }).join('');
-        return `
-        <div class="card stock-product">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                <div class="stock-product-name">${escHtml(p.name)}</div>
-                <button class="btn btn-purple btn-sm" onclick="openEditProductModal('${escHtml(p.id)}')">✏️ 編輯商品</button>
-            </div>
-            <div class="stock-product-id">ID: ${escHtml(p.id)} ${p.category ? `<span style="color:#a78bfa;margin-left:6px;">${escHtml(p.category)}</span>` : ''}</div>
-            <div class="stock-specs-row">${specChips}</div>
-        </div>`;
+            <td><span class="stock-num ${stockCls(spec.stock)}">${spec.stock}</span>${isTiao?'<div class="stock-sync">🔗同包</div>':''}</td>
+            <td>${priceStr}</td>`;
+        }
+
+        const actionCell = isEditing ? `
+            <td class="tbl-actions">
+                <button class="btn btn-green btn-sm" onclick="saveInlineEdit('${escHtml(p.id)}')">💾</button>
+                <button class="btn btn-sm" onclick="cancelInlineEdit()" style="background:rgba(255,255,255,0.05);border-color:#444;color:#999;">✕</button>
+            </td>` : `
+            <td class="tbl-actions">
+                <button class="btn btn-yellow btn-sm" onclick="startInlineEdit('${escHtml(p.id)}')">✏️</button>
+            </td>`;
+
+        const featuredBadge = p.isFeatured === '是' ? `<span class="badge badge-yellow" style="font-size:10px;margin-left:4px;">主打</span>` : '';
+        const tagsBadge = p.tags ? `<div style="font-size:11px;color:#666;margin-top:2px;">${escHtml(p.tags)}</div>` : '';
+        const blockBadge = p.customBlock ? `<span class="badge badge-purple" style="font-size:10px;margin-left:4px;">${escHtml(p.customBlock)}</span>` : '';
+
+        return `<tr class="${isEditing?'editing':''}">
+            <td style="white-space:nowrap;color:#888;font-size:12px;">${escHtml(p.id)}</td>
+            <td>${imgCell}</td>
+            <td>
+                <div style="font-weight:900;">${escHtml(p.name)}${featuredBadge}${blockBadge}</div>
+                ${tagsBadge}
+            </td>
+            <td><span style="color:#a78bfa;font-size:12px;">${escHtml(p.category||'—')}</span></td>
+            ${specCell(bao)}
+            ${specCell(tiao)}
+            ${specCell(tai)}
+            ${actionCell}
+        </tr>`;
     }).join('');
+
+    el.innerHTML = `
+    <div class="stock-table-wrap">
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th>編號</th>
+                    <th>圖片</th>
+                    <th>商品名稱</th>
+                    <th>類別</th>
+                    <th>單包庫存</th><th>單包價格</th>
+                    <th>條庫存</th><th>條價格</th>
+                    <th>台庫存</th><th>台價格</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+function startInlineEdit(productId) {
+    inlineEditId = productId;
+    renderStock();
+    // scroll to row
+    setTimeout(() => {
+        const row = document.querySelector('.stock-table tr.editing');
+        if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+}
+
+function cancelInlineEdit() {
+    inlineEditId = null;
+    renderStock();
+}
+
+async function saveInlineEdit(productId) {
+    const p = allProducts.find(x => x.id === productId);
+    if (!p) return;
+    const specs = allSpecs.filter(s => s.productId === productId);
+
+    // 收集庫存更新
+    const stockUpdates = [];
+    specs.forEach(s => {
+        if (s.specName === '條') return;  // 條同步單包
+        const el = document.getElementById(`ie_stock_${productId}_${s.specName}`);
+        if (el) {
+            const newStock = parseInt(el.value) || 0;
+            if (newStock !== s.stock) stockUpdates.push({ row: s.row, newStock });
+        }
+    });
+
+    // 條同步單包
+    const bao = specs.find(s => s.specName === '單包');
+    const tiao = specs.find(s => s.specName === '條');
+    if (bao && tiao) {
+        const baoEl = document.getElementById(`ie_stock_${productId}_單包`);
+        const baoNewStock = baoEl ? (parseInt(baoEl.value)||0) : bao.stock;
+        if (baoNewStock !== tiao.stock) stockUpdates.push({ row: tiao.row, newStock: baoNewStock });
+    }
+
+    // 收集價格更新
+    const specUpdates = specs.map(s => {
+        const priceEl = document.getElementById(`ie_price_${productId}_${s.specName}`);
+        const saleEl  = document.getElementById(`ie_sale_${productId}_${s.specName}`);
+        return {
+            row:       s.row,
+            price:     parseInt(priceEl?.value) || s.price,
+            salePrice: parseInt(saleEl?.value)  || 0
+        };
+    });
+
+    try {
+        const promises = [];
+        if (stockUpdates.length > 0) {
+            promises.push(scriptPost({ action:'updateStock', adminLineId:adminMember.lineId, updates:stockUpdates }));
+        }
+        promises.push(scriptPost({
+            action:'adminEditProduct', adminLineId:adminMember.lineId,
+            product:{ row:p.row, id:p.id, name:p.name, image:p.image, isFeatured:p.isFeatured, category:p.category, tags:p.tags, customBlock:p.customBlock },
+            specUpdates, newSpecs:[]
+        }));
+        await Promise.all(promises);
+
+        // 更新本地
+        specs.forEach(s => {
+            if (s.specName !== '條') {
+                const el = document.getElementById(`ie_stock_${productId}_${s.specName}`);
+                if (el) s.stock = parseInt(el.value)||0;
+            }
+            if (bao && tiao) {
+                const baoEl = document.getElementById(`ie_stock_${productId}_單包`);
+                tiao.stock = baoEl ? (parseInt(baoEl.value)||0) : bao.stock;
+            }
+            const priceEl = document.getElementById(`ie_price_${productId}_${s.specName}`);
+            const saleEl  = document.getElementById(`ie_sale_${productId}_${s.specName}`);
+            if (priceEl) s.price = parseInt(priceEl.value)||0;
+            if (saleEl)  s.salePrice = parseInt(saleEl.value)||0;
+        });
+
+        showToast(`✅ ${p.name} 已儲存`);
+        inlineEditId = null;
+        renderStock();
+    } catch(e) {
+        showToast('❌ 儲存失敗：' + e.message, 'error');
+    }
 }
 
 let editingStock = null;
