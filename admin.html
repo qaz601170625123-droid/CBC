@@ -1923,8 +1923,7 @@ async function saveEditProduct() {
             adminLineId: adminMember.lineId,
             product:     productRow,
             specUpdates,
-            newSpecs,
-            newTags:     getNewTags(productRow.tags)
+            newSpecs
         });
 
         // 更新本地資料
@@ -1970,27 +1969,7 @@ function getNewTags(tagsStr) {
     return tagsStr.split(',').map(t => t.trim()).filter(t => t && !knownTags.includes(t));
 }
 
-async function syncCategoryTags(tagsStr) {
-    const newTags = getNewTags(tagsStr);
-    if (newTags.length === 0) return;
-    // 讀取分類設定，算出目前最大排序
-    try {
-        const data = await sheetsRead('分類設定');
-        const rows = (data.values || []).slice(1).filter(r => r[0]);
-        const existingNames = rows.map(r => String(r[0] || ''));
-        const maxOrder = rows.reduce((m, r) => Math.max(m, parseInt(r[1]) || 0), 0);
-        const toAdd = newTags.filter(t => !existingNames.includes(t));
-        if (toAdd.length === 0) return;
-        await scriptPost({
-            action:      'addCategoryTags',
-            adminLineId: adminMember.lineId,
-            tags:        toAdd.map((t, i) => ({ name: t, order: maxOrder + i + 1 }))
-        });
-        showToast(`✅ 已新增分類標籤：${toAdd.join('、')}`);
-    } catch(e) {
-        console.warn('同步分類標籤失敗：', e.message);
-    }
-}
+
 
 function toggleNewSpecFields(specName) {
     const checked = document.getElementById('ep_add_chk_' + specName).checked;
@@ -2175,12 +2154,11 @@ async function saveNewProduct() {
             action:     'adminAddProduct',
             adminLineId: adminMember.lineId,
             product:    productRow,
-            specs:      specRows,
-            newTags:    getNewTags(productRow.tags)
+            specs:      specRows
         });
         showToast(`✅ 商品「${name}」已新增！`);
         closeAddProductModal();
-        await loadStock();  // 重新載入庫存
+        switchTab('stock');  // 切換到庫存頁並重新載入
         syncCategoryTags(productRow.tags);  // 同步新分類標籤
     } catch(e) {
         showToast('❌ 新增失敗：' + e.message, 'error');
@@ -2196,34 +2174,31 @@ async function saveNewProduct() {
 // ==========================================
 async function syncCategoryTags(tagsStr) {
     if (!tagsStr) return;
-    const newTags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
-    if (newTags.length === 0) return;
+    const inputTags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
+    if (inputTags.length === 0) return;
 
     try {
-        // 讀取現有分類設定
+        // 讀取現有分類設定，比對出新標籤
         const data = await sheetsRead(CATEGORY_SHEET);
-        const rows = (data.values || []).slice(1);
+        const rows = (data.values || []).slice(1).filter(r => r[0]);
         const existingNames = rows.map(r => String(r[0] || '').trim());
         const maxOrder = rows.reduce((max, r) => Math.max(max, parseInt(r[1]) || 0), 0);
-
-        // 找出尚未存在的新標籤
-        const toAdd = newTags.filter(t => !existingNames.includes(t));
+        const toAdd = inputTags.filter(t => !existingNames.includes(t));
         if (toAdd.length === 0) return;
 
-        // 批次新增
+        // 批次新增到分類設定
         await scriptPost({
             action:      'adminAddCategories',
             adminLineId: adminMember.lineId,
             categories:  toAdd.map((name, i) => ({
                 name,
-                order: maxOrder + i + 1,
+                order:   maxOrder + i + 1,
                 enabled: 'TRUE'
             }))
         });
-        console.log('✅ 新分類已同步：', toAdd.join(', '));
+        showToast(`✅ 已新增分類標籤：${toAdd.join('、')}`);
     } catch(e) {
         console.warn('分類同步失敗：', e.message);
-        // 不影響主流程，靜默失敗
     }
 }
 
