@@ -1505,9 +1505,6 @@ function filterOrders() {
     renderOrders();
 }
 
-let orderPage = 1;
-const ORDER_PAGE_SIZE = 20;
-
 function renderOrders() {
     const el = document.getElementById('orderList');
     if (filteredOrders.length === 0) {
