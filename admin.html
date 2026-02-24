@@ -2635,12 +2635,12 @@ let isMaintenance = false;
 async function loadMaintenanceStatus() {
     try {
         const data = await sheetsRead(SYSTEM_SHEET);
-        const rows = (data.values || []).slice(1);
+        // slice(0) 掃全部列，不跳標題（ecommerce.html 也是此格式）
+        const rows = (data.values || []);
         const row = rows.find(r => String(r[0]).trim() === '維護模式');
         isMaintenance = row ? String(row[1]).trim().toUpperCase() === 'TRUE' : false;
         updateMaintenanceBtn();
     } catch(e) {
-        // 系統設定表不存在時不影響功能
         console.warn('讀取系統設定失敗：', e.message);
     }
 }
@@ -2666,18 +2666,29 @@ async function toggleMaintenance() {
     const label  = newVal ? '開啟維護模式' : '關閉維護模式';
     if (!confirm(`確定要${label}嗎？`)) return;
 
+    const btn = document.getElementById('maintenanceBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '處理中...'; }
+
     try {
+        // 先讀取目前 sheet，找到「維護模式」在第幾列
+        const data = await sheetsRead(SYSTEM_SHEET);
+        const rows = data.values || [];
+        // 統一用 setSystemSetting，讓 Apps Script 負責 upsert（找到就更新，找不到就新增）
         await scriptPost({
             action:      'setSystemSetting',
             adminLineId: adminMember.lineId,
             key:         '維護模式',
             value:       newVal ? 'TRUE' : 'FALSE'
         });
+
         isMaintenance = newVal;
         updateMaintenanceBtn();
         showToast(newVal ? '🔴 維護模式已開啟，主網頁顯示維護中' : '✅ 維護模式已關閉，主網頁恢復正常');
     } catch(e) {
         showToast('❌ 操作失敗：' + e.message, 'error');
+        updateMaintenanceBtn(); // 還原按鈕狀態
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 
