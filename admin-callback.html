@@ -3,73 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>後台登入中...</title>
+    <title>CANDY BOSS - 登入驗證中</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0a0a0a; color: #fff;
-            font-family: sans-serif;
+            font-family: 'Noto Sans TC', sans-serif;
             display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; text-align: center;
+            min-height: 100vh;
         }
-        .msg { font-size: 18px; color: #C084FC; }
-        .sub { font-size: 13px; color: #555; margin-top: 10px; }
+        .box {
+            text-align: center; padding: 48px 32px;
+        }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid rgba(192,132,252,0.2);
+            border-top-color: #C084FC;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 24px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h2 { font-size: 18px; color: #C084FC; margin-bottom: 8px; }
+        p  { font-size: 14px; color: #666; }
+        .error-box {
+            display: none;
+            background: rgba(255,68,68,0.1);
+            border: 1px solid #ff4444;
+            border-radius: 14px;
+            padding: 20px 28px;
+            margin-top: 24px;
+            color: #ff4444;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <div>
-        <div style="font-size:48px; margin-bottom:16px;">⏳</div>
-        <div class="msg">後台登入驗證中...</div>
-        <div class="sub">請稍候</div>
-    </div>
-    <script>
-        // 這個 callback 邏輯跟原本的 callback.html 一樣，
-        // 只是登入成功後跳回 admin.html 而非 index.html
+<div class="box">
+    <div class="spinner"></div>
+    <h2>⏳ 後台登入驗證中...</h2>
+    <p>請稍候</p>
+    <div class="error-box" id="errorBox"></div>
+</div>
 
-        const LINE_CHANNEL_ID     = '2009077580';
-        const LINE_CHANNEL_SECRET = 'c1fd0ca81619aebd10f21e43f0a139fd'; // ⚠️ 需填入你的 Channel Secret（或由後端處理）
-        const APPS_SCRIPT_URL     = 'https://script.google.com/macros/s/AKfycbywjsDQeIkVbhg9Ah2Z62oWi4fx2WlOeQUhFP-CxtnPYBgOW0_eQ3qdccB4AISV8dIZ/exec';
-        const ADMIN_URL           = './admin.html';
+<script>
+// ── 設定（需與 admin.html 一致）──
+const LINE_CHANNEL_ID     = '2009077580';
+const LINE_CHANNEL_SECRET = 'c1fd0ca81619aebd10f21e43f0a139fd'; // ⚠️ 填入你的 Channel Secret
+const LINE_REDIRECT_URI   = 'https://cbc-lake.vercel.app/admin-callback.html';
+const ADMIN_PAGE          = '/admin.html'; // 驗證成功後跳回的頁面
 
-        (async () => {
+function showError(msg) {
+    document.querySelector('.spinner').style.display = 'none';
+    document.querySelector('h2').textContent = '❌ 登入失敗';
+    document.querySelector('p').style.display = 'none';
+    const box = document.getElementById('errorBox');
+    box.style.display = 'block';
+    box.textContent = msg;
+    setTimeout(() => { window.location.href = ADMIN_PAGE; }, 3000);
+}
+
+async function handleCallback() {
+    const params = new URLSearchParams(location.search);
+    const code  = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    // LINE 回傳錯誤
+    if (error) {
+        showError('LINE 授權被拒絕：' + error);
+        return;
+    }
+
+    // 沒有 code
+    if (!code) {
+        showError('未收到授權碼，請重新登入');
+        return;
+    }
+
+    // 驗證 state（防 CSRF）
+    const savedState = localStorage.getItem('admin_line_state');
+    if (!savedState || savedState !== state) {
+        showError('安全驗證失敗（state 不符），請重新登入');
+        return;
+    }
+    localStorage.removeItem('admin_line_state');
+
+    try {
+        // Step 1: 用 code 換 access_token
+        const tokenRes = await fetch('https://api.line.me/oauth2/v2.1/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                grant_type:    'authorization_code',
+                code,
+                redirect_uri:  LINE_REDIRECT_URI,
+                client_id:     LINE_CHANNEL_ID,
+                client_secret: LINE_CHANNEL_SECRET
+            })
+        });
+
+        if (!tokenRes.ok) {
+            const err = await tokenRes.json().catch(() => ({}));
+            showError('Token 取得失敗：' + (err.error_description || tokenRes.status));
+            return;
+        }
+
+        const tokenData = await tokenRes.json();
+        const accessToken = tokenData.access_token;
+        const idToken     = tokenData.id_token;
+
+        // Step 2: 從 id_token (JWT) 直接解析用戶資料，不需要額外 API 呼叫
+        let userId = '', displayName = '', pictureUrl = '';
+
+        if (idToken) {
             try {
-                const params = new URLSearchParams(location.search);
-                const code   = params.get('code');
-                const state  = params.get('state');
-
-                if (!code) {
-                    alert('登入失敗：沒有取得授權碼');
-                    location.href = ADMIN_URL;
-                    return;
-                }
-
-                // 透過 Apps Script 換取 LINE 用戶資料
-                // Apps Script 需支援 action=lineCallback
-                const res = await fetch(
-                    `${APPS_SCRIPT_URL}?action=lineCallback&code=${encodeURIComponent(code)}&redirectUri=${encodeURIComponent(location.origin + location.pathname)}`
-                );
-                const data = await res.json();
-
-                if (!data.success || !data.profile) {
-                    alert('取得用戶資料失敗，請重試');
-                    location.href = ADMIN_URL;
-                    return;
-                }
-
-                // 儲存管理員資料，跳回後台
-                localStorage.setItem('admin_member', JSON.stringify({
-                    lineId:      data.profile.userId,
-                    displayName: data.profile.displayName,
-                    pictureUrl:  data.profile.pictureUrl
-                }));
-
-                location.href = ADMIN_URL;
-
+                // JWT 第二段是 payload（base64url 編碼）
+                const payload = idToken.split('.')[1];
+                // base64url → base64
+                const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+                    + '=='.slice((payload.length % 4) || 4);
+                const decoded = JSON.parse(atob(base64));
+                userId      = decoded.sub  || '';
+                displayName = decoded.name || '';
+                pictureUrl  = decoded.picture || '';
             } catch(e) {
-                console.error(e);
-                alert('登入過程發生錯誤：' + e.message);
-                location.href = ADMIN_URL;
+                showError('id_token 解析失敗：' + e.message);
+                return;
             }
-        })();
-    </script>
+        } else {
+            // 備援：用 verify token API 取得 userId
+            const verifyRes = await fetch(
+                'https://api.line.me/oauth2/v2.1/verify?id_token=' +
+                encodeURIComponent(idToken) + '&client_id=' + LINE_CHANNEL_ID,
+                { method: 'POST' }
+            ).catch(() => null);
+
+            if (!verifyRes || !verifyRes.ok) {
+                showError('無法取得用戶資料，請確認 Channel 已啟用 OpenID Connect scope');
+                return;
+            }
+            const vData = await verifyRes.json();
+            userId      = vData.sub  || '';
+            displayName = vData.name || '';
+            pictureUrl  = vData.picture || '';
+        }
+
+        if (!userId) {
+            showError('無法取得 LINE 用戶 ID，請確認 scope 包含 openid');
+            return;
+        }
+
+        // Step 3: 跳回 admin.html，帶上 profile 資訊
+        const redirectUrl = ADMIN_PAGE + '?' + new URLSearchParams({
+            access_token: accessToken,
+            lineId:       userId,
+            name:         encodeURIComponent(displayName),
+            picture:      encodeURIComponent(pictureUrl)
+        });
+
+        window.location.href = redirectUrl;
+
+    } catch (e) {
+        showError('網路錯誤：' + e.message);
+    }
+}
+
+handleCallback();
+</script>
 </body>
 </html>
