@@ -1655,8 +1655,8 @@ async function loadComboOptions() {
                 .filter(r => r[0])
                 .map(r => ({
                     id: String(r[0]), name: String(r[1]||''),
-                    category: String(r[2]||''), tags: String(r[3]||''),
-                    customBlock: String(r[5]||'')
+                    category: String(r[4]||''), tags: String(r[5]||''),
+                    customBlock: String(r[6]||'')
                 }));
         } catch(e) { return; }
     }
@@ -1712,7 +1712,7 @@ async function genProductId() {
             const prodData = await sheetsRead('商品列表');
             allProducts = (prodData.values || []).slice(1)
                 .filter(r => r[0])
-                .map(r => ({ id: String(r[0]), name: String(r[1] || ''), category: String(r[2]||''), tags: String(r[3]||''), customBlock: String(r[5]||'') }));
+                .map(r => ({ id: String(r[0]), name: String(r[1] || ''), category: String(r[4]||''), tags: String(r[5]||''), customBlock: String(r[6]||'') }));
         } catch(e) { }
     }
     const existing = allProducts.map(p => p.id).filter(id => /^P\d+$/.test(id))
