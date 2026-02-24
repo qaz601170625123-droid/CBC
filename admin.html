@@ -89,6 +89,7 @@
         /* ── 主內容 ── */
         #mainApp { display: none; }
         .page { display: none; max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+        #page-stock { max-width: 100%; }
         .page.active { display: block; }
 
         /* ── 卡片 ── */
@@ -318,21 +319,21 @@
         .stock-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            min-width: 900px;
+            font-size: 12px;
+            min-width: 1100px;
         }
         .stock-table th {
             background: rgba(192,132,252,0.1);
             color: var(--purple);
             font-weight: 900;
-            padding: 10px 12px;
+            padding: 8px 8px;
             text-align: left;
             border-bottom: 2px solid rgba(192,132,252,0.2);
             white-space: nowrap;
-            font-size: 12px;
+            font-size: 11px;
         }
         .stock-table td {
-            padding: 8px 10px;
+            padding: 6px 7px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             vertical-align: middle;
         }
@@ -350,10 +351,10 @@
         .stock-sync  { font-size: 11px; color: #555; }
         .tbl-input {
             background: #111; border: 1.5px solid var(--purple);
-            border-radius: 8px; padding: 5px 8px; color: #fff;
-            font-size: 13px; width: 80px; outline: none;
+            border-radius: 8px; padding: 4px 7px; color: #fff;
+            font-size: 12px; width: 70px; outline: none;
         }
-        .tbl-input-wide { width: 130px; }
+        .tbl-input-wide { width: 110px; }
         .tbl-actions { display: flex; gap: 6px; white-space: nowrap; }
     </style>
 </head>
@@ -2427,19 +2428,31 @@ async function syncCategoryTags(tagsStr) {
         const toAdd = inputTags.filter(t => !existingNames.includes(t));
         if (toAdd.length === 0) return;
 
-        // 批次新增到分類設定
+        // 直接透過 Apps Script 寫入分類設定
         await scriptPost({
-            action:      'adminAddCategories',
+            action:      'appendRows',
             adminLineId: adminMember.lineId,
-            categories:  toAdd.map((name, i) => ({
-                name,
-                order:   maxOrder + i + 1,
-                enabled: 'TRUE'
-            }))
+            sheet:       '分類設定',
+            rows:        toAdd.map((name, i) => [name, String(maxOrder + i + 1), 'TRUE'])
         });
         showToast(`✅ 已新增分類標籤：${toAdd.join('、')}`);
     } catch(e) {
-        console.warn('分類同步失敗：', e.message);
+        // 如後端不支援 appendRows，改用 adminAddCategories
+        try {
+            await scriptPost({
+                action:      'adminAddCategories',
+                adminLineId: adminMember.lineId,
+                categories:  toAdd.map((name, i) => ({
+                    name,
+                    order:   maxOrder + i + 1,
+                    enabled: 'TRUE'
+                }))
+            });
+            showToast(`✅ 已新增分類標籤：${toAdd.join('、')}`);
+        } catch(e2) {
+            console.warn('分類同步失敗：', e2.message);
+            showToast(`⚠️ 分類標籤「${toAdd.join('、')}」需手動新增至分類設定`, 'error');
+        }
     }
 }
 
