@@ -1975,14 +1975,24 @@
 <body>
 
 <!-- ========== 維護中畫面 ========== -->
-<div id="maintenanceScreen" style="display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0a;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;">
-    <div style="font-size:64px;margin-bottom:24px;">🔧</div>
-    <div style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:#C084FC;margin-bottom:12px;">系統維護中</div>
-    <div style="font-size:15px;color:#888;line-height:1.8;max-width:320px;">
-        我們正在進行系統維護<br>請稍後再回來！<br>
-        <span style="font-size:13px;color:#555;margin-top:12px;display:block;">如有需要請聯繫客服</span>
+<!-- 透明攔截層：蓋住所有內容，點任何地方都會 show 維護畫面 -->
+<div id="maintenanceBlocker" onclick="showMaintenanceScreen()"
+     style="display:none;position:fixed;inset:0;z-index:99998;background:transparent;cursor:not-allowed;"></div>
+
+<div id="maintenanceScreen"
+     style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,10,10,0.97);
+            align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;">
+    <div style="font-size:64px;margin-bottom:24px;animation:spin-slow 4s linear infinite;display:inline-block;">🔧</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900;color:#C084FC;margin-bottom:12px;letter-spacing:2px;">系統維護中</div>
+    <div style="width:60px;height:3px;background:linear-gradient(90deg,#C084FC,#818cf8);border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="font-size:15px;color:#888;line-height:2;max-width:320px;">
+        我們正在進行系統維護升級<br>請稍後再回來！
+        <div style="font-size:13px;color:#555;margin-top:16px;">如有需要請聯繫客服 🙏</div>
     </div>
 </div>
+<style>
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
     <!-- 🆕 隱藏的綠界表單（ClientReplyURL + ServerReplyURL） -->
     <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="ecpayWindow">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
@@ -2476,6 +2486,7 @@ function getDeviceType() {
 // 🆕 開啟綠界地圖選擇門市
 // ==========================================
 function openECPayMap() {
+    if (checkMaintenance()) return;
     console.log('========================================');
     console.log('🚀 開始執行 openECPayMap');
     console.log('========================================');
@@ -3585,6 +3596,7 @@ function displayFeaturedProducts() {
 // 邏輯與主打商品完全一致
 // ==========================================
 function openCustomBlockModal(blockName) {
+    if (checkMaintenance()) return;
     currentCategoryProducts = products.filter(p => p.customBlock === blockName);
     
     if (currentCategoryProducts.length === 0) {
@@ -3679,6 +3691,7 @@ function openCustomBlockModal(blockName) {
 // 主打商品：第一層 - 選擇商品（口味）
 // ==========================================
 function openFeaturedCategoryModal() {
+    if (checkMaintenance()) return;
     // 取得所有主打商品
     currentCategoryProducts = products.filter(p => p.isFeatured);
     
@@ -3928,6 +3941,7 @@ let currentCategoryProducts = []; // 當前類別的所有商品
 let selectedFlavor = null; // 選中的口味（商品）
 
 function openCategoryModal(categoryName) {
+    if (checkMaintenance()) return;
     // 獲取該類別下的所有商品（口味）
     currentCategoryProducts = products.filter(p => p.category === categoryName);
     
@@ -4276,6 +4290,7 @@ window.addEventListener('load', function() {
 // 規格選擇彈窗（保留原有功能）
 // ==========================================
 function openSpecModal(productId) {
+    if (checkMaintenance()) return;
     currentProduct = products.find(p => p.id === productId);
     if (!currentProduct) return;
 
@@ -4651,6 +4666,7 @@ function updateAddToCartButton() {
 }
 
 function confirmAddToCart() {
+    if (checkMaintenance()) return;
     if (!selectedSpec) {
         showToast('請選擇規格', 'error');
         return;
@@ -4827,6 +4843,7 @@ function removeCartItem(index) {
 }
 
 function toggleCart() {
+    if (checkMaintenance()) return;
     const cartSidebar = document.getElementById('cartSidebar');
     const isOpening = !cartSidebar.classList.contains('active');
     
@@ -4844,6 +4861,7 @@ function toggleCart() {
 // 結帳流程
 // ==========================================
 function openCheckout() {
+    if (checkMaintenance()) return;
     if (cart.length === 0) {
         showToast('購物車是空的', 'error');
         return;
@@ -5066,11 +5084,31 @@ async function loadSystemSettings() {
 
 // 顯示維護中畫面
 function showMaintenanceScreen() {
+    window.isMaintenanceMode = true;
+
+    // 啟用透明攔截層（讓底層任何點擊都觸發維護畫面）
+    const blocker = document.getElementById('maintenanceBlocker');
+    if (blocker) blocker.style.display = 'block';
+
+    // 顯示維護畫面
     const el = document.getElementById('maintenanceScreen');
-    if (el) {
-        el.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+    if (el) el.style.display = 'flex';
+
+    // 關閉所有已開啟的 modal
+    document.querySelectorAll('.modal-overlay, .modal, [class*="modal"]').forEach(m => {
+        m.style.display = 'none';
+    });
+
+    document.body.style.overflow = 'hidden';
+}
+
+// 維護模式守衛：在任何關鍵操作前呼叫
+function checkMaintenance() {
+    if (window.isMaintenanceMode) {
+        showMaintenanceScreen();
+        return true; // true = 已被攔截
     }
+    return false;
 }
 
 // 🆕 更新匯款資訊顯示
@@ -5085,6 +5123,7 @@ function updateBankInfo() {
 }
 
 async function submitOrder() {
+    if (checkMaintenance()) return;
     // 🔥 防重複點擊：檢查是否正在提交
     if (window.isSubmittingOrder) {
         showToast('訂單處理中，請稍候...', 'error');
@@ -5267,6 +5306,7 @@ async function submitOrder() {
 // 訂單查詢
 // ==========================================
 async function openOrderSearch() {
+    if (checkMaintenance()) return;
     // 檢查是否已登入
     if (!currentMember || !currentMember.lineId) {
         showToast('請先登入 LINE 帳號', 'error');
