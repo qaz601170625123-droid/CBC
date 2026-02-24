@@ -609,11 +609,19 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group">
                     <label class="form-label">商品類別</label>
-                    <input class="form-input" id="np_category" placeholder="例：PLOOM蛋">
+                    <select class="form-select" id="np_category_sel" onchange="handleComboChange('np_category_sel','np_category','np_category_custom')">
+                        <option value="">── 請選擇或自訂 ──</option>
+                    </select>
+                    <input class="form-input" id="np_category" style="display:none;margin-top:6px;" placeholder="輸入自訂類別">
+                    <input type="hidden" id="np_category_custom" value="">
                 </div>
                 <div class="form-group">
                     <label class="form-label">大分類標籤 <span style="color:#555;">（逗號分隔）</span></label>
-                    <input class="form-input" id="np_tags" placeholder="例：新品,熱銷">
+                    <select class="form-select" id="np_tags_sel" onchange="handleComboChange('np_tags_sel','np_tags','np_tags_custom')">
+                        <option value="">── 請選擇或自訂 ──</option>
+                    </select>
+                    <input class="form-input" id="np_tags" style="display:none;margin-top:6px;" placeholder="例：新品,熱銷">
+                    <input type="hidden" id="np_tags_custom" value="">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -622,8 +630,12 @@
                     <input class="form-input" id="np_image" placeholder="https://...">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">自定義區塊</label>
-                    <input class="form-input" id="np_block" placeholder="例：主打商品">
+                    <label class="form-label">自定義區塊 <span style="color:#555;">（可空白）</span></label>
+                    <select class="form-select" id="np_block_sel" onchange="handleComboChange('np_block_sel','np_block','np_block_custom')">
+                        <option value="">── 空白（不設定）──</option>
+                    </select>
+                    <input class="form-input" id="np_block" style="display:none;margin-top:6px;" placeholder="輸入自訂區塊名稱">
+                    <input type="hidden" id="np_block_custom" value="">
                 </div>
             </div>
             <div class="form-group">
@@ -1587,11 +1599,19 @@ function closeStockModal() {
 // ==========================================
 
 function openAddProductModal() {
-    // 清空所有欄位
-    ['np_id','np_name','np_category','np_tags','np_image','np_block'].forEach(id => {
+    // 清空基本欄位
+    ['np_id','np_name','np_image'].forEach(id => {
         document.getElementById(id).value = '';
     });
     document.getElementById('np_featured').checked = false;
+
+    // 重置 combo 欄位（下拉 + 自訂輸入）
+    ['np_category','np_tags','np_block'].forEach(fld => {
+        document.getElementById(fld).value = '';
+        document.getElementById(fld).style.display = 'none';
+        document.getElementById(fld + '_sel').value = '';
+        document.getElementById(fld + '_custom').value = '';
+    });
 
     // 規格：單包預設勾選，條/台預設不勾
     ['單包','條','台'].forEach(spec => {
@@ -1608,8 +1628,8 @@ function openAddProductModal() {
     });
 
     document.getElementById('addProductModal').classList.add('active');
-    // 自動生成延續的商品編號
     genProductId();
+    loadComboOptions();
 }
 
 function closeAddProductModal() {
@@ -1622,17 +1642,79 @@ function toggleSpecBlock(specName) {
     fields.style.display = checked ? 'grid' : 'none';
 }
 
+
+// ──────────────────────────────────────────
+// Combo 下拉選單（類別 / 標籤 / 自定義區塊）
+// ──────────────────────────────────────────
+async function loadComboOptions() {
+    // 確保 allProducts 已含完整欄位
+    if (allProducts.length === 0 || !('category' in allProducts[0])) {
+        try {
+            const prodData = await sheetsRead('商品列表');
+            allProducts = (prodData.values || []).slice(1)
+                .filter(r => r[0])
+                .map(r => ({
+                    id: String(r[0]), name: String(r[1]||''),
+                    category: String(r[2]||''), tags: String(r[3]||''),
+                    customBlock: String(r[5]||'')
+                }));
+        } catch(e) { return; }
+    }
+
+    // 蒐集唯一值
+    const cats   = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+    const tags   = [...new Set(allProducts.flatMap(p => p.tags.split(',').map(t=>t.trim())).filter(Boolean))];
+    const blocks = [...new Set(allProducts.map(p => p.customBlock).filter(Boolean))];
+
+    function buildSel(selId, items, placeholder) {
+        const sel = document.getElementById(selId);
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            sel.appendChild(opt);
+        });
+        const custom = document.createElement('option');
+        custom.value = '__custom__'; custom.textContent = '✏️ 自訂義...';
+        sel.appendChild(custom);
+    }
+
+    buildSel('np_category_sel', cats,   '── 請選擇類別 ──');
+    buildSel('np_tags_sel',     tags,   '── 請選擇標籤 ──');
+    buildSel('np_block_sel',    blocks, '── 空白（不設定）──');
+}
+
+function handleComboChange(selId, inputId, hiddenId) {
+    const sel = document.getElementById(selId);
+    const input = document.getElementById(inputId);
+    if (sel.value === '__custom__') {
+        input.style.display = 'block';
+        input.value = '';
+        input.focus();
+        document.getElementById(hiddenId).value = '__custom__';
+    } else {
+        input.style.display = 'none';
+        document.getElementById(hiddenId).value = sel.value;
+    }
+}
+
+function getComboValue(selId, inputId) {
+    const sel = document.getElementById(selId);
+    if (sel.value === '__custom__') {
+        return document.getElementById(inputId).value.trim();
+    }
+    return sel.value;
+}
+
 async function genProductId() {
-    // 如果 allProducts 尚未載入，先從 Sheets 讀取
     if (allProducts.length === 0) {
         try {
             const prodData = await sheetsRead('商品列表');
             allProducts = (prodData.values || []).slice(1)
                 .filter(r => r[0])
-                .map(r => ({ id: String(r[0]), name: String(r[1] || '') }));
-        } catch(e) { /* 讀取失敗則用現有空陣列 */ }
+                .map(r => ({ id: String(r[0]), name: String(r[1] || ''), category: String(r[2]||''), tags: String(r[3]||''), customBlock: String(r[5]||'') }));
+        } catch(e) { }
     }
-    // 用現有最大編號 + 1
     const existing = allProducts.map(p => p.id).filter(id => /^P\d+$/.test(id))
         .map(id => parseInt(id.replace('P','')));
     const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1;
@@ -1662,9 +1744,9 @@ async function saveNewProduct() {
         name,
         image:       document.getElementById('np_image').value.trim(),
         isFeatured:  document.getElementById('np_featured').checked ? '是' : '',
-        category:    document.getElementById('np_category').value.trim(),
-        tags:        document.getElementById('np_tags').value.trim(),
-        customBlock: document.getElementById('np_block').value.trim()
+        category:    getComboValue('np_category_sel','np_category'),
+        tags:        getComboValue('np_tags_sel','np_tags'),
+        customBlock: getComboValue('np_block_sel','np_block')
     };
 
     // 規格列表資料（每個勾選的規格各一行）
