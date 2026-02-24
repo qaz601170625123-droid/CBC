@@ -1608,6 +1608,8 @@ function openAddProductModal() {
     });
 
     document.getElementById('addProductModal').classList.add('active');
+    // 自動生成延續的商品編號
+    genProductId();
 }
 
 function closeAddProductModal() {
@@ -1620,8 +1622,17 @@ function toggleSpecBlock(specName) {
     fields.style.display = checked ? 'grid' : 'none';
 }
 
-function genProductId() {
-    // 用現有最大編號 + 1，或時間戳
+async function genProductId() {
+    // 如果 allProducts 尚未載入，先從 Sheets 讀取
+    if (allProducts.length === 0) {
+        try {
+            const prodData = await sheetsRead('商品列表');
+            allProducts = (prodData.values || []).slice(1)
+                .filter(r => r[0])
+                .map(r => ({ id: String(r[0]), name: String(r[1] || '') }));
+        } catch(e) { /* 讀取失敗則用現有空陣列 */ }
+    }
+    // 用現有最大編號 + 1
     const existing = allProducts.map(p => p.id).filter(id => /^P\d+$/.test(id))
         .map(id => parseInt(id.replace('P','')));
     const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1;
