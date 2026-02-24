@@ -388,6 +388,10 @@
         <div class="admin-info">
             <img id="adminAvatar" src="" alt="">
             <span class="admin-name" id="adminName"></span>
+            <button id="maintenanceBtn" onclick="toggleMaintenance()"
+                style="padding:6px 14px;border-radius:20px;border:1.5px solid #555;background:rgba(255,255,255,0.05);color:#888;font-size:12px;font-weight:900;cursor:pointer;transition:all .2s;">
+                🔧 維護模式
+            </button>
             <button class="logout-btn" onclick="adminLogout()">登出</button>
         </div>
     </nav>
@@ -900,6 +904,7 @@ const ADMIN_LINE_IDS  = [
 
 const PROMO_SHEET = '優惠設定';
 const CATEGORY_SHEET = '分類設定';
+const SYSTEM_SHEET   = '系統設定';
 
 const ANN_SHEET   = '公告設定';
 
@@ -980,8 +985,8 @@ function showMain() {
     document.getElementById('mainApp').style.display = 'block';
     document.getElementById('adminAvatar').src = adminMember.pictureUrl || '';
     document.getElementById('adminName').textContent = adminMember.displayName || '管理員';
-    // 預設停在訂單頁
     switchTab('orders');
+    loadMaintenanceStatus();
 }
 
 // ==========================================
@@ -1500,7 +1505,7 @@ function filterOrders() {
     renderOrders();
 }
 
-orderPage = 1;
+let orderPage = 1;
 const ORDER_PAGE_SIZE = 20;
 
 function renderOrders() {
@@ -2624,6 +2629,60 @@ function escHtml(str) {
 document.querySelectorAll('.modal-overlay').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
 });
+
+// ==========================================
+// 🔧 維護模式
+// ==========================================
+let isMaintenance = false;
+
+async function loadMaintenanceStatus() {
+    try {
+        const data = await sheetsRead(SYSTEM_SHEET);
+        const rows = (data.values || []).slice(1);
+        const row = rows.find(r => String(r[0]).trim() === '維護模式');
+        isMaintenance = row ? String(row[1]).trim().toUpperCase() === 'TRUE' : false;
+        updateMaintenanceBtn();
+    } catch(e) {
+        // 系統設定表不存在時不影響功能
+        console.warn('讀取系統設定失敗：', e.message);
+    }
+}
+
+function updateMaintenanceBtn() {
+    const btn = document.getElementById('maintenanceBtn');
+    if (!btn) return;
+    if (isMaintenance) {
+        btn.textContent = '🔴 維護中（點擊關閉）';
+        btn.style.background  = 'rgba(255,68,68,0.15)';
+        btn.style.borderColor = '#ff4444';
+        btn.style.color       = '#ff4444';
+    } else {
+        btn.textContent = '🔧 維護模式';
+        btn.style.background  = 'rgba(255,255,255,0.05)';
+        btn.style.borderColor = '#555';
+        btn.style.color       = '#888';
+    }
+}
+
+async function toggleMaintenance() {
+    const newVal = !isMaintenance;
+    const label  = newVal ? '開啟維護模式' : '關閉維護模式';
+    if (!confirm(`確定要${label}嗎？`)) return;
+
+    try {
+        await scriptPost({
+            action:      'setSystemSetting',
+            adminLineId: adminMember.lineId,
+            key:         '維護模式',
+            value:       newVal ? 'TRUE' : 'FALSE'
+        });
+        isMaintenance = newVal;
+        updateMaintenanceBtn();
+        showToast(newVal ? '🔴 維護模式已開啟，主網頁顯示維護中' : '✅ 維護模式已關閉，主網頁恢復正常');
+    } catch(e) {
+        showToast('❌ 操作失敗：' + e.message, 'error');
+    }
+}
 
 // 啟動
 init();
