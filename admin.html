@@ -1563,16 +1563,17 @@ async function loadStock() {
                 customBlock: String(r[6] || '')
             }));
 
-        // 解析規格表（A=productId, B=productName, C=specName, D=price, E=salePrice, F=stock）
+        // 解析規格表（A=商品編號, B=商品名稱, C=數量/規格名, D=特價, E=庫存, F=原價, G=倍數）
         allSpecs = (specData.values || []).slice(1)
             .filter(r => r[0])
             .map((r, i) => ({
                 row:       i + 2,
                 productId: String(r[0]),
                 specName:  String(r[2] || ''),
-                price:     parseInt(r[3]) || 0,
-                salePrice: parseInt(r[4]) || 0,
-                stock:     parseInt(r[5]) || 0
+                salePrice: parseInt(r[3]) || 0,
+                stock:     parseInt(r[4]) || 0,
+                price:     parseInt(r[5]) || 0,
+                multiplier:parseInt(r[6]) || 1
             }));
 
         filteredProducts = [...allProducts];
