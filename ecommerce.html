@@ -1973,6 +1973,16 @@
     </style>
 </head>
 <body>
+
+<!-- ========== 維護中畫面 ========== -->
+<div id="maintenanceScreen" style="display:none;position:fixed;inset:0;z-index:99999;background:#0a0a0a;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;">
+    <div style="font-size:64px;margin-bottom:24px;">🔧</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:#C084FC;margin-bottom:12px;">系統維護中</div>
+    <div style="font-size:15px;color:#888;line-height:1.8;max-width:320px;">
+        我們正在進行系統維護<br>請稍後再回來！<br>
+        <span style="font-size:13px;color:#555;margin-top:12px;display:block;">如有需要請聯繫客服</span>
+    </div>
+</div>
     <!-- 🆕 隱藏的綠界表單（ClientReplyURL + ServerReplyURL） -->
     <form id="ecpayMapForm" method="POST" action="https://logistics.ecpay.com.tw/Express/map" style="display: none;" target="ecpayWindow">
         <input type="text" name="MerchantID" id="ecpay_MerchantID">
@@ -5018,7 +5028,7 @@ function toggleBankInfo() {
     }
 }
 
-// 🆕 載入系統設定
+// 🆕 載入系統設定（含維護模式）
 async function loadSystemSettings() {
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/系統設定?key=${API_KEY}`;
@@ -5026,12 +5036,17 @@ async function loadSystemSettings() {
         const data = await response.json();
         
         if (data.values && data.values.length > 0) {
-            // 解析設定資料（假設格式：設定項目 | 設定值）
+            // 解析設定資料（格式：設定項目 | 設定值）
             data.values.forEach(row => {
-                if (row[0] === '匯款銀行') systemSettings.bankName = row[1] || '';
-                if (row[0] === '匯款帳號') systemSettings.bankAccount = row[1] || '';
-                if (row[0] === '匯款戶名') systemSettings.bankHolder = row[1] || '';
-                if (row[0] === 'LINE Pay帳號') systemSettings.linePayAccount = row[1] || '';
+                if (row[0] === '匯款銀行')     systemSettings.bankName       = row[1] || '';
+                if (row[0] === '匯款帳號')     systemSettings.bankAccount    = row[1] || '';
+                if (row[0] === '匯款戶名')     systemSettings.bankHolder     = row[1] || '';
+                if (row[0] === 'LINE Pay帳號') systemSettings.linePayAccount  = row[1] || '';
+                // 維護模式：值為 TRUE 時啟動
+                if (row[0] === '維護模式') {
+                    const isMaintenance = String(row[1] || '').trim().toUpperCase() === 'TRUE';
+                    if (isMaintenance) showMaintenanceScreen();
+                }
             });
             
             console.log('✅ 系統設定載入成功:', systemSettings);
@@ -5046,6 +5061,15 @@ async function loadSystemSettings() {
             bankHolder: 'CANDY BOSS'
         };
         updateBankInfo();
+    }
+}
+
+// 顯示維護中畫面
+function showMaintenanceScreen() {
+    const el = document.getElementById('maintenanceScreen');
+    if (el) {
+        el.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 }
 
