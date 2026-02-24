@@ -1728,12 +1728,35 @@ function renderStock() {
         // ── 就地編輯：商品基本資料欄 ──
         let idCell, imgEditCell, nameCell, categoryCell, tagsCell, blockCell, featuredCell;
         if (isEditing) {
+            // 收集現有選項
+            const allCats   = [...new Set(allProducts.map(x=>x.category).filter(Boolean))];
+            const allTags   = [...new Set(allProducts.flatMap(x=>x.tags.split(',').map(t=>t.trim())).filter(Boolean))];
+            const allBlocks = [...new Set(allProducts.map(x=>x.customBlock).filter(Boolean))];
+
+            function makeCombo(pid, field, opts, curVal, placeholder, wide) {
+                const selId = `ie_${field}_sel_${pid}`;
+                const inpId = `ie_${field}_${pid}`;
+                const inSel = opts.includes(curVal);
+                const selVal = inSel ? curVal : (curVal ? '__custom__' : '');
+                const inpDisplay = (!inSel && curVal) ? 'block' : 'none';
+                const w = wide ? 'tbl-input-wide' : 'tbl-input';
+                let optsHtml = `<option value="">${placeholder}</option>`;
+                opts.forEach(o => { optsHtml += `<option value="${escHtml(o)}" ${o===curVal?'selected':''}>${escHtml(o)}</option>`; });
+                optsHtml += `<option value="__custom__" ${!inSel&&curVal?'selected':''}>✏️ 自訂義...</option>`;
+                return `<div style="display:flex;flex-direction:column;gap:3px;">
+                    <select class="tbl-input ${w}" id="${selId}" onchange="ieComboChange('${pid}','${field}')">
+                        ${optsHtml}
+                    </select>
+                    <input class="tbl-input ${w}" id="${inpId}" value="${escHtml(!inSel?curVal:'')}" placeholder="輸入自訂..." style="display:${inpDisplay};">
+                </div>`;
+            }
+
             idCell       = `<td style="white-space:nowrap;color:#888;font-size:12px;">${escHtml(p.id)}</td>`;
-            imgEditCell  = `<td><input class="tbl-input tbl-input-wide" id="ie_image_${p.id}" placeholder="圖片網址或Drive連結" value="${escHtml(p.image)}" oninput="autoConvertDriveUrl('ie_image_${p.id}')"></td>`;
+            imgEditCell  = `<td><input class="tbl-input tbl-input-wide" id="ie_image_${p.id}" placeholder="圖片或Drive連結" value="${escHtml(p.image)}" oninput="autoConvertDriveUrl('ie_image_${p.id}')"></td>`;
             nameCell     = `<td><input class="tbl-input tbl-input-wide" id="ie_name_${p.id}" value="${escHtml(p.name)}"></td>`;
-            categoryCell = `<td><input class="tbl-input" id="ie_cat_${p.id}" value="${escHtml(p.category)}"></td>`;
-            tagsCell     = `<td><input class="tbl-input tbl-input-wide" id="ie_tags_${p.id}" value="${escHtml(p.tags)}" placeholder="逗號分隔"></td>`;
-            blockCell    = `<td><input class="tbl-input" id="ie_block_${p.id}" value="${escHtml(p.customBlock)}"></td>`;
+            categoryCell = `<td>${makeCombo(p.id,'cat',allCats,p.category,'── 類別 ──',false)}</td>`;
+            tagsCell     = `<td>${makeCombo(p.id,'tags',allTags,p.tags,'── 標籤 ──',true)}</td>`;
+            blockCell    = `<td>${makeCombo(p.id,'block',allBlocks,p.customBlock,'── 區塊 ──',false)}</td>`;
             featuredCell = `<td style="text-align:center;"><input type="checkbox" id="ie_feat_${p.id}" ${p.isFeatured==='是'?'checked':''} style="width:16px;height:16px;accent-color:#FFD700;"></td>`;
         } else {
             const featuredBadge = p.isFeatured === '是' ? `<span class="badge badge-yellow" style="font-size:10px;">主打</span>` : '';
@@ -1800,6 +1823,32 @@ function cancelInlineEdit() {
     renderStock();
 }
 
+function ieComboChange(pid, field) {
+    const selId = `ie_${field}_sel_${pid}`;
+    const inpId = `ie_${field}_${pid}`;
+    const sel = document.getElementById(selId);
+    const inp = document.getElementById(inpId);
+    if (!sel || !inp) return;
+    if (sel.value === '__custom__') {
+        inp.style.display = 'block';
+        inp.focus();
+        inp.value = '';
+    } else {
+        inp.style.display = 'none';
+        inp.value = '';
+    }
+}
+
+function ieGetComboVal(pid, field) {
+    const selId = `ie_${field}_sel_${pid}`;
+    const inpId = `ie_${field}_${pid}`;
+    const sel = document.getElementById(selId);
+    const inp = document.getElementById(inpId);
+    if (!sel) return document.getElementById(inpId)?.value.trim() || '';
+    if (sel.value === '__custom__') return inp?.value.trim() || '';
+    return sel.value || '';
+}
+
 async function saveInlineEdit(productId) {
     const p = allProducts.find(x => x.id === productId);
     if (!p) return;
@@ -1839,9 +1888,9 @@ async function saveInlineEdit(productId) {
     // 讀取基本資料欄的新值
     const newName     = document.getElementById(`ie_name_${productId}`)?.value.trim()  || p.name;
     const newImage    = document.getElementById(`ie_image_${productId}`)?.value.trim() || p.image;
-    const newCat      = document.getElementById(`ie_cat_${productId}`)?.value.trim()   || '';
-    const newTags     = document.getElementById(`ie_tags_${productId}`)?.value.trim()  || '';
-    const newBlock    = document.getElementById(`ie_block_${productId}`)?.value.trim() || '';
+    const newCat      = ieGetComboVal(productId, 'cat');
+    const newTags     = ieGetComboVal(productId, 'tags');
+    const newBlock    = ieGetComboVal(productId, 'block');
     const newFeatured = document.getElementById(`ie_feat_${productId}`)?.checked ? '是' : '';
 
     try {
