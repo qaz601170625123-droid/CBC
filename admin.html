@@ -309,6 +309,10 @@
             .order-row { grid-template-columns: 1fr; }
             .promo-actions { width: 100%; justify-content: flex-end; }
         }
+        @keyframes pulse {
+            0%,100% { opacity:1; }
+            50%      { opacity:0.4; }
+        }
 
         /* ── 庫存橫式表格 ── */
         .stock-table-wrap {
@@ -485,7 +489,7 @@
                 <div class="page-title">📋 所有訂單</div>
                 <div class="page-subtitle">查看所有會員的訂單記錄</div>
             </div>
-            <button class="btn btn-green" onclick="loadOrders()">🔄 重新整理</button>
+            <button class="btn btn-green" onclick="loadOrders(true)">🔄 重新整理</button>
         </div>
         <div class="stats-grid" id="orderStats"></div>
         <!-- 取貨方式 Tab -->
@@ -496,6 +500,14 @@
         </div>
         <div class="search-bar">
             <input class="search-input" id="orderSearch" placeholder="🔍 搜尋姓名、電話、訂單編號..." oninput="filterOrders()">
+            <select class="form-select" id="orderStatusFilter" onchange="filterOrders()" style="width:160px;flex-shrink:0;">
+                <option value="">全部狀態</option>
+                <option value="待確認">待確認</option>
+                <option value="已付款待出貨">已付款待出貨</option>
+                <option value="出貨中">出貨中</option>
+                <option value="已完成">已完成</option>
+                <option value="取消訂單">取消訂單</option>
+            </select>
         </div>
         <!-- 狀態 Pill 篩選器 -->
         <div id="orderStatusPills" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
@@ -660,7 +672,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group">
                     <label class="form-label">商品類別</label>
-                    <select class="form-select" id="np_category_sel" onchange="handleComboChange('np_category_sel','np_category','np_category_custom')">
+                    <select class="form-select" id="np_category_sel" onchange="handleComboChange('np_category_sel','np_category','np_category_custom'); autofillTagsByCategory('np')">
                         <option value="">── 請選擇或自訂 ──</option>
                     </select>
                     <input class="form-input" id="np_category" style="display:none;margin-top:6px;" placeholder="輸入自訂類別">
@@ -816,7 +828,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group">
                     <label class="form-label">商品類別</label>
-                    <select class="form-select" id="ep_category_sel" onchange="handleComboChange('ep_category_sel','ep_category','ep_category_c')">
+                    <select class="form-select" id="ep_category_sel" onchange="handleComboChange('ep_category_sel','ep_category','ep_category_c'); autofillTagsByCategory('ep')">
                         <option value="">── 請選擇類別 ──</option>
                     </select>
                     <input class="form-input" id="ep_category" style="display:none;margin-top:6px;" placeholder="輸入自訂類別">
@@ -1378,22 +1390,63 @@ async function updateMemberStatus(idx, newStatus) {
 // ==========================================
 // 📋 所有訂單
 // ==========================================
-async function loadOrders() {
-    document.getElementById('orderList').innerHTML =
-        `<div class="loading-state"><div class="icon">⏳</div><div>載入中...</div></div>`;
-    document.getElementById('orderStats').innerHTML = '';
-    try {
-        const res = await fetch(`${APPS_SCRIPT_URL}?action=getAllOrders&adminLineId=${encodeURIComponent(adminMember.lineId)}`);
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || '讀取失敗');
-        allOrders = data.orders || [];
-        filteredOrders = [...allOrders];
-        renderOrderStats();
-        renderOrders();
-    } catch(e) {
-        document.getElementById('orderList').innerHTML =
-            `<div class="loading-state"><div class="icon">❌</div><div>載入失敗：${e.message}<br><span style="font-size:12px;color:#555;">請確認 Apps Script 已支援 getAllOrders action</span></div></div>`;
+// ── 訂單頁碼狀態 ──
+const ORDER_PAGE_SIZE = 50;
+let orderPage = 1;
+let orderCacheTime = 0;
+const ORDER_CACHE_TTL = 60000; // 1分鐘內切換分頁不重讀
+
+async function loadOrders(forceReload = false) {
+    const now = Date.now();
+    const useCache = !forceReload && allOrders.length > 0 && (now - orderCacheTime) < ORDER_CACHE_TTL;
+
+    if (!useCache) {
+        // 顯示骨架屏
+        document.getElementById('orderList').innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                ${[1,2,3,4,5].map(()=>`
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;animation:pulse 1.2s infinite;">
+                    <div style="height:14px;width:40%;background:rgba(255,255,255,0.07);border-radius:6px;margin-bottom:10px;"></div>
+                    <div style="height:12px;width:70%;background:rgba(255,255,255,0.05);border-radius:6px;"></div>
+                </div>`).join('')}
+            </div>`;
+        document.getElementById('orderStats').innerHTML = '';
+
+        try {
+            // 直接用 Sheets API 讀，跳過 Apps Script 冷啟動
+            const data = await sheetsRead('訂單清單');
+            const rows = (data.values || []).slice(1).filter(r => r[0]);
+            allOrders = rows.map(r => ({
+                訂單編號: r[0]||'', 訂購時間: r[1]||'', 姓名: r[2]||'', 電話: r[3]||'',
+                取貨方式: r[4]||'', 門市名稱: r[5]||'', 門市地址: r[6]||'',
+                匯款末五碼: r[7]||'-', 商品明細: r[8]||'', 商品金額: r[9]||0,
+                運費: r[10]||0, 總金額: r[11]||0, 訂單狀態: r[12]||'',
+                物流編號: r[13]||'-', 會員ID: r[14]||'', 付款狀態: r[15]||'',
+                付款方式: r[16]||'', 門市代碼: r[17]||''
+            })).sort((a,b) => {
+                try { return new Date(b.訂購時間) - new Date(a.訂購時間); } catch(e){ return 0; }
+            });
+            orderCacheTime = Date.now();
+            orderPage = 1;
+        } catch(e) {
+            document.getElementById('orderList').innerHTML =
+                `<div class="loading-state"><div class="icon">❌</div><div>載入失敗：${e.message}</div></div>`;
+            return;
+        }
     }
+
+    applyOrderFilter();
+}
+
+function applyOrderFilter() {
+    const kw     = (document.getElementById('orderSearch')?.value || '').trim().toLowerCase();
+    const status = document.getElementById('orderStatusFilter')?.value || '';
+    filteredOrders = allOrders.filter(o =>
+        (!kw     || o.訂單編號.toLowerCase().includes(kw) || o.姓名.toLowerCase().includes(kw) || o.電話.includes(kw)) &&
+        (!status || o.訂單狀態 === status)
+    );
+    renderOrderStats();
+    renderOrders();
 }
 
 function renderOrderStats() {
@@ -1430,8 +1483,10 @@ function setOrderStatus(status) {
 }
 
 function filterOrders() {
-    const kw = document.getElementById('orderSearch').value.trim().toLowerCase();
+    const kw     = document.getElementById('orderSearch').value.trim().toLowerCase();
+    const status = document.getElementById('orderStatusFilter')?.value || '';
     filteredOrders = allOrders.filter(o => {
+        if (status && o.訂單狀態 !== status) return false;
         const text    = JSON.stringify(o).toLowerCase();
         const matchKw = !kw || text.includes(kw);
         const matchSt = !currentOrderStatus || (o.訂單狀態 || '') === currentOrderStatus;
@@ -1836,6 +1891,34 @@ function ieComboChange(pid, field) {
     } else {
         inp.style.display = 'none';
         inp.value = '';
+    }
+    // 如果改的是類別，自動帶入對應標籤
+    if (field === 'cat') ieAutofillTags(pid);
+}
+
+function ieAutofillTags(pid) {
+    const catSel  = document.getElementById(`ie_cat_sel_${pid}`);
+    const tagsSel = document.getElementById(`ie_tags_sel_${pid}`);
+    const tagsInp = document.getElementById(`ie_tags_${pid}`);
+    if (!catSel || !tagsSel) return;
+
+    const selectedCat = catSel.value;
+    if (!selectedCat || selectedCat === '__custom__') {
+        tagsSel.disabled = false;
+        return;
+    }
+
+    const match = allProducts.find(p => p.category === selectedCat && p.tags);
+    if (match) {
+        const matchedTag = match.tags.split(',')[0].trim();
+        const opt = [...tagsSel.options].find(o => o.value === matchedTag);
+        if (opt) {
+            tagsSel.value = matchedTag;
+            if (tagsInp) tagsInp.style.display = 'none';
+        }
+        tagsSel.disabled = true;
+    } else {
+        tagsSel.disabled = false;
     }
 }
 
@@ -2371,6 +2454,45 @@ function handleComboChange(selId, inputId, hiddenId) {
     } else {
         input.style.display = 'none';
         document.getElementById(hiddenId).value = sel.value;
+    }
+}
+
+// 選了類別後，自動帶入對應的分類標籤並鎖定不給改
+function autofillTagsByCategory(prefix) {
+    const catSelId  = prefix + '_category_sel';
+    const tagSelId  = prefix + '_tags_sel';
+    const tagInpId  = prefix + '_tags';
+    const tagHidId  = prefix + (prefix === 'np' ? '_tags_custom' : '_tags_c');
+
+    const catSel = document.getElementById(catSelId);
+    const tagSel = document.getElementById(tagSelId);
+    if (!catSel || !tagSel) return;
+
+    const selectedCat = catSel.value;
+    if (!selectedCat || selectedCat === '__custom__') {
+        // 類別是自訂義或空白 → 解鎖標籤
+        tagSel.disabled = false;
+        return;
+    }
+
+    // 找出此類別對應的標籤（從現有商品取第一個符合的）
+    const match = allProducts.find(p => p.category === selectedCat && p.tags);
+    if (match) {
+        const matchedTag = match.tags.split(',')[0].trim();
+        // 設定 select 選到對應標籤
+        const opt = [...tagSel.options].find(o => o.value === matchedTag);
+        if (opt) {
+            tagSel.value = matchedTag;
+            // 隱藏自訂輸入框
+            const tagInp = document.getElementById(tagInpId);
+            if (tagInp) tagInp.style.display = 'none';
+            const tagHid = document.getElementById(tagHidId);
+            if (tagHid) tagHid.value = matchedTag;
+        }
+        // 鎖定不給改
+        tagSel.disabled = true;
+    } else {
+        tagSel.disabled = false;
     }
 }
 
