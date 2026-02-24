@@ -627,7 +627,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group">
                     <label class="form-label">圖片網址</label>
-                    <input class="form-input" id="np_image" placeholder="https://...">
+                    <input class="form-input" id="np_image" placeholder="https://... 或貼上 Google Drive 分享連結" oninput="autoConvertDriveUrl('np_image')">
                 </div>
                 <div class="form-group">
                     <label class="form-label">自定義區塊 <span style="color:#555;">（可空白）</span></label>
@@ -737,6 +737,82 @@
         <div class="modal-footer">
             <button class="btn" onclick="closeStockModal()" style="background:rgba(255,255,255,0.05);border:1px solid #333;color:#999;">取消</button>
             <button class="btn btn-purple" id="stockSaveBtn" onclick="saveStock()">💾 儲存</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ========== 編輯商品 Modal ========== -->
+<div class="modal-overlay" id="editProductModal">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-header">
+            <div class="modal-title">✏️ 編輯商品</div>
+            <button class="modal-close" onclick="closeEditProductModal()">×</button>
+        </div>
+        <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+            <!-- 基本資訊 -->
+            <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;margin-bottom:12px;">📋 基本資訊</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">商品編號</label>
+                    <input class="form-input" id="ep_id" disabled style="opacity:0.5;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">商品名稱 *</label>
+                    <input class="form-input" id="ep_name" placeholder="例：MEVIUS 水果系列">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">商品類別</label>
+                    <select class="form-select" id="ep_category_sel" onchange="handleComboChange('ep_category_sel','ep_category','ep_category_c')">
+                        <option value="">── 請選擇類別 ──</option>
+                    </select>
+                    <input class="form-input" id="ep_category" style="display:none;margin-top:6px;" placeholder="輸入自訂類別">
+                    <input type="hidden" id="ep_category_c">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分類標籤 <span style="color:#555;">（逗號分隔）</span></label>
+                    <select class="form-select" id="ep_tags_sel" onchange="handleComboChange('ep_tags_sel','ep_tags','ep_tags_c')">
+                        <option value="">── 請選擇標籤 ──</option>
+                    </select>
+                    <input class="form-input" id="ep_tags" style="display:none;margin-top:6px;" placeholder="例：新品,熱銷">
+                    <input type="hidden" id="ep_tags_c">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">圖片網址 <span style="color:#555;">（支援 Google Drive 連結）</span></label>
+                    <input class="form-input" id="ep_image" placeholder="https://... 或貼上 Google Drive 分享連結" oninput="autoConvertDriveUrl('ep_image')">
+                    <div id="ep_image_preview" style="margin-top:8px;display:none;">
+                        <img id="ep_image_thumb" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">自定義區塊 <span style="color:#555;">（可空白）</span></label>
+                    <select class="form-select" id="ep_block_sel" onchange="handleComboChange('ep_block_sel','ep_block','ep_block_c')">
+                        <option value="">── 空白（不設定）──</option>
+                    </select>
+                    <input class="form-input" id="ep_block" style="display:none;margin-top:6px;" placeholder="輸入自訂區塊名稱">
+                    <input type="hidden" id="ep_block_c">
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="ep_featured" style="width:16px;height:16px;accent-color:#FFD700;">
+                    <span class="form-label" style="margin:0;">設為主打商品</span>
+                </label>
+            </div>
+
+            <!-- 規格價格 -->
+            <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;margin-top:4px;">
+                <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;margin-bottom:12px;">💰 規格價格</div>
+                <div id="ep_specs_list"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeEditProductModal()" style="background:rgba(255,255,255,0.05);border:1px solid #333;color:#999;">取消</button>
+            <button class="btn btn-purple" id="editProductSaveBtn" onclick="saveEditProduct()">💾 儲存商品</button>
         </div>
     </div>
 </div>
@@ -1473,19 +1549,30 @@ async function loadStock() {
             sheetsRead('商品規格表')
         ]);
 
-        // 解析商品列表（A=productId, B=name）
+        // 解析商品列表（A=id, B=name, C=image, D=isFeatured, E=category, F=tags, G=customBlock）
         allProducts = (prodData.values || []).slice(1)
             .filter(r => r[0])
-            .map(r => ({ id: String(r[0]), name: String(r[1] || '') }));
+            .map((r, i) => ({
+                row:         i + 2,
+                id:          String(r[0] || ''),
+                name:        String(r[1] || ''),
+                image:       String(r[2] || ''),
+                isFeatured:  String(r[3] || ''),
+                category:    String(r[4] || ''),
+                tags:        String(r[5] || ''),
+                customBlock: String(r[6] || '')
+            }));
 
-        // 解析規格表（A=productId, B=productName, C=specName, E=stock(col5), row index）
+        // 解析規格表（A=productId, B=productName, C=specName, D=price, E=salePrice, F=stock）
         allSpecs = (specData.values || []).slice(1)
             .filter(r => r[0])
             .map((r, i) => ({
                 row:       i + 2,
                 productId: String(r[0]),
                 specName:  String(r[2] || ''),
-                stock:     parseInt(r[4]) || 0
+                price:     parseInt(r[3]) || 0,
+                salePrice: parseInt(r[4]) || 0,
+                stock:     parseInt(r[5]) || 0
             }));
 
         filteredProducts = [...allProducts];
@@ -1499,7 +1586,10 @@ async function loadStock() {
 
 function filterStock() {
     const kw = document.getElementById('stockSearch').value.trim().toLowerCase();
-    filteredProducts = allProducts.filter(p => !kw || p.name.toLowerCase().includes(kw) || p.id.toLowerCase().includes(kw));
+    filteredProducts = allProducts.filter(p => !kw ||
+        p.name.toLowerCase().includes(kw) ||
+        p.id.toLowerCase().includes(kw) ||
+        p.category.toLowerCase().includes(kw));
     renderStock();
 }
 
@@ -1529,8 +1619,11 @@ function renderStock() {
         }).join('');
         return `
         <div class="card stock-product">
-            <div class="stock-product-name">${escHtml(p.name)}</div>
-            <div class="stock-product-id">ID: ${escHtml(p.id)}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <div class="stock-product-name">${escHtml(p.name)}</div>
+                <button class="btn btn-purple btn-sm" onclick="openEditProductModal('${escHtml(p.id)}')">✏️ 編輯商品</button>
+            </div>
+            <div class="stock-product-id">ID: ${escHtml(p.id)} ${p.category ? `<span style="color:#a78bfa;margin-left:6px;">${escHtml(p.category)}</span>` : ''}</div>
             <div class="stock-specs-row">${specChips}</div>
         </div>`;
     }).join('');
@@ -1606,6 +1699,191 @@ function closeStockModal() {
     document.getElementById('stockModal').classList.remove('active');
     editingStock = null;
 }
+// ==========================================
+// ✏️ 編輯商品
+// ==========================================
+let editingProduct = null;
+
+function autoConvertDriveUrl(inputId) {
+    const input = document.getElementById(inputId);
+    const val = input.value.trim();
+
+    let converted = false;
+
+    // 格式1：https://drive.google.com/file/d/FILE_ID/view
+    // 格式2：https://drive.google.com/open?id=FILE_ID
+    // 格式3：https://drive.google.com/uc?id=FILE_ID（已接近直連，補 export=view）
+    const driveMatch = val.match(/drive\.google\.com(?:\/file\/d\/|.*[?&]id=)([a-zA-Z0-9_-]{20,})/);
+    if (driveMatch) {
+        const fileId = driveMatch[1];
+        input.value = `https://lh3.googleusercontent.com/d/${fileId}`;
+        input.style.borderColor = '#00FF00';
+        setTimeout(() => input.style.borderColor = '', 2000);
+        converted = true;
+    }
+
+    // 格式4：已是 lh3.googleusercontent.com/d/FILE_ID 直連 → 直接可用，不轉換
+    // 格式5：已是 drive.google.com/uc?export=view&id=FILE_ID → 也可用，不轉換
+
+    // 預覽圖片
+    const previewDiv = document.getElementById(inputId + '_preview');
+    const thumb = document.getElementById(inputId + '_thumb');
+    const url = input.value.trim();
+    if (previewDiv && thumb && url.startsWith('http')) {
+        thumb.src = url;
+        thumb.onload = () => { previewDiv.style.display = 'block'; };
+        thumb.onerror = () => { previewDiv.style.display = 'none'; };
+    } else if (previewDiv) {
+        previewDiv.style.display = 'none';
+    }
+}
+
+async function openEditProductModal(productId) {
+    const p = allProducts.find(x => x.id === productId);
+    if (!p) return;
+    editingProduct = { ...p };
+
+    document.getElementById('ep_id').value   = p.id;
+    document.getElementById('ep_name').value = p.name;
+    document.getElementById('ep_image').value = p.image;
+    document.getElementById('ep_featured').checked = p.isFeatured === '是';
+
+    // 預覽圖片
+    autoConvertDriveUrl('ep_image');
+
+    // 載入下拉並設定當前值
+    await loadComboOptionsForEdit();
+    setComboValue('ep_category_sel','ep_category','ep_category_c', p.category);
+    setComboValue('ep_tags_sel',    'ep_tags',    'ep_tags_c',     p.tags);
+    setComboValue('ep_block_sel',   'ep_block',   'ep_block_c',    p.customBlock);
+
+    // 規格價格列表
+    const specs = allSpecs.filter(s => s.productId === productId);
+    document.getElementById('ep_specs_list').innerHTML = specs.map(s => `
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:10px;align-items:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:8px;">
+            <div style="font-weight:900;color:${s.specName==='條'?'#a78bfa':s.specName==='台'?'#34d399':'#FFD700'};">${escHtml(s.specName)}</div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">原價（元）</label>
+                <input class="form-input" id="ep_price_${escHtml(s.specName)}" type="number" min="0" value="${s.price}" data-spec-row="${s.row}">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">特價 <span style="color:#555;">（空白=無特價）</span></label>
+                <input class="form-input" id="ep_sale_${escHtml(s.specName)}" type="number" min="0" value="${s.salePrice || ''}" placeholder="無特價">
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('editProductModal').classList.add('active');
+}
+
+async function loadComboOptionsForEdit() {
+    if (allProducts.length === 0 || !('category' in allProducts[0])) return;
+    const cats   = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+    const tags   = [...new Set(allProducts.flatMap(p => p.tags.split(',').map(t=>t.trim())).filter(Boolean))];
+    const blocks = [...new Set(allProducts.map(p => p.customBlock).filter(Boolean))];
+
+    function buildSel(selId, items, placeholder) {
+        const sel = document.getElementById(selId);
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v; sel.appendChild(opt);
+        });
+        const custom = document.createElement('option');
+        custom.value = '__custom__'; custom.textContent = '✏️ 自訂義...';
+        sel.appendChild(custom);
+    }
+    buildSel('ep_category_sel', cats,   '── 請選擇類別 ──');
+    buildSel('ep_tags_sel',     tags,   '── 請選擇標籤 ──');
+    buildSel('ep_block_sel',    blocks, '── 空白（不設定）──');
+}
+
+function setComboValue(selId, inputId, hiddenId, value) {
+    const sel = document.getElementById(selId);
+    // 檢查是否在選項中
+    const exists = [...sel.options].some(o => o.value === value);
+    if (value && exists) {
+        sel.value = value;
+        document.getElementById(inputId).style.display = 'none';
+    } else if (value) {
+        // 自訂義
+        sel.value = '__custom__';
+        document.getElementById(inputId).style.display = 'block';
+        document.getElementById(inputId).value = value;
+    } else {
+        sel.value = '';
+        document.getElementById(inputId).style.display = 'none';
+    }
+    document.getElementById(hiddenId).value = value;
+}
+
+async function saveEditProduct() {
+    if (!editingProduct) return;
+    const name = document.getElementById('ep_name').value.trim();
+    if (!name) { showToast('請填入商品名稱', 'error'); return; }
+
+    const btn = document.getElementById('editProductSaveBtn');
+    btn.disabled = true;
+    btn.textContent = '儲存中...';
+
+    const productRow = {
+        row:         editingProduct.row,
+        id:          editingProduct.id,
+        name,
+        image:       document.getElementById('ep_image').value.trim(),
+        isFeatured:  document.getElementById('ep_featured').checked ? '是' : '',
+        category:    getComboValue('ep_category_sel','ep_category'),
+        tags:        getComboValue('ep_tags_sel','ep_tags'),
+        customBlock: getComboValue('ep_block_sel','ep_block')
+    };
+
+    // 規格價格
+    const specs = allSpecs.filter(s => s.productId === editingProduct.id);
+    const specUpdates = specs.map(s => {
+        const priceEl = document.getElementById('ep_price_' + s.specName);
+        const saleEl  = document.getElementById('ep_sale_'  + s.specName);
+        return {
+            row:       s.row,
+            price:     parseInt(priceEl?.value) || 0,
+            salePrice: parseInt(saleEl?.value)  || 0
+        };
+    });
+
+    try {
+        await scriptPost({
+            action:      'adminEditProduct',
+            adminLineId: adminMember.lineId,
+            product:     productRow,
+            specUpdates
+        });
+
+        // 更新本地資料
+        const p = allProducts.find(x => x.id === editingProduct.id);
+        if (p) Object.assign(p, { name: productRow.name, image: productRow.image, isFeatured: productRow.isFeatured, category: productRow.category, tags: productRow.tags, customBlock: productRow.customBlock });
+        specs.forEach(s => {
+            const priceEl = document.getElementById('ep_price_' + s.specName);
+            const saleEl  = document.getElementById('ep_sale_'  + s.specName);
+            if (priceEl) s.price = parseInt(priceEl.value) || 0;
+            if (saleEl)  s.salePrice = parseInt(saleEl.value) || 0;
+        });
+
+        showToast(`✅ 商品「${name}」已更新！`);
+        closeEditProductModal();
+        renderStock();
+    } catch(e) {
+        showToast('❌ 更新失敗：' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 儲存商品';
+    }
+}
+
+function closeEditProductModal() {
+    document.getElementById('editProductModal').classList.remove('active');
+    editingProduct = null;
+}
+
+
 
 // ==========================================
 // ＋ 新增商品
