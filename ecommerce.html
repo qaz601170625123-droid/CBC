@@ -5086,29 +5086,47 @@ async function loadSystemSettings() {
 function showMaintenanceScreen() {
     window.isMaintenanceMode = true;
 
-    // 啟用透明攔截層（讓底層任何點擊都觸發維護畫面）
-    const blocker = document.getElementById('maintenanceBlocker');
-    if (blocker) blocker.style.display = 'block';
+    // 把整個 body 的互動全部關掉（最底層封鎖）
+    document.body.style.pointerEvents = 'none';
+    document.body.style.overflow = 'hidden';
 
-    // 顯示維護畫面
+    // 顯示維護畫面（它自己要能被看見，所以給它 pointer-events:auto）
     const el = document.getElementById('maintenanceScreen');
-    if (el) el.style.display = 'flex';
+    if (el) {
+        el.style.display = 'flex';
+        el.style.pointerEvents = 'auto';
+    }
 
-    // 關閉所有已開啟的 modal
-    document.querySelectorAll('.modal-overlay, .modal, [class*="modal"]').forEach(m => {
+    // 關閉所有已開啟的 modal / 彈窗
+    document.querySelectorAll('.modal-overlay, .modal').forEach(m => {
         m.style.display = 'none';
     });
-
-    document.body.style.overflow = 'hidden';
 }
 
-// 維護模式守衛：在任何關鍵操作前呼叫
+// 維護模式守衛（保留，作為額外防線）
 function checkMaintenance() {
     if (window.isMaintenanceMode) {
         showMaintenanceScreen();
-        return true; // true = 已被攔截
+        return true;
     }
     return false;
+}
+
+// 定時輪詢維護狀態（每 10 秒檢查一次 Sheet）
+async function pollMaintenanceStatus() {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/系統設定?key=${API_KEY}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        const rows = data.values || [];
+        const row  = rows.find(r => String(r[0]).trim() === '維護模式');
+        const isOn = row ? String(row[1]).trim().toUpperCase() === 'TRUE' : false;
+        if (isOn && !window.isMaintenanceMode) {
+            showMaintenanceScreen();
+        }
+    } catch (e) {
+        // 網路問題時不影響，靜默忽略
+    }
 }
 
 // 🆕 更新匯款資訊顯示
@@ -6228,6 +6246,9 @@ window.addEventListener('load', () => {
     
     // 🔥 啟動自動刷新庫存功能
     startAutoRefresh(30);
+
+    // 🔒 定時輪詢維護模式（每 10 秒）
+    setInterval(pollMaintenanceStatus, 10000);
 
     // 🔥 背景掃描逾時訂單（登入後30秒開始，之後每60秒掃一次）
     setTimeout(() => {
