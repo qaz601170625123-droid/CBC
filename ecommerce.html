@@ -752,7 +752,7 @@
         }
         
         .spec-info-price {
-            font-size: 26px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--primary);
             line-height: 1.2;
@@ -791,7 +791,7 @@
         }
         
         .spec-info-stock {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--accent-green);
             text-align: right;
@@ -1466,11 +1466,11 @@
             }
             
             .spec-info-price {
-                font-size: 24px;
+                font-size: 20px;
             }
             
             .spec-info-stock {
-                font-size: 14px;
+                font-size: 11px;
             }
             
             .spec-options {
@@ -1533,11 +1533,11 @@
             }
             
             .spec-info-price {
-                font-size: 26px;
+                font-size: 22px;
             }
             
             .spec-info-stock {
-                font-size: 15px;
+                font-size: 12px;
             }
 
             .spec-options {
@@ -2256,17 +2256,14 @@
     </div>
 
     <!-- 訂單查詢彈窗 -->
-    <!-- 查詢訂單全頁 -->
-    <div id="orderSearchPage" style="display:none;">
-        <!-- 🔒 固定置頂標題列 -->
-        <div style="position:sticky; top:0; z-index:99; background:rgba(10,10,10,0.97); backdrop-filter:blur(12px); border-bottom:2px solid var(--primary); padding:14px 20px;">
-            <div style="max-width:600px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;">
-                <div style="font-size:22px; font-weight:900; color:var(--primary);">📦 我的訂單</div>
-                <button onclick="closeOrderSearch()" style="background:rgba(255,215,0,0.1);border:1.5px solid var(--primary);color:var(--primary);padding:8px 18px;border-radius:20px;font-weight:700;cursor:pointer;font-size:15px;">← 返回商城</button>
+    <div class="modal" id="orderSearchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📦 我的訂單</div>
+                <button class="close-modal" onclick="closeOrderSearch()">×</button>
             </div>
-        </div>
-        <div style="max-width:600px; margin:0 auto; padding:20px;">
-            <div id="ordersList">
+            
+            <div id="ordersList" style="max-height: 500px; overflow-y: auto;">
                 <!-- 訂單列表會動態生成 -->
             </div>
         </div>
@@ -3597,6 +3594,7 @@ function openCustomBlockModal(blockName) {
     
     // 🆕 初始化輪播圖
     window._currentModalCategoryName = blockName;
+    window._isRegularCategoryModal = false;
     initCarousel(blockName);
     
     // 計算統計
@@ -3694,6 +3692,7 @@ function openFeaturedCategoryModal() {
     
     // 🆕 初始化輪播圖（主打商品使用「主打商品」這個分類名稱）
     window._currentModalCategoryName = '主打商品';
+    window._isRegularCategoryModal = false;
     initCarousel('主打商品');
     
     // 渲染主打商品選項
@@ -3935,6 +3934,8 @@ function openCategoryModal(categoryName) {
     if (_sub3) { _sub3.textContent = _st3; _sub3.style.display = _st3 ? 'inline' : 'none'; }
     // 🔥 必須在 updateModalPromoHint() 之前先設定分類名稱
     window._currentModalCategoryName = categoryName;
+    // 🔥 標記為一般類別（非主打/精選），點口味不更新輪播圖
+    window._isRegularCategoryModal = true;
     document.getElementById('specModal').classList.add('active');
     setTimeout(() => { const sa = document.getElementById('specScrollArea'); if(sa) sa.scrollTop = 0; }, 50); updateModalPromoHint();
     
@@ -4069,29 +4070,27 @@ function selectFlavor(index) {
         el.classList.toggle('selected', i === index);
     });
     
-    // 🆕 點選口味時：重新組合輪播（B欄封面圖永遠第一 + C欄輪播圖 + 商品圖）
-    {
+    // 🆕 點選口味時：重新組合輪播（商品圖優先 + 分類輪播圖接後）
+    // 🔥 只有主打/精選才更新輪播圖，一般類別不更新
+    if (!window._isRegularCategoryModal) {
         const categoryName = window._currentModalCategoryName || '';
         const carouselBase = categoryCarouselImages[categoryName] || [];
         const seen = new Set();
         const merged = [];
 
-        // 1. 先加 B 欄封面圖（永遠第一張）
-        const coverImg = (categoryImages[categoryName] || '').trim();
-        if (coverImg) {
-            const fullCover = coverImg.startsWith('http') ? coverImg : 'https://' + coverImg;
-            seen.add(fullCover); merged.push(fullCover);
-        }
-
-        // 2. 再加 C 欄起的分類輪播圖
-        carouselBase.forEach(u => {
-            if (!seen.has(u)) { seen.add(u); merged.push(u); }
-        });
-
-        // 3. 商品自己的圖若不重複則加在最後
+        // 1. 先加這個口味的商品圖
         let productImg = product.image || '';
         if (productImg && !productImg.startsWith('http')) productImg = 'https://' + productImg;
         if (productImg && !seen.has(productImg)) { seen.add(productImg); merged.push(productImg); }
+
+        // 2. 再加 C 欄起的分類輪播圖
+        carouselBase.forEach(u => { if (!seen.has(u)) { seen.add(u); merged.push(u); } });
+
+        // 3. 若完全沒圖，fallback 到 B 欄卡片圖
+        if (merged.length === 0) {
+            const coverImg = categoryImages[categoryName] || '';
+            if (coverImg) merged.push(coverImg);
+        }
 
         if (merged.length > 0) initCarouselFromUrls(merged);
     }
@@ -4222,7 +4221,8 @@ window.addEventListener('popstate', function(event) {
     const specModal = document.getElementById('specModal');
     const cartSidebar = document.getElementById('cartSidebar');
     const checkoutModal = document.getElementById('checkoutModal');
-    const orderSearchPage = document.getElementById('orderSearchPage');
+    const orderSearchModal = document.getElementById('orderSearchModal');
+    const profileUpdateModal = document.getElementById('profileUpdateModal');
     
     // 依序檢查並關閉開啟的彈窗
     // 燈箱優先關閉
@@ -4236,9 +4236,6 @@ window.addEventListener('popstate', function(event) {
         // 優先關閉訂單詳情全螢幕頁
         closeOrderDetail();
         isModalOpen = false;
-    } else if (orderSearchPage && orderSearchPage.style.display !== 'none' && orderSearchPage.style.display !== '') {
-        closeOrderSearch();
-        isModalOpen = false;
     } else if (specModal && specModal.classList.contains('active')) {
         closeSpecModal();
         isModalOpen = false;
@@ -4247,6 +4244,9 @@ window.addEventListener('popstate', function(event) {
         isModalOpen = false;
     } else if (checkoutModal && checkoutModal.classList.contains('active')) {
         closeCheckout();
+        isModalOpen = false;
+    } else if (orderSearchModal && orderSearchModal.classList.contains('active')) {
+        closeOrderSearch();
         isModalOpen = false;
     } else if (profileUpdateModal && profileUpdateModal.classList.contains('active')) {
         closeProfileUpdateModal();
@@ -5243,16 +5243,21 @@ async function submitOrder() {
 // 訂單查詢
 // ==========================================
 async function openOrderSearch() {
+    // 檢查是否已登入
     if (!currentMember || !currentMember.lineId) {
         showToast('請先登入 LINE 帳號', 'error');
         return;
     }
     
-    // 隱藏商品區、顯示訂單頁
-    document.getElementById('productsSection').style.display = 'none';
-    document.getElementById('orderSearchPage').style.display = 'block';
+    // 顯示模態框（重置任何 style.display 覆蓋）
+    const osm = document.getElementById('orderSearchModal');
+    osm.style.display = '';
+    osm.classList.add('active');
     window._orderDetailFromSearch = false;
-    window.scrollTo(0, 0);
+    
+    // 🔥 添加歷史記錄
+    history.pushState({ modal: 'orderSearch' }, '');
+    isModalOpen = true;
     
     // 顯示載入中
     document.getElementById('ordersList').innerHTML = `
@@ -5262,15 +5267,17 @@ async function openOrderSearch() {
         </div>
     `;
     
+    // 查詢訂單
     await loadMemberOrders();
 }
 
 
 function closeOrderSearch() {
-    document.getElementById('orderSearchPage').style.display = 'none';
-    document.getElementById('productsSection').style.display = 'block';
+    const osm = document.getElementById('orderSearchModal');
+    osm.classList.remove('active');
+    osm.style.display = '';
+    isModalOpen = false;
     window._orderDetailFromSearch = false;
-    window.scrollTo(0, 0);
 }
 
 // ==========================================
@@ -5323,8 +5330,8 @@ function showOrderDetail(orderIndex) {
         return;
     }
     
-    // 隱藏訂單列表頁，標記是從 orderSearch 進來的
-    document.getElementById('orderSearchPage').style.display = 'none';
+    // 🔥 不關閉 orderSearchModal，只是暫時隱藏（返回時還能回去）
+    document.getElementById('orderSearchModal').style.display = 'none';
     // 標記是從 orderSearch 進來的
     window._orderDetailFromSearch = true;
     
@@ -5336,8 +5343,9 @@ function showOrderDetailByData(order) {
     // 🔥 防呆：確保 order 是有效物件
     if (!order || typeof order !== 'object') {
         showToast('訂單資料格式錯誤', 'error');
-        // 恢復訂單列表頁
-        document.getElementById('orderSearchPage').style.display = 'block';
+        // 恢復 orderSearch modal
+        const osm = document.getElementById('orderSearchModal');
+        if (osm) { osm.style.display = ''; osm.classList.add('active'); }
         return;
     }
     // 確保關鍵欄位有值（避免 .replace 在 undefined 上爆炸）
@@ -5683,11 +5691,15 @@ function closeOrderDetail() {
     if (detailView) detailView.remove();
     isModalOpen = false;
     
-    // 若是從查詢訂單進來的，返回訂單列表頁
+    // 🔥 若是從查詢訂單進來的，返回時重新顯示訂單列表
     if (window._orderDetailFromSearch) {
         window._orderDetailFromSearch = false;
-        document.getElementById('orderSearchPage').style.display = 'block';
-        window.scrollTo(0, 0);
+        const orderSearchModal = document.getElementById('orderSearchModal');
+        orderSearchModal.style.display = '';   // 恢復 display
+        orderSearchModal.classList.add('active');
+        isModalOpen = true;
+        // 補一筆 history state，讓再按返回可以關掉 orderSearch
+        history.pushState({ modal: 'orderSearch' }, '');
     }
 }
 
