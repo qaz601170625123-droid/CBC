@@ -267,6 +267,14 @@
         .spec-chip-stock.zero { color: #ff4444; }
 
         /* ── 狀態 Pill ── */
+        .ship-tab {
+            padding: 7px 18px; border-radius: 9px; font-size: 13px; font-weight: 700;
+            cursor: pointer; border: none; background: transparent; color: #666;
+            transition: all .2s; white-space: nowrap;
+        }
+        .ship-tab:hover { color: #fff; }
+        .ship-tab.active { background: rgba(255,215,0,0.18); color: #FFD700; }
+
         .order-pill {
             padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
             cursor: pointer; border: 1.5px solid rgba(255,255,255,0.1);
@@ -404,9 +412,12 @@
         <div class="page-header">
             <div>
                 <div class="page-title">📦 庫存管理</div>
-                <div class="page-subtitle">查看與修改商品庫存數量</div>
+                <div class="page-subtitle">查看、修改商品庫存，或新增商品</div>
             </div>
-            <button class="btn btn-green" onclick="loadStock()">🔄 重新整理</button>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-green" onclick="loadStock()">🔄 重新整理</button>
+                <button class="btn btn-purple" onclick="openAddProductModal()">＋ 新增商品</button>
+            </div>
         </div>
         <div class="search-bar">
             <input class="search-input" id="stockSearch" placeholder="🔍 搜尋商品名稱..." oninput="filterStock()">
@@ -426,20 +437,21 @@
             <button class="btn btn-green" onclick="loadOrders()">🔄 重新整理</button>
         </div>
         <div class="stats-grid" id="orderStats"></div>
+        <!-- 取貨方式 Tab -->
+        <div style="display:flex; gap:0; margin-bottom:14px; background:rgba(255,255,255,0.04); border-radius:12px; padding:4px; width:fit-content;">
+            <button class="ship-tab active" data-ship="" onclick="setShipTab(this,'')">全部</button>
+            <button class="ship-tab" data-ship="711" onclick="setShipTab(this,'711')">🏪 7-11</button>
+            <button class="ship-tab" data-ship="self" onclick="setShipTab(this,'self')">🚶 自取</button>
+        </div>
         <div class="search-bar">
             <input class="search-input" id="orderSearch" placeholder="🔍 搜尋姓名、電話、訂單編號..." oninput="filterOrders()">
-            <select class="form-select" id="orderShippingFilter" onchange="filterOrders()" style="width:auto; padding:9px 14px;">
-                <option value="">全部取貨</option>
-                <option value="711">🏪 7-11</option>
-                <option value="self">🚶 自取</option>
-            </select>
         </div>
         <!-- 狀態 Pill 篩選器 -->
         <div id="orderStatusPills" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
             <button class="order-pill active" data-status="" onclick="setOrderStatus('')">全部</button>
             <button class="order-pill" data-status="待確認" onclick="setOrderStatus('待確認')">⏳ 待確認</button>
             <button class="order-pill" data-status="已付款待出貨" onclick="setOrderStatus('已付款待出貨')">💰 待出貨</button>
-            <button class="order-pill" data-status="出貨中" onclick="setOrderStatus('出貨中')">🚚 出貨中</button>
+            <button class="order-pill" data-status="出貨中" onclick="setOrderStatus('出貨中')">🚚 出貨</button>
             <button class="order-pill" data-status="已完成" onclick="setOrderStatus('已完成')">✅ 已完成</button>
             <button class="order-pill" data-status="取消訂單" onclick="setOrderStatus('取消訂單')">❌ 取消</button>
         </div>
@@ -567,6 +579,136 @@
                 </div>
             </div>
             <button class="btn" onclick="closeOrderModal()" style="background:rgba(255,255,255,0.05);border:1px solid #333;color:#999;">關閉</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ========== 新增商品 Modal ========== -->
+<div class="modal-overlay" id="addProductModal">
+    <div class="modal-box" style="max-width:580px;">
+        <div class="modal-header">
+            <div class="modal-title">＋ 新增商品</div>
+            <button class="modal-close" onclick="closeAddProductModal()">×</button>
+        </div>
+        <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+            <!-- 基本資訊 -->
+            <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;margin-bottom:12px;">📋 基本資訊</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">商品編號
+                        <button onclick="genProductId()" style="margin-left:6px;background:rgba(167,139,250,0.15);border:1px solid #a78bfa;color:#a78bfa;padding:2px 8px;border-radius:6px;font-size:11px;cursor:pointer;">🎲 自動生成</button>
+                    </label>
+                    <input class="form-input" id="np_id" placeholder="例：P001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">商品名稱 *</label>
+                    <input class="form-input" id="np_name" placeholder="例：MEVIUS 水果系列">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">商品類別</label>
+                    <input class="form-input" id="np_category" placeholder="例：PLOOM蛋">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">大分類標籤 <span style="color:#555;">（逗號分隔）</span></label>
+                    <input class="form-input" id="np_tags" placeholder="例：新品,熱銷">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">圖片網址</label>
+                    <input class="form-input" id="np_image" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">自定義區塊</label>
+                    <input class="form-input" id="np_block" placeholder="例：主打商品">
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="np_featured" style="width:16px;height:16px;accent-color:#FFD700;">
+                    <span class="form-label" style="margin:0;">設為主打商品</span>
+                </label>
+            </div>
+
+            <!-- 規格設定 -->
+            <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;margin-top:4px;">
+                <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;margin-bottom:12px;">📦 規格設定</div>
+                <div style="font-size:12px;color:#666;margin-bottom:12px;">選擇要新增哪些規格，可複選。條和包要分別填金額。</div>
+
+                <!-- 單包 -->
+                <div class="spec-block" id="spec_block_單包">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px;">
+                        <input type="checkbox" id="spec_check_單包" checked style="width:16px;height:16px;accent-color:#FFD700;" onchange="toggleSpecBlock('單包')">
+                        <span style="font-weight:900;color:#FFD700;">單包</span>
+                    </label>
+                    <div id="spec_fields_單包" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">原價（元）*</label>
+                            <input class="form-input" id="spec_price_單包" type="number" min="0" placeholder="例：50">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">特價 <span style="color:#555;">（選填）</span></label>
+                            <input class="form-input" id="spec_sale_單包" type="number" min="0" placeholder="空白＝無特價">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">初始庫存</label>
+                            <input class="form-input" id="spec_stock_單包" type="number" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 條 -->
+                <div class="spec-block" id="spec_block_條">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px;">
+                        <input type="checkbox" id="spec_check_條" style="width:16px;height:16px;accent-color:#FFD700;" onchange="toggleSpecBlock('條')">
+                        <span style="font-weight:900;color:#a78bfa;">條</span>
+                        <span style="font-size:11px;color:#555;">（1條＝10包，金額需分別填寫）</span>
+                    </label>
+                    <div id="spec_fields_條" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">原價（元）*</label>
+                            <input class="form-input" id="spec_price_條" type="number" min="0" placeholder="例：450">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">特價 <span style="color:#555;">（選填）</span></label>
+                            <input class="form-input" id="spec_sale_條" type="number" min="0" placeholder="空白＝無特價">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">初始庫存</label>
+                            <input class="form-input" id="spec_stock_條" type="number" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 台 -->
+                <div class="spec-block" id="spec_block_台">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px;">
+                        <input type="checkbox" id="spec_check_台" style="width:16px;height:16px;accent-color:#FFD700;" onchange="toggleSpecBlock('台')">
+                        <span style="font-weight:900;color:#34d399;">台</span>
+                    </label>
+                    <div id="spec_fields_台" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">原價（元）*</label>
+                            <input class="form-input" id="spec_price_台" type="number" min="0" placeholder="例：4500">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">特價 <span style="color:#555;">（選填）</span></label>
+                            <input class="form-input" id="spec_sale_台" type="number" min="0" placeholder="空白＝無特價">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label">初始庫存</label>
+                            <input class="form-input" id="spec_stock_台" type="number" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeAddProductModal()" style="background:rgba(255,255,255,0.05);border:1px solid #333;color:#999;">取消</button>
+            <button class="btn btn-purple" id="addProductSaveBtn" onclick="saveNewProduct()">💾 新增商品</button>
         </div>
     </div>
 </div>
@@ -1118,6 +1260,15 @@ function renderOrderStats() {
 }
 
 let currentOrderStatus = '';
+let currentShipFilter  = '';
+
+function setShipTab(el, ship) {
+    currentShipFilter = ship;
+    document.querySelectorAll('.ship-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    orderPage = 1;
+    filterOrders();
+}
 
 function setOrderStatus(status) {
     currentOrderStatus = status;
@@ -1129,17 +1280,16 @@ function setOrderStatus(status) {
 }
 
 function filterOrders() {
-    const kw       = document.getElementById('orderSearch').value.trim().toLowerCase();
-    const shipping = document.getElementById('orderShippingFilter').value;
+    const kw = document.getElementById('orderSearch').value.trim().toLowerCase();
     filteredOrders = allOrders.filter(o => {
-        const text = JSON.stringify(o).toLowerCase();
-        const matchKw   = !kw || text.includes(kw);
-        const matchSt   = !currentOrderStatus || (o.訂單狀態 || '') === currentOrderStatus;
-        const pickup    = String(o.取貨方式 || '');
-        const is711     = pickup.includes('7-11') || pickup.includes('711');
-        const matchShip = !shipping
-            || (shipping === '711'  && is711)
-            || (shipping === 'self' && !is711);
+        const text    = JSON.stringify(o).toLowerCase();
+        const matchKw = !kw || text.includes(kw);
+        const matchSt = !currentOrderStatus || (o.訂單狀態 || '') === currentOrderStatus;
+        const pickup  = String(o.取貨方式 || '');
+        const is711   = pickup.includes('7-11') || pickup.includes('711');
+        const matchShip = !currentShipFilter
+            || (currentShipFilter === '711'  && is711)
+            || (currentShipFilter === 'self' && !is711);
         return matchKw && matchSt && matchShip;
     });
     renderOrders();
@@ -1177,7 +1327,7 @@ function renderOrders() {
         let quickBtns = `<button class="quick-btn q-detail" onclick="event.stopPropagation();showOrderDetail(${realIdx})">📋 詳情</button>`;
         if (status !== '已完成' && status !== '取消訂單' && status !== '訂單取消') {
             if (status === '已付款待出貨')
-                quickBtns += `<button class="quick-btn q-ship" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','出貨中',${realIdx})">🚚 出貨中</button>`;
+                quickBtns += `<button class="quick-btn q-ship" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','出貨中',${realIdx})">🚚 出貨</button>`;
             if (status === '出貨中')
                 quickBtns += `<button class="quick-btn q-done" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','已完成',${realIdx})">✅ 完成</button>`;
             quickBtns += `<button class="quick-btn q-cancel" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','取消訂單',${realIdx})">❌ 取消</button>`;
@@ -1430,6 +1580,111 @@ async function saveStock() {
 function closeStockModal() {
     document.getElementById('stockModal').classList.remove('active');
     editingStock = null;
+}
+
+// ==========================================
+// ＋ 新增商品
+// ==========================================
+
+function openAddProductModal() {
+    // 清空所有欄位
+    ['np_id','np_name','np_category','np_tags','np_image','np_block'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('np_featured').checked = false;
+
+    // 規格：單包預設勾選，條/台預設不勾
+    ['單包','條','台'].forEach(spec => {
+        const chk = document.getElementById('spec_check_' + spec);
+        const fields = document.getElementById('spec_fields_' + spec);
+        chk.checked = spec === '單包';
+        fields.style.display = spec === '單包' ? 'grid' : 'none';
+        ['spec_price_','spec_sale_'].forEach(pre => {
+            const el = document.getElementById(pre + spec);
+            if (el) el.value = '';
+        });
+        const stockEl = document.getElementById('spec_stock_' + spec);
+        if (stockEl) stockEl.value = '0';
+    });
+
+    document.getElementById('addProductModal').classList.add('active');
+}
+
+function closeAddProductModal() {
+    document.getElementById('addProductModal').classList.remove('active');
+}
+
+function toggleSpecBlock(specName) {
+    const checked = document.getElementById('spec_check_' + specName).checked;
+    const fields  = document.getElementById('spec_fields_' + specName);
+    fields.style.display = checked ? 'grid' : 'none';
+}
+
+function genProductId() {
+    // 用現有最大編號 + 1，或時間戳
+    const existing = allProducts.map(p => p.id).filter(id => /^P\d+$/.test(id))
+        .map(id => parseInt(id.replace('P','')));
+    const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1;
+    document.getElementById('np_id').value = 'P' + String(nextNum).padStart(3, '0');
+}
+
+async function saveNewProduct() {
+    const id   = document.getElementById('np_id').value.trim();
+    const name = document.getElementById('np_name').value.trim();
+    if (!id)   { showToast('請填入商品編號', 'error'); return; }
+    if (!name) { showToast('請填入商品名稱', 'error'); return; }
+
+    // 確認至少勾選一個規格
+    const specNames = ['單包','條','台'];
+    const checkedSpecs = specNames.filter(s => document.getElementById('spec_check_' + s).checked);
+    if (checkedSpecs.length === 0) { showToast('請至少選一個規格', 'error'); return; }
+
+    // 確認已勾選規格都有填原價
+    for (const s of checkedSpecs) {
+        const price = document.getElementById('spec_price_' + s).value.trim();
+        if (!price) { showToast(`請填入「${s}」的原價`, 'error'); return; }
+    }
+
+    // 商品列表資料
+    const productRow = {
+        id,
+        name,
+        image:       document.getElementById('np_image').value.trim(),
+        isFeatured:  document.getElementById('np_featured').checked ? '是' : '',
+        category:    document.getElementById('np_category').value.trim(),
+        tags:        document.getElementById('np_tags').value.trim(),
+        customBlock: document.getElementById('np_block').value.trim()
+    };
+
+    // 規格列表資料（每個勾選的規格各一行）
+    const specRows = checkedSpecs.map(s => {
+        const price    = parseInt(document.getElementById('spec_price_' + s).value) || 0;
+        const sale     = parseInt(document.getElementById('spec_sale_'  + s).value) || 0;
+        const stock    = parseInt(document.getElementById('spec_stock_' + s).value) || 0;
+        const multiplier = s === '條' ? 10 : 1;
+        return { specName: s, price, salePrice: sale, stock, multiplier };
+    });
+
+    const btn = document.getElementById('addProductSaveBtn');
+    btn.disabled = true;
+    btn.textContent = '新增中...';
+
+    try {
+        await scriptPost({
+            action:     'adminAddProduct',
+            adminLineId: adminMember.lineId,
+            product:    productRow,
+            specs:      specRows
+        });
+        showToast(`✅ 商品「${name}」已新增！`);
+        closeAddProductModal();
+        await loadStock();  // 重新載入庫存
+    } catch(e) {
+        showToast('❌ 新增失敗：' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 新增商品';
+    }
 }
 
 // ==========================================
