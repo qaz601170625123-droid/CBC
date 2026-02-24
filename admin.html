@@ -266,6 +266,36 @@
         .spec-chip-stock.low  { color: #ffa500; }
         .spec-chip-stock.zero { color: #ff4444; }
 
+        /* ── 狀態 Pill ── */
+        .order-pill {
+            padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
+            cursor: pointer; border: 1.5px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04); color: #888; transition: all .2s;
+            white-space: nowrap;
+        }
+        .order-pill:hover { border-color: rgba(255,215,0,0.4); color: #FFD700; }
+        .order-pill.active { background: rgba(255,215,0,0.15); border-color: #FFD700; color: #FFD700; }
+
+        /* ── 訂單卡片快速操作列 ── */
+        .order-quick-actions {
+            display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;
+            padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .quick-btn {
+            padding: 4px 10px; border-radius: 14px; font-size: 11px; font-weight: 700;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05); color: #888; transition: all .15s;
+        }
+        .quick-btn:hover { opacity: 0.85; }
+        .quick-btn.q-ship  { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.1); }
+        .quick-btn.q-done  { border-color: #00FF00; color: #00FF00; background: rgba(0,255,0,0.1); }
+        .quick-btn.q-cancel{ border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.1); }
+        .quick-btn.q-detail{ border-color: #FFD700; color: #FFD700; background: rgba(255,215,0,0.1); }
+
+        /* ── 取貨方式 badge ── */
+        .ship-711  { background: rgba(255,165,0,0.15); color: #ffa500; border: 1px solid rgba(255,165,0,0.3); }
+        .ship-self { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+
         @media (max-width: 600px) {
             .order-row { grid-template-columns: 1fr; }
             .promo-actions { width: 100%; justify-content: flex-end; }
@@ -397,14 +427,21 @@
         </div>
         <div class="stats-grid" id="orderStats"></div>
         <div class="search-bar">
-            <input class="search-input" id="orderSearch" placeholder="🔍 搜尋姓名、電話、訂單內容..." oninput="filterOrders()">
-            <select class="form-select" id="orderStatusFilter" onchange="filterOrders()" style="width:auto; padding:9px 14px;">
-                <option value="">全部狀態</option>
-                <option value="待確認">待確認</option>
-                <option value="已確認">已確認</option>
-                <option value="已完成">已完成</option>
-                <option value="已取消">已取消</option>
+            <input class="search-input" id="orderSearch" placeholder="🔍 搜尋姓名、電話、訂單編號..." oninput="filterOrders()">
+            <select class="form-select" id="orderShippingFilter" onchange="filterOrders()" style="width:auto; padding:9px 14px;">
+                <option value="">全部取貨</option>
+                <option value="711">🏪 7-11</option>
+                <option value="self">🚶 自取</option>
             </select>
+        </div>
+        <!-- 狀態 Pill 篩選器 -->
+        <div id="orderStatusPills" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+            <button class="order-pill active" data-status="" onclick="setOrderStatus('')">全部</button>
+            <button class="order-pill" data-status="待確認" onclick="setOrderStatus('待確認')">⏳ 待確認</button>
+            <button class="order-pill" data-status="已付款待出貨" onclick="setOrderStatus('已付款待出貨')">💰 待出貨</button>
+            <button class="order-pill" data-status="出貨中" onclick="setOrderStatus('出貨中')">🚚 出貨中</button>
+            <button class="order-pill" data-status="已完成" onclick="setOrderStatus('已完成')">✅ 已完成</button>
+            <button class="order-pill" data-status="取消訂單" onclick="setOrderStatus('取消訂單')">❌ 取消</button>
         </div>
         <div id="orderList">
             <div class="loading-state"><div class="icon">⏳</div><div>載入中...</div></div>
@@ -1080,14 +1117,30 @@ function renderOrderStats() {
     `;
 }
 
+let currentOrderStatus = '';
+
+function setOrderStatus(status) {
+    currentOrderStatus = status;
+    document.querySelectorAll('.order-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.status === status);
+    });
+    orderPage = 1;
+    filterOrders();
+}
+
 function filterOrders() {
-    const kw     = document.getElementById('orderSearch').value.trim().toLowerCase();
-    const status = document.getElementById('orderStatusFilter').value;
+    const kw       = document.getElementById('orderSearch').value.trim().toLowerCase();
+    const shipping = document.getElementById('orderShippingFilter').value;
     filteredOrders = allOrders.filter(o => {
         const text = JSON.stringify(o).toLowerCase();
-        const matchKw = !kw || text.includes(kw);
-        const matchStatus = !status || (o.訂單狀態 || '') === status;
-        return matchKw && matchStatus;
+        const matchKw   = !kw || text.includes(kw);
+        const matchSt   = !currentOrderStatus || (o.訂單狀態 || '') === currentOrderStatus;
+        const pickup    = String(o.取貨方式 || '');
+        const is711     = pickup.includes('7-11') || pickup.includes('711');
+        const matchShip = !shipping
+            || (shipping === '711'  && is711)
+            || (shipping === 'self' && !is711);
+        return matchKw && matchSt && matchShip;
     });
     renderOrders();
 }
@@ -1108,29 +1161,46 @@ function renderOrders() {
 
     el.innerHTML = slice.map((o, i) => {
         const realIdx = (orderPage - 1) * ORDER_PAGE_SIZE + i;
-        const status = o.訂單狀態 || '';
-        const badgeClass = status === '已完成' ? 'badge-green'
+        const status  = o.訂單狀態 || '';
+        const statusBadge = status === '已完成' ? 'badge-green'
             : (status === '取消訂單' || status === '訂單取消') ? 'badge-red'
             : status === '出貨中' ? 'badge-purple'
             : status === '已付款待出貨' ? 'badge-yellow'
             : 'badge-gray';
-        const amt = o.總金額 || '-';
+        const amt     = o.總金額 || '-';
+        const pickup  = String(o.取貨方式 || '');
+        const is711   = pickup.includes('7-11') || pickup.includes('711');
+        const shipLabel = is711 ? '🏪 7-11' : '🚶 自取';
+        const shipClass = is711 ? 'ship-711' : 'ship-self';
+
+        // 快速操作按鈕（依現在狀態決定顯示哪些）
+        let quickBtns = `<button class="quick-btn q-detail" onclick="event.stopPropagation();showOrderDetail(${realIdx})">📋 詳情</button>`;
+        if (status !== '已完成' && status !== '取消訂單' && status !== '訂單取消') {
+            if (status === '已付款待出貨')
+                quickBtns += `<button class="quick-btn q-ship" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','出貨中',${realIdx})">🚚 出貨中</button>`;
+            if (status === '出貨中')
+                quickBtns += `<button class="quick-btn q-done" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','已完成',${realIdx})">✅ 完成</button>`;
+            quickBtns += `<button class="quick-btn q-cancel" onclick="event.stopPropagation();quickStatus('${escHtml(o.訂單編號)}','取消訂單',${realIdx})">❌ 取消</button>`;
+        }
+
         return `
-        <div class="card" style="cursor:pointer;" onclick="showOrderDetail(${realIdx})">
-            <div class="order-row">
-                <div>
-                    <div class="order-name">${escHtml(o.姓名 || '未知')}</div>
-                    <div class="order-meta">
-                        📱 ${escHtml(o.電話 || '-')}　
-                        🕐 ${escHtml(String(o.訂購時間 || '-').substring(0, 16))}<br>
-                        🛒 ${escHtml(String(o.商品明細 || '').substring(0, 50))}
+        <div class="card" onclick="showOrderDetail(${realIdx})">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                        <span class="order-name">${escHtml(o.姓名 || '未知')}</span>
+                        <span class="badge ${shipClass}">${shipLabel}</span>
+                        <span class="badge ${statusBadge}">${status || '未知'}</span>
                     </div>
-                </div>
-                <div>
-                    <span class="badge ${badgeClass}">${status || '未知'}</span>
+                    <div class="order-meta">
+                        📱 ${escHtml(o.電話 || '-')}　🕐 ${escHtml(String(o.訂購時間 || '').substring(0, 16))}<br>
+                        🛒 ${escHtml(String(o.商品明細 || '').substring(0, 60))}
+                        ${is711 && o.門市名稱 ? `<br>🏪 ${escHtml(o.門市名稱)}` : ''}
+                    </div>
                 </div>
                 <div class="order-amount">$${escHtml(String(amt))}</div>
             </div>
+            <div class="order-quick-actions">${quickBtns}</div>
         </div>`;
     }).join('');
 
@@ -1205,6 +1275,21 @@ async function saveOrderStatus() {
 function closeOrderModal() {
     document.getElementById('orderModal').classList.remove('active');
     currentOrderId = null;
+}
+
+async function quickStatus(orderId, newStatus, idx) {
+    const o = filteredOrders[idx];
+    if (!confirm(`將「${o.姓名}」的訂單改為「${newStatus}」？`)) return;
+    try {
+        await scriptPost({ action: 'updateOrderStatus', adminLineId: adminMember.lineId, orderId, newStatus });
+        // 更新本地
+        const orig = allOrders.find(x => x.訂單編號 === orderId);
+        if (orig) orig.訂單狀態 = newStatus;
+        filterOrders();
+        showToast('✅ 已更新：' + newStatus);
+    } catch(e) {
+        showToast('❌ 更新失敗：' + e.message, 'error');
+    }
 }
 
 // ==========================================
