@@ -690,7 +690,8 @@
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label class="form-label">初始庫存</label>
-                            <input class="form-input" id="spec_stock_條" type="number" min="0" value="0">
+                            <div style="padding:10px 14px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;font-size:13px;color:#888;">🔗 自動同步單包庫存</div>
+                            <input type="hidden" id="spec_stock_條" value="0">
                         </div>
                     </div>
                 </div>
@@ -1513,13 +1514,17 @@ function renderStock() {
         if (specs.length === 0) return '';
         const specChips = specs.map(s => {
             const cls = s.stock === 0 ? 'zero' : s.stock <= 10 ? 'low' : 'ok';
+            const isTiao = s.specName === '條';
+            const editBtn = isTiao
+                ? `<span style="margin-left:auto;font-size:10px;color:#666;white-space:nowrap;">🔗 同步單包</span>`
+                : `<button class="btn btn-yellow btn-sm" style="margin-left:auto;" onclick="openStockModal('${escHtml(p.id)}','${escHtml(p.name)}','${escHtml(s.specName)}',${s.stock},${s.row})">✏️</button>`;
             return `
             <div class="spec-chip">
                 <div>
                     <div class="spec-chip-name">${escHtml(s.specName)}</div>
                     <div class="spec-chip-stock ${cls}">${s.stock}</div>
                 </div>
-                <button class="btn btn-yellow btn-sm" style="margin-left:auto;" onclick="openStockModal('${escHtml(p.id)}','${escHtml(p.name)}','${escHtml(s.specName)}',${s.stock},${s.row})">✏️</button>
+                ${editBtn}
             </div>`;
         }).join('');
         return `
@@ -1570,15 +1575,23 @@ async function saveStock() {
     btn.textContent = '儲存中...';
 
     try {
+        // 找出同商品的「條」規格（若存在，同步更新）
+        const tiaoSpec = allSpecs.find(s => s.productId === editingStock.productId && s.specName === '條');
+        const updates = [{ row: editingStock.row, newStock }];
+        if (editingStock.specName === '單包' && tiaoSpec) {
+            updates.push({ row: tiaoSpec.row, newStock });
+        }
         await scriptPost({
             action: 'updateStock',
             adminLineId: adminMember.lineId,
-            updates: [{ row: editingStock.row, newStock }]
+            updates
         });
         // 更新本地資料
         const spec = allSpecs.find(s => s.row === editingStock.row);
         if (spec) spec.stock = newStock;
-        showToast(`✅ ${editingStock.productName}-${editingStock.specName} 庫存已更新為 ${newStock}`);
+        if (editingStock.specName === '單包' && tiaoSpec) tiaoSpec.stock = newStock;
+        const syncMsg = (editingStock.specName === '單包' && tiaoSpec) ? '（條已同步）' : '';
+        showToast(`✅ ${editingStock.productName}-${editingStock.specName} 庫存已更新為 ${newStock} ${syncMsg}`);
         closeStockModal();
         renderStock();
     } catch(e) {
@@ -1750,10 +1763,12 @@ async function saveNewProduct() {
     };
 
     // 規格列表資料（每個勾選的規格各一行）
+    // 條的庫存自動沿用單包庫存
+    const baoStock = parseInt(document.getElementById('spec_stock_單包')?.value) || 0;
     const specRows = checkedSpecs.map(s => {
         const price    = parseInt(document.getElementById('spec_price_' + s).value) || 0;
         const sale     = parseInt(document.getElementById('spec_sale_'  + s).value) || 0;
-        const stock    = parseInt(document.getElementById('spec_stock_' + s).value) || 0;
+        const stock    = s === '條' ? baoStock : (parseInt(document.getElementById('spec_stock_' + s).value) || 0);
         const multiplier = s === '條' ? 10 : 1;
         return { specName: s, price, salePrice: sale, stock, multiplier };
     });
