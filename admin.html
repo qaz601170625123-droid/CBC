@@ -1760,7 +1760,11 @@ async function openEditProductModal(productId) {
 
     // 規格價格列表
     const specs = allSpecs.filter(s => s.productId === productId);
-    document.getElementById('ep_specs_list').innerHTML = specs.map(s => `
+    const existingSpecNames = specs.map(s => s.specName);
+    const allSpecTypes = ['單包','條','台'];
+    const missingSpecs = allSpecTypes.filter(n => !existingSpecNames.includes(n));
+
+    const existingHtml = specs.map(s => `
         <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:10px;align-items:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:8px;">
             <div style="font-weight:900;color:${s.specName==='條'?'#a78bfa':s.specName==='台'?'#34d399':'#FFD700'};">${escHtml(s.specName)}</div>
             <div class="form-group" style="margin:0;">
@@ -1773,6 +1777,32 @@ async function openEditProductModal(productId) {
             </div>
         </div>
     `).join('');
+
+    const addSpecHtml = missingSpecs.length === 0 ? '' : `
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:12px;padding-top:12px;">
+            <div style="font-size:11px;font-weight:900;color:#888;letter-spacing:1px;margin-bottom:10px;">➕ 新增規格</div>
+            ${missingSpecs.map(n => `
+            <div id="ep_add_block_${n}" style="background:rgba(255,255,255,0.02);border:1.5px dashed rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+                    <input type="checkbox" id="ep_add_chk_${n}" style="width:15px;height:15px;accent-color:#FFD700;"
+                        onchange="toggleNewSpecFields('${n}')">
+                    <span style="font-weight:900;color:${n==='條'?'#a78bfa':n==='台'?'#34d399':'#FFD700'};">${n}</span>
+                    ${n==='條'?'<span style="font-size:11px;color:#555;">（庫存同步單包）</span>':''}
+                </label>
+                <div id="ep_add_fields_${n}" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">原價（元）*</label>
+                        <input class="form-input" id="ep_add_price_${n}" type="number" min="0" placeholder="例：${n==='台'?'4500':'450'}">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">特價 <span style="color:#555;">（選填）</span></label>
+                        <input class="form-input" id="ep_add_sale_${n}" type="number" min="0" placeholder="無特價">
+                    </div>
+                </div>
+            </div>`).join('')}
+        </div>`;
+
+    document.getElementById('ep_specs_list').innerHTML = existingHtml + addSpecHtml;
 
     document.getElementById('editProductModal').classList.add('active');
 }
@@ -1838,7 +1868,7 @@ async function saveEditProduct() {
         customBlock: getComboValue('ep_block_sel','ep_block')
     };
 
-    // 規格價格
+    // 規格價格（現有規格）
     const specs = allSpecs.filter(s => s.productId === editingProduct.id);
     const specUpdates = specs.map(s => {
         const priceEl = document.getElementById('ep_price_' + s.specName);
@@ -1850,12 +1880,29 @@ async function saveEditProduct() {
         };
     });
 
+    // 新增規格（勾選的）
+    const allSpecTypes = ['單包','條','台'];
+    const existingSpecNames = specs.map(s => s.specName);
+    const baoSpec = specs.find(s => s.specName === '單包');
+    const baoStock = baoSpec ? baoSpec.stock : 0;
+    const newSpecs = allSpecTypes
+        .filter(n => !existingSpecNames.includes(n))
+        .filter(n => document.getElementById('ep_add_chk_' + n)?.checked)
+        .map(n => {
+            const price    = parseInt(document.getElementById('ep_add_price_' + n)?.value) || 0;
+            const salePrice= parseInt(document.getElementById('ep_add_sale_'  + n)?.value) || 0;
+            const stock    = n === '條' ? baoStock : 0;
+            const multiplier = n === '條' ? 10 : 1;
+            return { specName: n, price, salePrice, stock, multiplier };
+        });
+
     try {
         await scriptPost({
             action:      'adminEditProduct',
             adminLineId: adminMember.lineId,
             product:     productRow,
-            specUpdates
+            specUpdates,
+            newSpecs
         });
 
         // 更新本地資料
@@ -1882,6 +1929,12 @@ async function saveEditProduct() {
 function closeEditProductModal() {
     document.getElementById('editProductModal').classList.remove('active');
     editingProduct = null;
+}
+
+function toggleNewSpecFields(specName) {
+    const checked = document.getElementById('ep_add_chk_' + specName).checked;
+    const fields  = document.getElementById('ep_add_fields_' + specName);
+    fields.style.display = checked ? 'grid' : 'none';
 }
 
 
