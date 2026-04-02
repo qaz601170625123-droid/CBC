@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>旅遊攻略 · 羅東 × 花蓮</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Noto Sans TC',sans-serif;background:#111;color:#f0f0f0;overflow-x:hidden;}
+
+/* ── CITY SELECT SCREEN ── */
+#city-select{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d1a0d 0%,#0a0f1a 50%,#1a0a00 100%);
+  padding:24px;gap:24px;
+}
+.select-title{font-family:'Noto Serif TC',serif;font-size:1.6rem;font-weight:900;text-align:center;letter-spacing:.1em;color:#fff;}
+.select-sub{font-size:.72rem;color:#ffffff55;letter-spacing:.3em;text-transform:uppercase;text-align:center;}
+.city-cards{display:flex;flex-direction:column;gap:16px;width:100%;max-width:360px;}
+.city-card{
+  border-radius:16px;padding:28px 20px;cursor:pointer;
+  display:flex;align-items:center;gap:16px;
+  border:1.5px solid transparent;
+  transition:transform .15s,border-color .15s;
+  position:relative;overflow:hidden;
+}
+.city-card:active{transform:scale(.97);}
+.city-card.luodong{background:#1a0a00;border-color:#ff880055;}
+.city-card.hualien{background:#0a0f1a;border-color:#38bdf855;}
+.city-card-icon{font-size:2.4rem;flex-shrink:0;}
+.city-card-info{}
+.city-card-name{font-family:'Noto Serif TC',serif;font-size:1.25rem;font-weight:900;margin-bottom:4px;}
+.city-card.luodong .city-card-name{color:#ffcc44;}
+.city-card.hualien .city-card-name{color:#7dd4fc;}
+.city-card-desc{font-size:.72rem;color:#ffffff88;line-height:1.5;}
+.city-card-arrow{margin-left:auto;font-size:1.2rem;opacity:.5;flex-shrink:0;}
+
+/* ── GUIDE SCREENS ── */
+.guide-screen{display:none;min-height:100vh;flex-direction:column;}
+.guide-screen.visible{display:flex;}
+
+/* hero */
+.guide-hero{text-align:center;padding:20px 16px 14px;flex-shrink:0;}
+.guide-hero.luo{background:linear-gradient(180deg,#0d0500,#3d1500 60%,#1a0a00);}
+.guide-hero.hua{background:linear-gradient(180deg,#050a14,#0d2040 55%,#0a0f1a);}
+.hero-back{
+  position:absolute;left:14px;top:20px;
+  background:rgba(255,255,255,.08);border:none;color:#ffffff99;
+  font-size:.8rem;padding:7px 12px;border-radius:20px;cursor:pointer;
+}
+.hero-emoji{font-size:1rem;letter-spacing:3px;display:block;margin-bottom:8px;}
+.hero-title{font-family:'Noto Serif TC',serif;font-size:1.5rem;font-weight:900;letter-spacing:.08em;margin-bottom:3px;}
+.luo .hero-title{color:#ffcc44;text-shadow:0 0 20px #ff880055;}
+.hua .hero-title{color:#7dd4fc;text-shadow:0 0 20px #38bdf855;}
+.hero-sub{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;}
+.luo .hero-sub{color:#f5e6c844;}
+.hua .hero-sub{color:#7dd4fc44;}
+
+/* tabs */
+.tabs{display:flex;flex-shrink:0;position:sticky;top:0;z-index:100;}
+.luo-tabs{background:#0d0500;border-bottom:1px solid #ff880033;}
+.hua-tabs{background:#060d1a;border-bottom:1px solid #1e3a5f;}
+.tab-btn{
+  flex:1;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:12px 4px 10px;gap:3px;
+  font-family:'Noto Sans TC',sans-serif;font-size:.78rem;font-weight:700;
+  border-bottom:3px solid transparent;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tab-btn .ti{font-size:1.1rem;}
+.luo-tabs .tab-btn{background:#0d0500;color:#ffcc4433;}
+.luo-tabs .tab-btn.on{color:#ffcc44;border-bottom-color:#ffcc44;background:#1a0a00;}
+.hua-tabs .tab-btn{background:#060d1a;color:#7dd4fc33;}
+.hua-tabs .tab-btn.on{color:#7dd4fc;border-bottom-color:#7dd4fc;background:#0a1528;}
+
+/* panels */
+.panel{display:none;}
+.panel.on{display:block;}
+
+.sec-hd{
+  display:flex;align-items:center;gap:8px;padding:9px 12px 7px;
+  border-bottom:1px solid #ffffff0a;
+}
+.luo-guide .sec-hd{background:#0d0500;}
+.hua-guide .sec-hd{background:#060d1a;}
+.sec-label{font-size:.62rem;letter-spacing:.22em;color:#ffffff44;text-transform:uppercase;}
+.sec-count{margin-left:auto;font-size:.58rem;padding:2px 8px;border-radius:10px;}
+.luo-guide .sec-count{color:#ffcc4466;background:#ffcc4411;}
+.hua-guide .sec-count{color:#7dd4fc66;background:#7dd4fc11;}
+
+/* grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#ffffff0a;}
+
+/* card */
+.card{
+  padding:13px 11px;position:relative;overflow:hidden;
+  border-right:1px solid #ffffff08;border-bottom:1px solid #ffffff08;
+}
+.luo-guide .card{background:#1a0a00;}
+.hua-guide .card{background:#0a0f1a;}
+.card::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;}
+.luo-guide .card.eat::before{background:linear-gradient(180deg,#ff8800,#ff4400);}
+.luo-guide .card.out::before{background:#44ff88;}
+.hua-guide .card.eat::before{background:linear-gradient(180deg,#f59e0b,#ef4444);}
+.hua-guide .card.play::before{background:linear-gradient(180deg,#10b981,#06b6d4);}
+.hua-guide .card.shop::before{background:linear-gradient(180deg,#a78bfa,#ec4899);}
+
+.bdg{position:absolute;top:7px;right:7px;font-size:.5rem;padding:2px 6px;border-radius:7px;font-weight:700;line-height:1.4;}
+.bdg-must{background:#1d4ed8;color:#bfdbfe;}
+.bdg-ig{background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;}
+.bdg-free{background:#065f46;color:#6ee7b7;}
+.bdg-old{background:#78350f;color:#fde68a;}
+.bdg-new{background:#c0392b;color:#fff;}
+
+.ce{font-size:1.4rem;margin-bottom:5px;display:block;line-height:1;}
+.cn{font-family:'Noto Serif TC',serif;font-size:.88rem;font-weight:700;margin-bottom:2px;line-height:1.3;}
+.luo-guide .cn{color:#ffcc44;}
+.hua-guide .cn{color:#7dd4fc;}
+.cd{font-size:.7rem;color:#ffffff88;line-height:1.6;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;}
+.tag{font-size:.55rem;padding:2px 6px;border-radius:7px;font-weight:500;}
+.tm{background:#1e3a8a;color:#93c5fd;}
+.to{background:#451a03;color:#fed7aa;border:1px solid #f9731633;}
+.ti2{background:#2d1457;color:#c4b5fd;border:1px solid #7c3aed44;}
+.tf{background:#052e16;color:#86efac;border:1px solid #16a34a33;}
+.th2{background:#0c4a6e;color:#7dd3fc;border:1px solid #0ea5e933;}
+.tb{background:#3b0764;color:#e879f9;border:1px solid #a855f744;}
+.tn{background:#052e16;color:#4ade80;border:1px solid #22c55e33;}
+.tq{background:#002200;color:#66dd88;border:1px solid #66dd8833;}
+.tl{background:#1a0033;color:#bb88ff;border:1px solid #bb88ff33;}
+.tluo{background:#7a1a00;color:#ffaa55;}
+
+.ib{border-top:1px solid #ffffff0f;padding-top:6px;display:flex;flex-direction:column;gap:4px;}
+.ir{display:flex;gap:5px;align-items:flex-start;}
+.ii{font-size:.62rem;opacity:.4;flex-shrink:0;margin-top:1px;}
+.it{font-size:.66rem;color:#ffffff66;line-height:1.45;}
+
+footer{text-align:center;padding:14px;font-size:.6rem;letter-spacing:.1em;}
+.luo-guide footer{background:#0d0500;color:#ffcc4422;}
+.hua-guide footer{background:#060d1a;color:#7dd4fc22;}
+footer strong{opacity:.6;}
+</style>
+</head>
+<body>
+
+<!-- ── 城市選擇 ── -->
+<div id="city-select">
+  <div>
+    <div class="select-title">🗺️ 旅遊攻略</div>
+    <div style="margin-top:6px" class="select-sub">Taiwan Travel Guide 2026</div>
+  </div>
+  <div class="city-cards">
+    <div class="city-card luodong" data-city="luo">
+      <div class="city-card-icon">🏮</div>
+      <div class="city-card-info">
+        <div class="city-card-name">羅東夜市</div>
+        <div class="city-card-desc">夜市內外 · IG熱門 · 真實店家<br>11間夜市內 + 8間夜市外</div>
+      </div>
+      <div class="city-card-arrow">›</div>
+    </div>
+    <div class="city-card hualien" data-city="hua">
+      <div class="city-card-icon">🌊</div>
+      <div class="city-card-info">
+        <div class="city-card-name">花蓮市區</div>
+        <div class="city-card-desc">吃 · 玩 · 逛三大分類<br>10間美食 + 8個景點 + 9間逛</div>
+      </div>
+      <div class="city-card-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 羅東 ── -->
+<div id="luo-screen" class="guide-screen luo-guide">
+  <div class="guide-hero luo" style="position:relative;">
+    <button class="hero-back" id="luo-back">‹ 返回</button>
+    <span class="hero-emoji">🏮🏮🏮🏮🏮</span>
+    <div class="hero-title">羅東必吃全攻略</div>
+    <div class="hero-sub">Luodong Night Market · 2026</div>
+  </div>
+
+  <div class="tabs luo-tabs" id="luo-tabs">
+    <button class="tab-btn on" data-tab="luo" data-id="inside"><span class="ti">🏮</span>夜市內</button>
+    <button class="tab-btn" data-tab="luo" data-id="outside"><span class="ti">🚶</span>夜市外</button>
+  </div>
+
+  <!-- 夜市內 -->
+  <div class="panel on" id="luo-inside">
+    <div class="sec-hd"><span class="sec-label">🏮 夜市內攤位</span><span class="sec-count">11 間</span></div>
+    <div class="grid">
+
+      <div class="card eat">
+        <span class="bdg bdg-ig">IG熱門</span>
+        <span class="ce">🍲</span><div class="cn">阿灶伯當歸羊肉</div>
+        <div class="cd">排隊天王！當歸羊肉湯清甜不腥，假日等30分鐘起跳，臭豆腐也必點。</div>
+        <div class="tags"><span class="tag tm">必吃</span><span class="tag tq">排隊</span><span class="tag ti2">IG打卡王</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路265號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">16:00–01:00 週三休</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="bdg bdg-ig">IG熱門</span>
+        <span class="ce">🥢</span><div class="cn">嚐味鮮湯包</div>
+        <div class="cd">三星蔥爆漿湯包、起司湯包超夯，皮薄多汁小心燙口！</div>
+        <div class="tags"><span class="tag tm">必吃</span><span class="tag ti2">IG熱門</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公園路142號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">17:30–23:00 每日</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍟</span><div class="cn">堂薯薯臭薯條</div>
+        <div class="cd">薯條形臭豆腐，外酥內嫩，起司、泰式酸辣等多口味，顏值高好拍。</div>
+        <div class="tags"><span class="tag ti2">好拍</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民生路入口附近</span></div><div class="ir"><span class="ii">🕐</span><span class="it">16:30起（假日16:00）</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍜</span><div class="cn">羊舖子羊肉湯</div>
+        <div class="cd">阿灶伯旁在地人愛店，中藥味更厚，假日中午就開始。</div>
+        <div class="tags"><span class="tag to">在地推薦</span><span class="tag tq">排隊</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路110號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">11:00–00:00 週二休</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🥙</span><div class="cn">玉本舖三星蔥餅</div>
+        <div class="cd">爆量三星蔥加五香滷肉，慢火半煎半炸，人潮多時排到公園內。</div>
+        <div class="tags"><span class="tag ti2">IG熱點</span><span class="tag to">三星蔥</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路100號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">16:00–22:00（假日至23:00）</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🌯</span><div class="cn">鄭記潤餅捲</div>
+        <div class="cd">60年老字號，現做餅皮，原味/麻辣/芥末，每捲$45。</div>
+        <div class="tags"><span class="tag to">60年老店</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路上</span></div><div class="ir"><span class="ii">🕐</span><span class="it">約 17:00 起</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🔥</span><div class="cn">皇佳三星蔥肉串</div>
+        <div class="cd">夜市第一家三星蔥肉串，蔥段翠綠多汁，細緻炭烤。</div>
+        <div class="tags"><span class="tag to">在地首推</span><span class="tag to">元祖</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公園路公園貳拾對面</span></div><div class="ir"><span class="ii">🕐</span><span class="it">17:30–22:30</span></div><div class="ir"><span class="ii">📞</span><span class="it">0932-090-455</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍡</span><div class="cn">魏姐包心粉圓</div>
+        <div class="cd">紅豆藏入粉圓，搭配豆花或雪花冰，冷熱交融。</div>
+        <div class="tags"><span class="tag ti2">IG甜品</span><span class="tag to">宜蘭特色</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公園路95號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">17:00–22:00（假日至23:00）</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🥢</span><div class="cn">小春卜肉／糕渣</div>
+        <div class="cd">宜蘭限定！卜肉酥炸金黃，糕渣外酥內化，一定要試。</div>
+        <div class="tags"><span class="tag tluo">宜蘭限定</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">夜市內（近公園路）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">約 17:30 起</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🧃</span><div class="cn">雅淳水果茶</div>
+        <div class="cd">現煮鳳梨水果茶，人手一杯，杯底有鳳梨塊。</div>
+        <div class="tags"><span class="tag tm">必喝</span><span class="tag tq">人手一杯</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">夜市內</span></div><div class="ir"><span class="ii">🕐</span><span class="it">約 17:00 起</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🦆</span><div class="cn">東山鴨頭</div>
+        <div class="cd">三星蔥大腸頭是招牌，蔥香與大腸油脂融合絕妙，常常賣完要等。</div>
+        <div class="tags"><span class="tag to">在地推薦</span><span class="tag tq">搶手</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路1104號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">約 17:00 起</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 夜市外 -->
+  <div class="panel" id="luo-outside">
+    <div class="sec-hd"><span class="sec-label">🚶 夜市外 · 步行可達</span><span class="sec-count">8 間</span></div>
+    <div class="grid">
+
+      <div class="card out">
+        <span class="bdg bdg-ig">IG熱門</span>
+        <span class="ce">🫕</span><div class="cn">財記臭豆腐</div>
+        <div class="cd">Google近4000則評論！脆皮必點，起酥堡每日限量下午兩點開賣秒殺。</div>
+        <div class="tags"><span class="tag ti2">IG爆紅</span><span class="tag tl">限量起酥堡</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公正路110號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">14:00–22:00 週二休</span></div><div class="ir"><span class="ii">📞</span><span class="it">03-956-6220</span></div><div class="ir"><span class="ii">⚡</span><span class="it">起酥堡 14:00–16:30</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="bdg bdg-ig">IG熱門</span>
+        <span class="ce">🍲</span><div class="cn">林場肉羹</div>
+        <div class="cd">50年老店，飽滿肉羹配濃郁勾芡湯頭，觀光客必訪，位在林業文化園區旁。</div>
+        <div class="tags"><span class="tag to">50年老店</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中正北路109號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">07:00–18:00 週三休</span></div><div class="ir"><span class="ii">📞</span><span class="it">03-955-2736</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="ce">🫓</span><div class="cn">義豐蔥油派</div>
+        <div class="cd">不在夜市內！郵局旁，網路票選宜蘭第一，30年老店。</div>
+        <div class="tags"><span class="tag to">30年老店</span><span class="tag tluo">三星蔥</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民生路130號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">13:00–21:00（週六至22:00）</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="bdg bdg-ig">IG熱門</span>
+        <span class="ce">🧋</span><div class="cn">玉圓堂</div>
+        <div class="cd">黑糖粉圓鮮奶超人氣，一大杯50元有找，野生愛玉檸檬也必喝！</div>
+        <div class="tags"><span class="tag ti2">IG飲品</span><span class="tag tm">必喝</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公正路107號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">10:00–22:00 每日</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="ce">🍡</span><div class="cn">羅東紅豆湯圓</div>
+        <div class="cd">只賣湯圓和紅豆，每日手工現做，軟糯甜香，老少皆宜。</div>
+        <div class="tags"><span class="tag to">老字號</span><span class="tag tluo">在地甜品</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中山路三段180號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">08:00–21:30 每日</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="ce">🍱</span><div class="cn">食至名龜</div>
+        <div class="cd">「黯然消魂飯」招牌，油飯加半熟蛋、泡菜，宜蘭糕渣蛋餅也必點。</div>
+        <div class="tags"><span class="tag ti2">創意料理</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路17號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">08:00–14:00 / 17:00–22:00 週一休</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="ce">🍣</span><div class="cn">詠壽司</div>
+        <div class="cd">在地人口袋名單，壽司口味多、食材新鮮，讚岐烏龍炒麵必點，Google評分4.3。</div>
+        <div class="tags"><span class="tag to">在地人推薦</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路82號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">午晚餐時段</span></div></div>
+      </div>
+
+      <div class="card out">
+        <span class="ce">🍙</span><div class="cn">米糕枝（早市米糕）</div>
+        <div class="cd">清晨6點開賣，糯米油飯配魚鬆與滷汁，搭一碗魚丸湯，宜蘭早餐首選。</div>
+        <div class="tags"><span class="tag to">老字號</span><span class="tag tluo">早市限定</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中山路三段268號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">06:00–11:00 週二休</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer><p>🏮 羅東夜市 · 宜蘭縣羅東鎮中山公園周邊 🏮</p><p style="margin-top:4px;">整體約 <strong>15:00–00:00</strong> · 各攤時間略有不同</p></footer>
+</div>
+
+<!-- ── 花蓮 ── -->
+<div id="hua-screen" class="guide-screen hua-guide">
+  <div class="guide-hero hua" style="position:relative;">
+    <button class="hero-back" id="hua-back">‹ 返回</button>
+    <span class="hero-emoji">🌊 🏔️ 🌊</span>
+    <div class="hero-title">花蓮市區指南</div>
+    <div class="hero-sub">Hualien City Guide · 2026</div>
+  </div>
+
+  <div class="tabs hua-tabs" id="hua-tabs">
+    <button class="tab-btn on" data-tab="hua" data-id="eat"><span class="ti">🍜</span>吃</button>
+    <button class="tab-btn" data-tab="hua" data-id="play"><span class="ti">🎯</span>玩</button>
+    <button class="tab-btn" data-tab="hua" data-id="shop"><span class="ti">🛍️</span>逛</button>
+  </div>
+
+  <!-- 吃 -->
+  <div class="panel on" id="hua-eat">
+    <div class="sec-hd"><span class="sec-label">🍜 花蓮必吃</span><span class="sec-count">10 間</span></div>
+    <div class="grid">
+
+      <div class="card eat">
+        <span class="bdg bdg-must">必吃</span>
+        <span class="ce">🥟</span><div class="cn">公正包子</div>
+        <div class="cd">花蓮最知名排隊美食，Q彈薄皮小包子湯汁滿溢，24小時不打烊。</div>
+        <div class="tags"><span class="tag tm">必吃</span><span class="tag th2">24H</span><span class="tag ti2">IG排隊</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公正街</span></div><div class="ir"><span class="ii">🕐</span><span class="it">24小時</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="bdg bdg-ig">IG</span>
+        <span class="ce">🧅</span><div class="cn">炸彈蔥油餅</div>
+        <div class="cd">黃車（復興街）與藍車（老牌炸蛋）相距不到100公尺，蛋汁爆漿超過癮。</div>
+        <div class="tags"><span class="tag ti2">IG必拍</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">復興街（黃車）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">下午至傍晚</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="bdg bdg-old">老字號</span>
+        <span class="ce">🍵</span><div class="cn">廟口紅茶</div>
+        <div class="cd">花蓮三大紅茶之一，招牌鋼管紅茶不加冰塊喝原味，搭小西點絕配。</div>
+        <div class="tags"><span class="tag to">老字號</span><span class="tag tm">必喝</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路附近廟口</span></div><div class="ir"><span class="ii">🕐</span><span class="it">早餐至宵夜</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍡</span><div class="cn">一心泡泡冰</div>
+        <div class="cd">花蓮經典老字號，綿密泡泡冰一杯35元，雪花冰系列也非常推薦。</div>
+        <div class="tags"><span class="tag to">老字號</span><span class="tag ti2">IG甜品</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路上</span></div><div class="ir"><span class="ii">🕐</span><span class="it">11:00–21:00</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🥟</span><div class="cn">周家蒸餃</div>
+        <div class="cd">觀光客必買，皮薄餡多，與公正包子並稱花蓮小吃雙王。</div>
+        <div class="tags"><span class="tag tm">必吃</span><span class="tag ti2">觀光必訪</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">公正街附近</span></div><div class="ir"><span class="ii">🕐</span><span class="it">早上至售完</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🐟</span><div class="cn">欣欣麵館</div>
+        <div class="cd">名為麵館其實是海鮮餐廳！隱藏版龍蝦火鍋整尾塞進鍋，平價新鮮。</div>
+        <div class="tags"><span class="tag ti2">隱藏版</span><span class="tag tm">必吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民國路125號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">12:00–14:30 / 16:30–20:30 週一休</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍦</span><div class="cn">五霸焦糖包心粉圓</div>
+        <div class="cd">焦糖煉乳格子冰IG熱門打卡，包心粉圓有13種餡料，QQ驚喜停不下來。</div>
+        <div class="tags"><span class="tag ti2">IG打卡</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">博愛街165號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">11:30–22:00</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🍱</span><div class="cn">森山舎</div>
+        <div class="cd">文青老宅早午餐，餐點精緻用心，花蓮IG打卡早午餐首選，假日早點來。</div>
+        <div class="tags"><span class="tag ti2">IG必訪</span><span class="tag tm">早午餐</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">林政街10號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">10:00–18:00（週四休）</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="ce">🔥</span><div class="cn">東大門夜市</div>
+        <div class="cd">花蓮最大夜市400多攤，原住民特色烤玉米、棺材板、濃郁果汁必點。</div>
+        <div class="tags"><span class="tag tm">必去</span><span class="tag ti2">觀光首選</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中山路50號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">約 17:00–00:00 每日</span></div></div>
+      </div>
+
+      <div class="card eat">
+        <span class="bdg bdg-must">必喝</span>
+        <span class="ce">🫙</span><div class="cn">佳興冰果室</div>
+        <div class="cd">新城必喝現榨檸檬汁，酸甜清爽，每次來都帶一箱。</div>
+        <div class="tags"><span class="tag tm">必喝</span><span class="tag to">老店</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">新城鄉（車程15分）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">08:00–18:00</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 玩 -->
+  <div class="panel" id="hua-play">
+    <div class="sec-hd"><span class="sec-label">🎯 景點體驗</span><span class="sec-count">8 個</span></div>
+    <div class="grid">
+
+      <div class="card play">
+        <span class="ce">🐋</span><div class="cn">多羅滿賞鯨</div>
+        <div class="cd">花蓮必玩水上活動，出海賞鯨豚，夏季最佳，2.5–3小時，專車市區接送。</div>
+        <div class="tags"><span class="tag tm">必體驗</span><span class="tag ti2">IG熱點</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">民權路37號（漁港）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">需提前預約</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="bdg bdg-free">免費</span>
+        <span class="ce">🏛️</span><div class="cn">花蓮文創園區</div>
+        <div class="cd">百年舊酒廠改建，《茶金》拍攝地，假日有市集音樂活動，免門票。</div>
+        <div class="tags"><span class="tag tf">免費</span><span class="tag ti2">打卡景點</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路144號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">10:00–18:00 週一休</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="bdg bdg-ig">IG</span>
+        <span class="ce">🏯</span><div class="cn">花蓮將軍府1936</div>
+        <div class="cd">日式老宅文創景點，緊鄰美崙溪彷彿京都鴨川，夜晚燈光絕美。</div>
+        <div class="tags"><span class="tag ti2">夜拍聖地</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中正路622巷6號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">10:00–23:30</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="bdg bdg-free">免費</span>
+        <span class="ce">⛵</span><div class="cn">向日廣場 觀光漁港</div>
+        <div class="cd">每天太平洋第一道曙光在此升起，威尼斯海港建築，散步看海吹海風。</div>
+        <div class="tags"><span class="tag tf">免費</span><span class="tag tn">海景</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">觀光漁港周邊</span></div><div class="ir"><span class="ii">🕐</span><span class="it">全天開放</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="bdg bdg-free">免費</span>
+        <span class="ce">🚂</span><div class="cn">鐵道文化商圈</div>
+        <div class="cd">舊鐵路改建徒步區，地上留有舊鐵軌，原住民商店、文青小店，假日有街頭藝人。</div>
+        <div class="tags"><span class="tag tf">免費</span><span class="tag ti2">文青漫步</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">博愛街附近</span></div><div class="ir"><span class="ii">🕐</span><span class="it">全天開放</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="bdg bdg-free">免費</span>
+        <span class="ce">🌊</span><div class="cn">南濱 / 北濱公園</div>
+        <div class="cd">市區最近海岸，南濱3D海洋地景好拍，北濱兒童遊具親子友善。</div>
+        <div class="tags"><span class="tag tf">免費</span><span class="tag tn">海景</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">市區沿海</span></div><div class="ir"><span class="ii">🕐</span><span class="it">全天開放</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="ce">🦌</span><div class="cn">張家の樹園</div>
+        <div class="cd">梅花鹿、土撥鼠、狐獴都在這！門票$200可穿浴衣，彷彿置身奈良。</div>
+        <div class="tags"><span class="tag ti2">IG打卡</span><span class="tag tm">親子推薦</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">吉安鄉（車程5分）</span></div><div class="ir"><span class="ii">💰</span><span class="it">門票$200</span></div></div>
+      </div>
+
+      <div class="card play">
+        <span class="ce">🌸</span><div class="cn">松園別館</div>
+        <div class="cd">日治時期歷史建築，高大松樹下氣氛絕佳，眺望太平洋海景。</div>
+        <div class="tags"><span class="tag ti2">歷史景點</span><span class="tag tn">海景</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">美崙一街65號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">09:00–18:00</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 逛 -->
+  <div class="panel" id="hua-shop">
+    <div class="sec-hd"><span class="sec-label">🛍️ 逛街 · 伴手禮 · 文創</span><span class="sec-count">9 間</span></div>
+    <div class="grid">
+
+      <div class="card shop">
+        <span class="bdg bdg-must">必買</span>
+        <span class="ce">🍠</span><div class="cn">惠比須餅舖（花蓮薯）</div>
+        <div class="cd">花蓮薯創始店，鬆軟香甜保留地瓜纖維，日本天皇御用，最正統伴手禮。</div>
+        <div class="tags"><span class="tag tm">創始店</span><span class="tag tb">必買</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中山路340號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">09:00–21:00</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="bdg bdg-ig">IG</span>
+        <span class="ce">🍋</span><div class="cn">文旦復興</div>
+        <div class="cd">台灣唯一文旦伴手禮專賣，柚見花蓮薯人氣第一，日系文青店面超好拍。</div>
+        <div class="tags"><span class="tag ti2">IG文青</span><span class="tag tb">必買</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中山路（公正包子旁）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">10:00–19:00</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🥖</span><div class="cn">菩提餅舖（奶油酥條）</div>
+        <div class="cd">全台奶油酥條創始店！酥脆蛋奶香，每盒$150，蒜味、咖啡等口味可嘗鮮。</div>
+        <div class="tags"><span class="tag tm">創始店</span><span class="tag tb">必買</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">花蓮市區</span></div><div class="ir"><span class="ii">🕐</span><span class="it">09:00–21:00</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🌶️</span><div class="cn">花崗山剝皮辣椒</div>
+        <div class="cd">食尚玩家強推，在地辣椒口感清脆，線上團購等3-6個月，現場投幣機購買才有！</div>
+        <div class="tags"><span class="tag tb">必買</span><span class="tag ti2">超難搶</span></div>
+        <div class="ib"><div class="ir"><span class="ii">💡</span><span class="it">投幣機購買，帶保冷袋</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🍡</span><div class="cn">曾記麻糬</div>
+        <div class="cd">花蓮麻糬名店，外皮Q彈不黏牙，口味多元，車站旁就有門市，最方便的伴手禮。</div>
+        <div class="tags"><span class="tag to">老字號</span><span class="tag tb">必買</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">多家門市（近火車站）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">09:00–21:00</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🏺</span><div class="cn">文創園區假日市集</div>
+        <div class="cd">假日聚集在地職人、藝術家，手工藝文創商品應有盡有，還有DIY體驗，免門票。</div>
+        <div class="tags"><span class="tag tf">免費</span><span class="tag ti2">文創市集</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路144號</span></div><div class="ir"><span class="ii">🕐</span><span class="it">假日市集為主</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🛒</span><div class="cn">三中商圈</div>
+        <div class="cd">花蓮最熱鬧商圈（中華路、中正路、中山路），名產店、糕餅、服飾密集。</div>
+        <div class="tags"><span class="tag tb">逛街聖地</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">中華路・中正路・中山路</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🥐</span><div class="cn">找到了可頌小売所</div>
+        <div class="cd">超人氣可頌，每天只賣3.5小時常提早完售，楓糖、藍莓可頌必買！</div>
+        <div class="tags"><span class="tag ti2">IG排隊</span><span class="tag tb">限時搶</span></div>
+        <div class="ib"><div class="ir"><span class="ii">🕐</span><span class="it">僅3.5小時，常提早完售</span></div></div>
+      </div>
+
+      <div class="card shop">
+        <span class="ce">🎁</span><div class="cn">玩味蕃樂園</div>
+        <div class="cd">免門票！復古台灣老街景，火車車廂搬室內，可試吃花蓮各鄉鎮土產。</div>
+        <div class="tags"><span class="tag tf">免費入場</span><span class="tag ti2">打卡</span><span class="tag tb">試吃</span></div>
+        <div class="ib"><div class="ir"><span class="ii">📍</span><span class="it">新城鄉（近七星潭）</span></div><div class="ir"><span class="ii">🕐</span><span class="it">09:00–18:00</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer><p>🌊 花蓮市 · 好山好海好美食 🏔️</p><p style="margin-top:4px;">資料整理 2025–2026 · 出發前請確認各店最新營業時間</p></footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  // City card clicks
+  document.querySelectorAll('.city-card[data-city]').forEach(function(card) {
+    card.addEventListener('click', function() {
+      var city = this.getAttribute('data-city');
+      document.getElementById('city-select').style.display = 'none';
+      document.getElementById('luo-screen').classList.remove('visible');
+      document.getElementById('hua-screen').classList.remove('visible');
+      document.getElementById(city + '-screen').classList.add('visible');
+      window.scrollTo(0, 0);
+    });
+  });
+
+  // Back buttons
+  ['luo-back', 'hua-back'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener('click', function() {
+        document.getElementById('luo-screen').classList.remove('visible');
+        document.getElementById('hua-screen').classList.remove('visible');
+        document.getElementById('city-select').style.display = 'flex';
+        window.scrollTo(0, 0);
+      });
+    }
+  });
+
+  // Tab buttons
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var prefix = this.getAttribute('data-tab');
+      var id = this.getAttribute('data-id');
+      document.querySelectorAll('#' + prefix + '-tabs .tab-btn').forEach(function(b) {
+        b.classList.remove('on');
+      });
+      document.querySelectorAll('#' + prefix + '-screen .panel').forEach(function(p) {
+        p.classList.remove('on');
+      });
+      this.classList.add('on');
+      document.getElementById(prefix + '-' + id).classList.add('on');
+      document.querySelector('#' + prefix + '-screen .tabs').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+
+});
+</script>
+</body>
+</html>
