@@ -115,7 +115,9 @@ html,body{height:100%;font-family:'Noto Sans TC',sans-serif;background:#111;colo
 .bdg-new{background:#c0392b;color:#fff;}
 
 .ce{font-size:1.4rem;margin-bottom:5px;display:block;line-height:1;}
-.cn{font-family:'Noto Serif TC',serif;font-size:.88rem;font-weight:700;margin-bottom:2px;line-height:1.3;}
+.cn{font-family:'Noto Serif TC',serif;font-size:.88rem;font-weight:700;margin-bottom:2px;line-height:1.3;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.cn::after{content:'↗';font-size:.65rem;opacity:.45;font-family:sans-serif;font-weight:400;flex-shrink:0;}
+.cn:active{opacity:.7;}
 .luo-guide .cn{color:#ffcc44;}
 .hua-guide .cn{color:#7dd4fc;}
 .cd{font-size:.7rem;color:#ffffff88;line-height:1.6;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
@@ -665,6 +667,28 @@ document.addEventListener('DOMContentLoaded', function() {
         window.scrollTo(0, 0);
       });
     }
+  });
+
+  // Google Maps links for .cn (place names)
+  document.querySelectorAll('.card .cn').forEach(function(el) {
+    var card = el.closest('.card');
+    var name = el.textContent.trim();
+    var lat = card && card.getAttribute('data-lat');
+    var lng = card && card.getAttribute('data-lng');
+    var addrEl = card && card.querySelector('.it');
+    var addr = addrEl ? addrEl.textContent.trim() : '';
+    var url;
+    if (lat && lng) {
+      // Use coordinates + name for best accuracy
+      url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name + ' ' + addr) + '&ll=' + lat + ',' + lng;
+    } else {
+      url = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name + ' ' + addr + ' 台灣');
+    }
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      window.open(url, '_blank');
+    });
   });
 
   // Tab buttons
